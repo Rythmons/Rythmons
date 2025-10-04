@@ -1,0 +1,7 @@
+node_modules
+.turbo
+.alchemy
+.env
+docs/
+repomix-output.txt
+.vercel
