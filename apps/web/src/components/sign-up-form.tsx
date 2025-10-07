@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import z from "zod";
 import { authClient } from "@/lib/auth-client";
 import Loader from "./loader";
+import { GoogleAuthButton } from "./social-auth-button";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
@@ -32,7 +33,7 @@ export default function SignUpForm({
 				{
 					onSuccess: () => {
 						router.push("/dashboard");
-						toast.success("Sign up successful");
+						toast.success("Inscription réussie");
 					},
 					onError: (error) => {
 						toast.error(error.error.message || error.error.statusText);
@@ -42,9 +43,11 @@ export default function SignUpForm({
 		},
 		validators: {
 			onSubmit: z.object({
-				name: z.string().min(2, "Name must be at least 2 characters"),
-				email: z.email("Invalid email address"),
-				password: z.string().min(8, "Password must be at least 8 characters"),
+				name: z.string().min(2, "Le nom doit contenir au moins 2 caractères"),
+				email: z.email("Adresse e-mail invalide"),
+				password: z
+					.string()
+					.min(8, "Le mot de passe doit contenir au moins 8 caractères"),
 			}),
 		},
 	});
@@ -55,7 +58,18 @@ export default function SignUpForm({
 
 	return (
 		<div className="mx-auto mt-10 w-full max-w-md p-6">
-			<h1 className="mb-6 text-center font-bold text-3xl">Create Account</h1>
+			<h1 className="mb-6 text-center font-bold text-3xl">Créer un compte</h1>
+
+			<GoogleAuthButton action="sign-up" />
+
+			<div className="relative my-6">
+				<div className="absolute inset-0 flex items-center">
+					<span className="w-full border-border border-t" />
+				</div>
+				<div className="relative flex justify-center text-muted-foreground text-xs uppercase">
+					<span className="bg-background px-2">Ou continuer avec l’e-mail</span>
+				</div>
+			</div>
 
 			<form
 				onSubmit={(e) => {
@@ -69,7 +83,7 @@ export default function SignUpForm({
 					<form.Field name="name">
 						{(field) => (
 							<div className="space-y-2">
-								<Label htmlFor={field.name}>Name</Label>
+								<Label htmlFor={field.name}>Nom</Label>
 								<Input
 									id={field.name}
 									name={field.name}
@@ -91,7 +105,7 @@ export default function SignUpForm({
 					<form.Field name="email">
 						{(field) => (
 							<div className="space-y-2">
-								<Label htmlFor={field.name}>Email</Label>
+								<Label htmlFor={field.name}>E-mail</Label>
 								<Input
 									id={field.name}
 									name={field.name}
@@ -114,7 +128,7 @@ export default function SignUpForm({
 					<form.Field name="password">
 						{(field) => (
 							<div className="space-y-2">
-								<Label htmlFor={field.name}>Password</Label>
+								<Label htmlFor={field.name}>Mot de passe</Label>
 								<Input
 									id={field.name}
 									name={field.name}
@@ -140,7 +154,7 @@ export default function SignUpForm({
 							className="w-full"
 							disabled={!state.canSubmit || state.isSubmitting}
 						>
-							{state.isSubmitting ? "Submitting..." : "Sign Up"}
+							{state.isSubmitting ? "Envoi…" : "Inscription"}
 						</Button>
 					)}
 				</form.Subscribe>
@@ -152,7 +166,7 @@ export default function SignUpForm({
 					onClick={onSwitchToSignIn}
 					className="text-indigo-600 hover:text-indigo-800"
 				>
-					Already have an account? Sign In
+					Vous avez déjà un compte ? Connectez-vous
 				</Button>
 			</div>
 		</div>

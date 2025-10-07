@@ -4,7 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
 	return {
 		name: "Rythmons",
 		short_name: "Rythmons",
-		description: "my pwa app",
+		description: "Application PWA Rythmons",
 		start_url: "/new",
 		display: "standalone",
 		background_color: "#ffffff",
