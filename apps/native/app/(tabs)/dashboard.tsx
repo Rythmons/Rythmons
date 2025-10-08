@@ -1,20 +1,32 @@
 import { useQuery } from "@tanstack/react-query";
+import type { TRPCClientErrorLike } from "@trpc/client";
+import type { inferRouterOutputs } from "@trpc/server";
+import type { TRPCQueryKey } from "@trpc/tanstack-react-query";
 import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 
 import { Container } from "@/components/container";
 import { Loader } from "@/components/loader";
 import { authClient } from "@/lib/auth-client";
 import { useSignOut } from "@/lib/use-sign-out";
+import type { AppRouter } from "@/utils/trpc";
 import { trpc } from "@/utils/trpc";
+
+type PrivateDataResponse = inferRouterOutputs<AppRouter>["privateData"];
 
 export default function DashboardScreen() {
 	const { data: session, isPending } = authClient.useSession();
 
-	const privateDataQuery = useQuery({
-		...trpc.privateData.queryOptions(),
-		enabled: Boolean(session?.user),
-		refetchOnMount: "always",
-	});
+	const privateDataQuery = useQuery<
+		PrivateDataResponse,
+		TRPCClientErrorLike<AppRouter>,
+		PrivateDataResponse,
+		TRPCQueryKey
+	>(
+		trpc.privateData.queryOptions(undefined, {
+			enabled: Boolean(session?.user),
+			refetchOnMount: "always",
+		}),
+	);
 
 	const { signOut, isSigningOut } = useSignOut();
 
@@ -75,8 +87,7 @@ export default function DashboardScreen() {
 							</Text>
 						) : (
 							<Text className="text-muted-foreground">
-								{(privateDataQuery.data as { message?: string } | undefined)
-									?.message ?? ""}
+								{privateDataQuery.data?.message ?? ""}
 							</Text>
 						)}
 					</View>
