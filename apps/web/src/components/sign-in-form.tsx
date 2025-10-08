@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import z from "zod";
 import { authClient } from "@/lib/auth-client";
 import Loader from "./loader";
+import { GoogleAuthButton } from "./social-auth-button";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
@@ -36,7 +37,7 @@ export default function SignInForm({
 				},
 				{
 					onSuccess: async () => {
-						toast.success("Sign in successful");
+						toast.success("Connexion réussie");
 						// Wait for session to be set before redirecting
 						await new Promise((resolve) => setTimeout(resolve, 500));
 						router.push("/dashboard");
@@ -50,8 +51,10 @@ export default function SignInForm({
 		},
 		validators: {
 			onSubmit: z.object({
-				email: z.email("Invalid email address"),
-				password: z.string().min(8, "Password must be at least 8 characters"),
+				email: z.email("Adresse e-mail invalide"),
+				password: z
+					.string()
+					.min(8, "Le mot de passe doit contenir au moins 8 caractères"),
 			}),
 		},
 	});
@@ -67,7 +70,18 @@ export default function SignInForm({
 
 	return (
 		<div className="mx-auto mt-10 w-full max-w-md p-6">
-			<h1 className="mb-6 text-center font-bold text-3xl">Welcome Back</h1>
+			<h1 className="mb-6 text-center font-bold text-3xl">Bon retour</h1>
+
+			<GoogleAuthButton action="sign-in" />
+
+			<div className="relative my-6">
+				<div className="absolute inset-0 flex items-center">
+					<span className="w-full border-border border-t" />
+				</div>
+				<div className="relative flex justify-center text-muted-foreground text-xs uppercase">
+					<span className="bg-background px-2">Ou continuer avec l’e-mail</span>
+				</div>
+			</div>
 
 			<form
 				onSubmit={(e) => {
@@ -81,7 +95,7 @@ export default function SignInForm({
 					<form.Field name="email">
 						{(field) => (
 							<div className="space-y-2">
-								<Label htmlFor={field.name}>Email</Label>
+								<Label htmlFor={field.name}>E-mail</Label>
 								<Input
 									id={field.name}
 									name={field.name}
@@ -104,7 +118,7 @@ export default function SignInForm({
 					<form.Field name="password">
 						{(field) => (
 							<div className="space-y-2">
-								<Label htmlFor={field.name}>Password</Label>
+								<Label htmlFor={field.name}>Mot de passe</Label>
 								<Input
 									id={field.name}
 									name={field.name}
@@ -130,7 +144,7 @@ export default function SignInForm({
 							className="w-full"
 							disabled={!state.canSubmit || state.isSubmitting}
 						>
-							{state.isSubmitting ? "Submitting..." : "Sign In"}
+							{state.isSubmitting ? "Envoi…" : "Se connecter"}
 						</Button>
 					)}
 				</form.Subscribe>
@@ -142,7 +156,7 @@ export default function SignInForm({
 					onClick={onSwitchToSignUp}
 					className="text-indigo-600 hover:text-indigo-800"
 				>
-					Need an account? Sign Up
+					Besoin d’un compte ? Inscrivez-vous
 				</Button>
 			</div>
 		</div>
