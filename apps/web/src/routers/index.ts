@@ -6,7 +6,7 @@ export const appRouter = router({
 	}),
 	privateData: protectedProcedure.query(({ ctx }) => {
 		return {
-			message: "This is private",
+			message: "Message privé",
 			user: ctx.session.user,
 		};
 	}),

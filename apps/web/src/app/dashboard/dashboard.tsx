@@ -17,7 +17,7 @@ export default function Dashboard({
 	return (
 		<div className="space-y-2">
 			<p>Connecté en tant que {userDisplayName}</p>
-			<p>API: {privateMessage ?? ""}</p>
+			<p>Message de l’API : {privateMessage ?? ""}</p>
 		</div>
 	);
 }
