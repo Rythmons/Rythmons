@@ -2,6 +2,7 @@ import { QueryCache, QueryClient } from "@tanstack/react-query";
 import { createTRPCClient, httpBatchLink } from "@trpc/client";
 import { createTRPCOptionsProxy } from "@trpc/tanstack-react-query";
 import { toast } from "sonner";
+import type { AppRouter } from "../routers";
 export const queryClient = new QueryClient({
 	queryCache: new QueryCache({
 		onError: (error) => {
@@ -17,7 +18,7 @@ export const queryClient = new QueryClient({
 	}),
 });
 
-const trpcClient = createTRPCClient({
+const trpcClient = createTRPCClient<AppRouter>({
 	links: [
 		httpBatchLink({
 			// Use relative URL - no proxy needed in full-stack setup
@@ -32,7 +33,7 @@ const trpcClient = createTRPCClient({
 	],
 });
 
-export const trpc = createTRPCOptionsProxy({
+export const trpc = createTRPCOptionsProxy<AppRouter>({
 	client: trpcClient,
 	queryClient,
-}) as any;
+});

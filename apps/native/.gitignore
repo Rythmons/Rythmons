@@ -1,5 +1,4 @@
 node_modules/
-.expo/
 dist/
 npm-debug.*
 *.jks
@@ -9,14 +8,24 @@ npm-debug.*
 *.mobileprovision
 *.orig.*
 web-build/
-# expo router
+
+# Expo Router generated types
 expo-env.d.ts
 
+# Local environment files
 .env
 .cache
 
+# Native platform folders generated during prebuild
 ios
 android
+
+# IDE & tooling artifacts
+.idea/
+.vscode/
+
+# Expo CLI local state
+.expo/
 
 # macOS
 .DS_Store
