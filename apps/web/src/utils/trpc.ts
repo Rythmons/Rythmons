@@ -35,4 +35,4 @@ const trpcClient = createTRPCClient({
 export const trpc = createTRPCOptionsProxy({
 	client: trpcClient,
 	queryClient,
-}) as any;
+});
