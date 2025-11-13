@@ -10,13 +10,7 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 
-export default function SignInForm({
-	onSwitchToSignUp,
-	onSwitchToForgottenPassword,
-}: {
-	onSwitchToSignUp: () => void;
-	onSwitchToForgottenPassword: () => void;
-}) {
+export default function SignInForm() {
 	const router = useRouter();
 	const { isPending, data: session } = authClient.useSession();
 
@@ -28,33 +22,42 @@ export default function SignInForm({
 
 	const form = useForm({
 		defaultValues: {
-			email: "",
 			password: "",
+			passwordConfirm: "",
 		},
 		onSubmit: async ({ value }) => {
-			await authClient.signIn.email(
+			if (value.password !== value.passwordConfirm) {
+				toast.error("Les mots de passe ne correspondent pas");
+				return;
+			}
+			// Get token from URL
+			const urlParams = new URLSearchParams(window.location.search);
+			const token = urlParams.get("token");
+
+			await authClient.resetPassword(
 				{
-					email: value.email,
-					password: value.password,
+					token: token ?? undefined,
+					newPassword: value.password,
 				},
 				{
-					onSuccess: async () => {
-						toast.success("Connexion réussie");
-						// Wait for session to be set before redirecting
-						await new Promise((resolve) => setTimeout(resolve, 500));
-						router.push("/dashboard");
-						router.refresh();
+					onSuccess: () => {
+						toast.success("Mot de passe réinitialisé avec succès");
+						router.push("/login");
 					},
 					onError: (error) => {
-						toast.error(error.error.message || error.error.statusText);
+						toast.error(
+							error.error.message || "Erreur lors de la réinitialisation",
+						);
 					},
 				},
 			);
 		},
 		validators: {
 			onSubmit: z.object({
-				email: z.email("Adresse e-mail invalide"),
 				password: z
+					.string()
+					.min(8, "Le mot de passe doit contenir au moins 8 caractères"),
+				passwordConfirm: z
 					.string()
 					.min(8, "Le mot de passe doit contenir au moins 8 caractères"),
 			}),
@@ -72,19 +75,9 @@ export default function SignInForm({
 
 	return (
 		<div className="mx-auto mt-10 w-full max-w-md p-6">
-			<h1 className="mb-6 text-center font-bold text-3xl">Bon retour</h1>
-
-			<GoogleAuthButton action="sign-in" />
-
-			<div className="relative my-6">
-				<div className="absolute inset-0 flex items-center">
-					<span className="w-full border-border border-t" />
-				</div>
-				<div className="relative flex justify-center text-muted-foreground text-xs uppercase">
-					<span className="bg-background px-2">Ou continuer avec l’e-mail</span>
-				</div>
-			</div>
-
+			<h1 className="mb-6 text-center font-bold text-3xl">
+				Changement de mot de passe
+			</h1>
 			<form
 				onSubmit={(e) => {
 					e.preventDefault();
@@ -94,14 +87,14 @@ export default function SignInForm({
 				className="space-y-4"
 			>
 				<div>
-					<form.Field name="email">
+					<form.Field name="password">
 						{(field) => (
 							<div className="space-y-2">
-								<Label htmlFor={field.name}>E-mail</Label>
+								<Label htmlFor={field.name}>Nouveau mot de passe</Label>
 								<Input
 									id={field.name}
 									name={field.name}
-									type="email"
+									type="password"
 									value={field.state.value}
 									onBlur={field.handleBlur}
 									onChange={(e) => field.handleChange(e.target.value)}
@@ -114,13 +107,12 @@ export default function SignInForm({
 							</div>
 						)}
 					</form.Field>
-				</div>
-
-				<div>
-					<form.Field name="password">
+					<form.Field name="passwordConfirm">
 						{(field) => (
 							<div className="space-y-2">
-								<Label htmlFor={field.name}>Mot de passe</Label>
+								<Label htmlFor={field.name}>
+									Confirmer le nouveau mot de passe
+								</Label>
 								<Input
 									id={field.name}
 									name={field.name}
@@ -146,28 +138,11 @@ export default function SignInForm({
 							className="w-full"
 							disabled={!state.canSubmit || state.isSubmitting}
 						>
-							{state.isSubmitting ? "Envoi…" : "Se connecter"}
+							{state.isSubmitting ? "Envoi…" : "Modifier le mot de passe"}
 						</Button>
 					)}
 				</form.Subscribe>
 			</form>
-
-			<div className="mt-4 text-center">
-				<Button
-					variant="link"
-					onClick={onSwitchToSignUp}
-					className="text-indigo-600 hover:text-indigo-800"
-				>
-					Besoin d’un compte ? Inscrivez-vous
-				</Button>
-				<Button
-					variant="link"
-					onClick={onSwitchToForgottenPassword}
-					className="text-indigo-600 hover:text-indigo-800"
-				>
-					Mot de passe oublié ?
-				</Button>
-			</div>
 		</div>
 	);
 }

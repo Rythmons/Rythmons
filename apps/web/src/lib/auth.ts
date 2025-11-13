@@ -45,6 +45,21 @@ export const auth = betterAuth<BetterAuthOptions>({
 	trustedOrigins,
 	emailAndPassword: {
 		enabled: true,
+		sendResetPassword: async ({ user, token, url }) => {
+			// Send reset email to user
+			// You'll need to implement your email sending logic here
+			// Example using a service like Resend, SendGrid, etc.
+			console.log(
+				`Reset password URL for ${user.email}: ${url}/reset-password`,
+			);
+
+			// TODO: Replace with your actual email service
+			// await sendEmail({
+			//   to: user.email,
+			//   subject: "Reset your password",
+			//   html: `Click here to reset: <a href="${url}?token=${token}">Reset Password</a>`
+			// });
+		},
 	},
 	advanced: {
 		defaultCookieAttributes: {
