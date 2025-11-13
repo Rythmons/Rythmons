@@ -1,10 +1,10 @@
-import { QueryClient } from "@tanstack/react-query";
+import type { AppRouter } from "@rythmons/api";
+import { createQueryClient } from "@rythmons/api/client";
 import { createTRPCClient, httpBatchLink } from "@trpc/client";
 import { createTRPCOptionsProxy } from "@trpc/tanstack-react-query";
 import { authClient } from "@/lib/auth-client";
-import type { AppRouter } from "../../server/src/routers";
 
-export const queryClient = new QueryClient();
+export const queryClient = createQueryClient();
 
 const trpcClient = createTRPCClient<AppRouter>({
 	links: [

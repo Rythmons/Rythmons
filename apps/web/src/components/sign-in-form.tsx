@@ -1,9 +1,9 @@
+import { useAuth } from "@rythmons/auth/client";
+import { signInSchema } from "@rythmons/validation";
 import { useForm } from "@tanstack/react-form";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { toast } from "sonner";
-import z from "zod";
-import { authClient } from "@/lib/auth-client";
 import Loader from "./loader";
 import { GoogleAuthButton } from "./social-auth-button";
 import { Button } from "./ui/button";
@@ -16,6 +16,7 @@ export default function SignInForm({
 	onSwitchToSignUp: () => void;
 }) {
 	const router = useRouter();
+	const authClient = useAuth();
 	const { isPending, data: session } = authClient.useSession();
 
 	useEffect(() => {
@@ -50,12 +51,7 @@ export default function SignInForm({
 			);
 		},
 		validators: {
-			onSubmit: z.object({
-				email: z.email("Adresse e-mail invalide"),
-				password: z
-					.string()
-					.min(8, "Le mot de passe doit contenir au moins 8 caractères"),
-			}),
+			onSubmit: signInSchema,
 		},
 	});
 

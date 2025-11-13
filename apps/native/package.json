@@ -10,6 +10,9 @@
 		"web": "expo start --web"
 	},
 	"dependencies": {
+		"@rythmons/api": "workspace:*",
+		"@rythmons/auth": "workspace:*",
+		"@rythmons/validation": "workspace:*",
 		"@expo/vector-icons": "^15.0.2",
 		"@react-navigation/bottom-tabs": "^7.2.0",
 		"@react-navigation/drawer": "^7.1.1",
