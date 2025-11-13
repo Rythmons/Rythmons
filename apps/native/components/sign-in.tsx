@@ -1,3 +1,5 @@
+import { useAuth } from "@rythmons/auth/client";
+import { signInSchema } from "@rythmons/validation";
 import { useState } from "react";
 import {
 	ActivityIndicator,
@@ -6,10 +8,10 @@ import {
 	TouchableOpacity,
 	View,
 } from "react-native";
-import { authClient } from "@/lib/auth-client";
 import { queryClient } from "@/utils/trpc";
 
 export function SignIn() {
+	const authClient = useAuth();
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
 	const [isLoading, setIsLoading] = useState(false);
@@ -18,6 +20,15 @@ export function SignIn() {
 	const handleLogin = async () => {
 		setIsLoading(true);
 		setError(null);
+
+		// Validate input
+		const validation = signInSchema.safeParse({ email, password });
+		if (!validation.success) {
+			const firstError = validation.error.errors[0];
+			setError(firstError?.message || "Validation error");
+			setIsLoading(false);
+			return;
+		}
 
 		await authClient.signIn.email(
 			{

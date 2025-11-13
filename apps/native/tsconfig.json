@@ -13,9 +13,5 @@
 		"expo-env.d.ts",
 		"nativewind-env.d.ts"
 	],
-	"references": [
-		{
-			"path": "../server"
-		}
-	]
+	"exclude": ["node_modules"]
 }

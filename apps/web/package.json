@@ -5,15 +5,18 @@
 	"packageManager": "pnpm@10.18.0",
 	"scripts": {
 		"dev": "next dev --turbopack",
-		"build": "prisma generate && next build",
+		"build": "next build",
 		"start": "next start",
-		"postinstall": "prisma generate",
-		"db:push": "prisma db push",
-		"db:studio": "prisma studio",
-		"db:generate": "prisma generate",
-		"db:migrate": "prisma migrate dev"
+		"db:push": "prisma db push --schema=../../packages/db/prisma/schema.prisma",
+		"db:studio": "prisma studio --schema=../../packages/db/prisma/schema.prisma",
+		"db:generate": "prisma generate --schema=../../packages/db/prisma/schema.prisma",
+		"db:migrate": "prisma migrate dev --schema=../../packages/db/prisma/schema.prisma"
 	},
 	"dependencies": {
+		"@rythmons/api": "workspace:*",
+		"@rythmons/auth": "workspace:*",
+		"@rythmons/db": "workspace:*",
+		"@rythmons/validation": "workspace:*",
 		"next": "15.5.0",
 		"react": "19.1.0",
 		"react-dom": "19.1.0",
