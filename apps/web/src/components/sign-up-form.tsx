@@ -21,6 +21,7 @@ export default function SignUpForm({
 		defaultValues: {
 			email: "",
 			password: "",
+			passwordConfirmation: "",
 			name: "",
 		},
 		onSubmit: async ({ value }) => {
@@ -42,13 +43,48 @@ export default function SignUpForm({
 			);
 		},
 		validators: {
-			onSubmit: z.object({
-				name: z.string().min(2, "Le nom doit contenir au moins 2 caractères"),
-				email: z.email("Adresse e-mail invalide"),
-				password: z
-					.string()
-					.min(8, "Le mot de passe doit contenir au moins 8 caractères"),
-			}),
+			onSubmit: ({ value }) => {
+				const schema = z
+					.object({
+						name: z
+							.string()
+							.min(2, "Le nom doit contenir au moins 2 caractères"),
+						email: z.string().email("Adresse e-mail invalide"),
+						password: z
+							.string()
+							.min(8, "Le mot de passe doit contenir au moins 8 caractères")
+							.regex(
+								/[A-Z]/,
+								"Le mot de passe doit contenir au moins une majuscule",
+							)
+							.regex(
+								/[a-z]/,
+								"Le mot de passe doit contenir au moins une minuscule",
+							)
+							.regex(
+								/[0-9]/,
+								"Le mot de passe doit contenir au moins un chiffre",
+							)
+							.regex(
+								/[^A-Za-z0-9]/,
+								"Le mot de passe doit contenir au moins un caractère spécial",
+							),
+						passwordConfirmation: z.string(),
+					})
+					.refine((data) => data.password === data.passwordConfirmation, {
+						message: "Les mots de passe ne correspondent pas",
+						path: ["passwordConfirmation"],
+					});
+
+				try {
+					schema.parse(value);
+					return undefined;
+				} catch (error) {
+					if (error instanceof z.ZodError) {
+						return error.format();
+					}
+				}
+			},
 		},
 	});
 
@@ -91,11 +127,15 @@ export default function SignUpForm({
 									onBlur={field.handleBlur}
 									onChange={(e) => field.handleChange(e.target.value)}
 								/>
-								{field.state.meta.errors.map((error) => (
-									<p key={error?.message} className="text-red-500">
-										{error?.message}
-									</p>
-								))}
+								{field.state.meta.errors.length > 0 && (
+									<div className="space-y-1">
+										{field.state.meta.errors.map((error) => (
+											<p key={String(error)} className="text-red-500 text-sm">
+												{String(error)}
+											</p>
+										))}
+									</div>
+								)}
 							</div>
 						)}
 					</form.Field>
@@ -114,11 +154,15 @@ export default function SignUpForm({
 									onBlur={field.handleBlur}
 									onChange={(e) => field.handleChange(e.target.value)}
 								/>
-								{field.state.meta.errors.map((error) => (
-									<p key={error?.message} className="text-red-500">
-										{error?.message}
-									</p>
-								))}
+								{field.state.meta.errors.length > 0 && (
+									<div className="space-y-1">
+										{field.state.meta.errors.map((error) => (
+											<p key={String(error)} className="text-red-500 text-sm">
+												{String(error)}
+											</p>
+										))}
+									</div>
+								)}
 							</div>
 						)}
 					</form.Field>
@@ -137,11 +181,42 @@ export default function SignUpForm({
 									onBlur={field.handleBlur}
 									onChange={(e) => field.handleChange(e.target.value)}
 								/>
-								{field.state.meta.errors.map((error) => (
-									<p key={error?.message} className="text-red-500">
-										{error?.message}
-									</p>
-								))}
+								{field.state.meta.errors.length > 0 && (
+									<div className="space-y-1">
+										{field.state.meta.errors.map((error) => (
+											<p key={String(error)} className="text-red-500 text-sm">
+												{String(error)}
+											</p>
+										))}
+									</div>
+								)}
+							</div>
+						)}
+					</form.Field>
+				</div>
+
+				<div>
+					<form.Field name="passwordConfirmation">
+						{(field) => (
+							<div className="space-y-2">
+								<Label htmlFor={field.name}>Confirmation du mot de passe</Label>
+								<Input
+									id={field.name}
+									name={field.name}
+									type="password"
+									value={field.state.value}
+									onBlur={field.handleBlur}
+									onChange={(e) => field.handleChange(e.target.value)}
+								/>
+								{field.state.meta.errors.length > 0 && (
+									<div className="space-y-1">
+										{field.state.meta.errors.map((error) => (
+											<p key={String(error)} className="text-red-500 text-sm">
+												{String(error)}
+											</p>
+										))}
+									</div>
+								)}
 							</div>
 						)}
 					</form.Field>

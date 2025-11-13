@@ -40,7 +40,7 @@ export function GoogleAuthButton({ action }: SocialAuthButtonProps) {
 					},
 				},
 			);
-		} catch (error) {
+		} catch (_error) {
 			toast.error(
 				"La connexion à Google a échoué. Vérifiez votre connexion internet ou réessayez dans quelques instants.",
 			);
