@@ -1,26 +1,20 @@
+import type { Session } from "@rythmons/auth/types";
+
+export type { Session };
+
 export type Context = {
-	session:
-		| {
-				user: {
-					id: string;
-					name: string;
-					email: string;
-					emailVerified: boolean;
-					image?: string | null;
-					createdAt: Date;
-					updatedAt: Date;
-				};
-				session: {
-					id: string;
-					expiresAt: Date;
-					token: string;
-					createdAt: Date;
-					updatedAt: Date;
-					ipAddress?: string | null;
-					userAgent?: string | null;
-					userId: string;
-				};
-		  }
-		| null
-		| undefined;
+	session: Session | null | undefined;
 };
+
+export interface CreateContextOptions {
+	getSession: () => Promise<Session | null | undefined>;
+}
+
+export async function createContext(
+	options: CreateContextOptions,
+): Promise<Context> {
+	const session = await options.getSession();
+	return {
+		session,
+	};
+}

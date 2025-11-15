@@ -4,11 +4,9 @@ import { expo } from "@better-auth/expo";
 import { db } from "@rythmons/db";
 import { type BetterAuthOptions, betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
+import { parseCorsOrigins } from "./utils";
 
-const trustedOriginsFromEnv = (process.env.CORS_ORIGIN || "")
-	.split(",")
-	.map((origin) => origin.trim())
-	.filter(Boolean);
+const trustedOriginsFromEnv = parseCorsOrigins(process.env.CORS_ORIGIN || "");
 
 const googleProviderConfig =
 	process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET

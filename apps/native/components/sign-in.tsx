@@ -1,5 +1,4 @@
-import { useAuth } from "@rythmons/auth/client";
-import { signInSchema } from "@rythmons/validation";
+import { useAuth, useSignIn } from "@rythmons/auth/client";
 import { useState } from "react";
 import {
 	ActivityIndicator,
@@ -14,39 +13,16 @@ export function SignIn() {
 	const authClient = useAuth();
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
-	const [isLoading, setIsLoading] = useState(false);
-	const [error, setError] = useState<string | null>(null);
+	const { signIn, isLoading, error } = useSignIn(authClient);
 
 	const handleLogin = async () => {
-		setIsLoading(true);
-		setError(null);
-
-		// Validate input
-		const validation = signInSchema.safeParse({ email, password });
-		if (!validation.success) {
-			const firstError = validation.error.errors[0];
-			setError(firstError?.message || "Validation error");
-			setIsLoading(false);
-			return;
-		}
-
-		await authClient.signIn.email(
+		await signIn(
+			{ email, password },
 			{
-				email,
-				password,
-			},
-			{
-				onError: (error) => {
-					setError(error.error?.message || "Failed to sign in");
-					setIsLoading(false);
-				},
 				onSuccess: () => {
 					setEmail("");
 					setPassword("");
 					queryClient.refetchQueries();
-				},
-				onFinished: () => {
-					setIsLoading(false);
 				},
 			},
 		);
