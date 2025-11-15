@@ -1,5 +1,4 @@
-import { useAuth } from "@rythmons/auth/client";
-import { signUpSchema } from "@rythmons/validation";
+import { useAuth, useSignUp } from "@rythmons/auth/client";
 import { useForm } from "@tanstack/react-form";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -17,6 +16,7 @@ export default function SignUpForm({
 	const router = useRouter();
 	const authClient = useAuth();
 	const { isPending } = authClient.useSession();
+	const { signUp, isLoading: isSigningUp } = useSignUp(authClient);
 
 	const form = useForm({
 		defaultValues: {
@@ -25,25 +25,15 @@ export default function SignUpForm({
 			name: "",
 		},
 		onSubmit: async ({ value }) => {
-			await authClient.signUp.email(
-				{
-					email: value.email,
-					password: value.password,
-					name: value.name,
+			await signUp(value, {
+				onSuccess: () => {
+					router.push("/dashboard");
+					toast.success("Inscription réussie");
 				},
-				{
-					onSuccess: () => {
-						router.push("/dashboard");
-						toast.success("Inscription réussie");
-					},
-					onError: (error) => {
-						toast.error(error.error.message || error.error.statusText);
-					},
+				onError: (error) => {
+					toast.error(error);
 				},
-			);
-		},
-		validators: {
-			onSubmit: signUpSchema,
+			});
 		},
 	});
 
@@ -86,11 +76,6 @@ export default function SignUpForm({
 									onBlur={field.handleBlur}
 									onChange={(e) => field.handleChange(e.target.value)}
 								/>
-								{field.state.meta.errors.map((error) => (
-									<p key={error?.message} className="text-red-500">
-										{error?.message}
-									</p>
-								))}
 							</div>
 						)}
 					</form.Field>
@@ -109,11 +94,6 @@ export default function SignUpForm({
 									onBlur={field.handleBlur}
 									onChange={(e) => field.handleChange(e.target.value)}
 								/>
-								{field.state.meta.errors.map((error) => (
-									<p key={error?.message} className="text-red-500">
-										{error?.message}
-									</p>
-								))}
 							</div>
 						)}
 					</form.Field>
@@ -132,27 +112,14 @@ export default function SignUpForm({
 									onBlur={field.handleBlur}
 									onChange={(e) => field.handleChange(e.target.value)}
 								/>
-								{field.state.meta.errors.map((error) => (
-									<p key={error?.message} className="text-red-500">
-										{error?.message}
-									</p>
-								))}
 							</div>
 						)}
 					</form.Field>
 				</div>
 
-				<form.Subscribe>
-					{(state) => (
-						<Button
-							type="submit"
-							className="w-full"
-							disabled={!state.canSubmit || state.isSubmitting}
-						>
-							{state.isSubmitting ? "Envoi…" : "Inscription"}
-						</Button>
-					)}
-				</form.Subscribe>
+				<Button type="submit" className="w-full" disabled={isSigningUp}>
+					{isSigningUp ? "Envoi…" : "Inscription"}
+				</Button>
 			</form>
 
 			<div className="mt-4 text-center">

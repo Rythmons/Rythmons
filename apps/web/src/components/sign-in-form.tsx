@@ -1,5 +1,4 @@
-import { useAuth } from "@rythmons/auth/client";
-import { signInSchema } from "@rythmons/validation";
+import { useAuth, useSignIn } from "@rythmons/auth/client";
 import { useForm } from "@tanstack/react-form";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
@@ -18,6 +17,7 @@ export default function SignInForm({
 	const router = useRouter();
 	const authClient = useAuth();
 	const { isPending, data: session } = authClient.useSession();
+	const { signIn, isLoading: isSigningIn } = useSignIn(authClient);
 
 	useEffect(() => {
 		if (session?.user) {
@@ -31,27 +31,18 @@ export default function SignInForm({
 			password: "",
 		},
 		onSubmit: async ({ value }) => {
-			await authClient.signIn.email(
-				{
-					email: value.email,
-					password: value.password,
+			await signIn(value, {
+				onSuccess: async () => {
+					toast.success("Connexion réussie");
+					// Wait for session to be set before redirecting
+					await new Promise((resolve) => setTimeout(resolve, 500));
+					router.push("/dashboard");
+					router.refresh();
 				},
-				{
-					onSuccess: async () => {
-						toast.success("Connexion réussie");
-						// Wait for session to be set before redirecting
-						await new Promise((resolve) => setTimeout(resolve, 500));
-						router.push("/dashboard");
-						router.refresh();
-					},
-					onError: (error) => {
-						toast.error(error.error.message || error.error.statusText);
-					},
+				onError: (error) => {
+					toast.error(error);
 				},
-			);
-		},
-		validators: {
-			onSubmit: signInSchema,
+			});
 		},
 	});
 
@@ -100,11 +91,6 @@ export default function SignInForm({
 									onBlur={field.handleBlur}
 									onChange={(e) => field.handleChange(e.target.value)}
 								/>
-								{field.state.meta.errors.map((error) => (
-									<p key={error?.message} className="text-red-500">
-										{error?.message}
-									</p>
-								))}
 							</div>
 						)}
 					</form.Field>
@@ -123,27 +109,14 @@ export default function SignInForm({
 									onBlur={field.handleBlur}
 									onChange={(e) => field.handleChange(e.target.value)}
 								/>
-								{field.state.meta.errors.map((error) => (
-									<p key={error?.message} className="text-red-500">
-										{error?.message}
-									</p>
-								))}
 							</div>
 						)}
 					</form.Field>
 				</div>
 
-				<form.Subscribe>
-					{(state) => (
-						<Button
-							type="submit"
-							className="w-full"
-							disabled={!state.canSubmit || state.isSubmitting}
-						>
-							{state.isSubmitting ? "Envoi…" : "Se connecter"}
-						</Button>
-					)}
-				</form.Subscribe>
+				<Button type="submit" className="w-full" disabled={isSigningIn}>
+					{isSigningIn ? "Envoi…" : "Se connecter"}
+				</Button>
 			</form>
 
 			<div className="mt-4 text-center">

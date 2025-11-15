@@ -1,15 +1,12 @@
-import type { AppRouter } from "@rythmons/api";
-import { createQueryClient } from "@rythmons/api/client";
-import { createTRPCClient, httpBatchLink } from "@trpc/client";
-import { createTRPCOptionsProxy } from "@trpc/tanstack-react-query";
+import {
+	createQueryClient,
+	createTRPCClient,
+	createTRPCProxy,
+} from "@rythmons/api/client";
 import { toast } from "sonner";
 
-export const queryClient = createQueryClient();
-
-// Add error handling to query cache
-queryClient.getQueryCache().config = {
-	...queryClient.getQueryCache().config,
-	onError: (error) => {
+export const queryClient = createQueryClient({
+	onError: (error: Error) => {
 		toast.error(error.message, {
 			action: {
 				label: "retry",
@@ -19,23 +16,16 @@ queryClient.getQueryCache().config = {
 			},
 		});
 	},
-};
-
-const trpcClient = createTRPCClient<AppRouter>({
-	links: [
-		httpBatchLink({
-			url: typeof window !== "undefined" ? "/trpc" : "/trpc",
-			fetch(url, options) {
-				return fetch(url, {
-					...options,
-					credentials: "include",
-				});
-			},
-		}),
-	],
 });
 
-export const trpc = createTRPCOptionsProxy<AppRouter>({
-	client: trpcClient,
-	queryClient,
+const trpcClient = createTRPCClient({
+	url: typeof window !== "undefined" ? "/trpc" : "/trpc",
+	fetch(url, options) {
+		return fetch(url, {
+			...options,
+			credentials: "include",
+		});
+	},
 });
+
+export const trpc = createTRPCProxy(trpcClient, queryClient);

@@ -1,32 +1,9 @@
 "use client";
+import type { Session } from "@rythmons/auth/types";
 import { useQuery } from "@tanstack/react-query";
 import { trpc } from "@/utils/trpc";
 
-export default function Dashboard({
-	session,
-}: {
-	session: {
-		user: {
-			id: string;
-			name: string;
-			email: string;
-			emailVerified: boolean;
-			image?: string | null;
-			createdAt: Date;
-			updatedAt: Date;
-		};
-		session: {
-			id: string;
-			expiresAt: Date;
-			token: string;
-			createdAt: Date;
-			updatedAt: Date;
-			ipAddress?: string | null;
-			userAgent?: string | null;
-			userId: string;
-		};
-	};
-}) {
+export default function Dashboard({ session }: { session: Session }) {
 	const privateData = useQuery(trpc.privateData.queryOptions());
 	const privateMessage = (privateData.data as { message?: string } | undefined)
 		?.message;

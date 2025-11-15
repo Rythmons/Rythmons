@@ -1,9 +1,7 @@
+import { parseCorsOrigins } from "@rythmons/auth/utils";
 import { type NextRequest, NextResponse } from "next/server";
 
-const allowedOrigins = (process.env.CORS_ORIGIN || "")
-	.split(",")
-	.map((origin) => origin.trim())
-	.filter(Boolean);
+const allowedOrigins = parseCorsOrigins(process.env.CORS_ORIGIN || "");
 
 export function middleware(request: NextRequest) {
 	const response = NextResponse.next();
