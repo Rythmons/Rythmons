@@ -1,5 +1,4 @@
-import { useAuth, useSignUp } from "@rythmons/auth/client";
-import { useForm } from "@tanstack/react-form";
+import { useAuth, useSignUpForm } from "@rythmons/auth/client";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import Loader from "./loader";
@@ -16,24 +15,14 @@ export default function SignUpForm({
 	const router = useRouter();
 	const authClient = useAuth();
 	const { isPending } = authClient.useSession();
-	const { signUp, isLoading: isSigningUp } = useSignUp(authClient);
 
-	const form = useForm({
-		defaultValues: {
-			email: "",
-			password: "",
-			name: "",
+	const { form, isLoading: isSigningUp } = useSignUpForm({
+		onSuccess: () => {
+			router.push("/dashboard");
+			toast.success("Inscription réussie");
 		},
-		onSubmit: async ({ value }) => {
-			await signUp(value, {
-				onSuccess: () => {
-					router.push("/dashboard");
-					toast.success("Inscription réussie");
-				},
-				onError: (error) => {
-					toast.error(error);
-				},
-			});
+		onError: (error) => {
+			toast.error(error);
 		},
 	});
 
@@ -76,6 +65,11 @@ export default function SignUpForm({
 									onBlur={field.handleBlur}
 									onChange={(e) => field.handleChange(e.target.value)}
 								/>
+								{field.state.meta.errors.length > 0 && (
+									<p className="text-destructive text-sm">
+										{String(field.state.meta.errors[0])}
+									</p>
+								)}
 							</div>
 						)}
 					</form.Field>
@@ -94,6 +88,11 @@ export default function SignUpForm({
 									onBlur={field.handleBlur}
 									onChange={(e) => field.handleChange(e.target.value)}
 								/>
+								{field.state.meta.errors.length > 0 && (
+									<p className="text-destructive text-sm">
+										{String(field.state.meta.errors[0])}
+									</p>
+								)}
 							</div>
 						)}
 					</form.Field>
@@ -112,6 +111,11 @@ export default function SignUpForm({
 									onBlur={field.handleBlur}
 									onChange={(e) => field.handleChange(e.target.value)}
 								/>
+								{field.state.meta.errors.length > 0 && (
+									<p className="text-destructive text-sm">
+										{String(field.state.meta.errors[0])}
+									</p>
+								)}
 							</div>
 						)}
 					</form.Field>

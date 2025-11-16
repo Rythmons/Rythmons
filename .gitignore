@@ -4,5 +4,8 @@ node_modules
 .env
 docs/
 repomix-output.txt
+repomix-output.xml
 .vercel
 dist
+*.tsbuildinfo
+**/*.tsbuildinfo

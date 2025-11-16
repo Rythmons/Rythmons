@@ -1,5 +1,4 @@
-import { useAuth, useSignIn } from "@rythmons/auth/client";
-import { useForm } from "@tanstack/react-form";
+import { useAuth, useSignInForm } from "@rythmons/auth/client";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { toast } from "sonner";
@@ -17,7 +16,6 @@ export default function SignInForm({
 	const router = useRouter();
 	const authClient = useAuth();
 	const { isPending, data: session } = authClient.useSession();
-	const { signIn, isLoading: isSigningIn } = useSignIn(authClient);
 
 	useEffect(() => {
 		if (session?.user) {
@@ -25,24 +23,16 @@ export default function SignInForm({
 		}
 	}, [session?.user, router]);
 
-	const form = useForm({
-		defaultValues: {
-			email: "",
-			password: "",
+	const { form, isLoading: isSigningIn } = useSignInForm({
+		onSuccess: async () => {
+			toast.success("Connexion réussie");
+			// Wait for session to be set before redirecting
+			await new Promise((resolve) => setTimeout(resolve, 500));
+			router.push("/dashboard");
+			router.refresh();
 		},
-		onSubmit: async ({ value }) => {
-			await signIn(value, {
-				onSuccess: async () => {
-					toast.success("Connexion réussie");
-					// Wait for session to be set before redirecting
-					await new Promise((resolve) => setTimeout(resolve, 500));
-					router.push("/dashboard");
-					router.refresh();
-				},
-				onError: (error) => {
-					toast.error(error);
-				},
-			});
+		onError: (error) => {
+			toast.error(error);
 		},
 	});
 
@@ -91,6 +81,11 @@ export default function SignInForm({
 									onBlur={field.handleBlur}
 									onChange={(e) => field.handleChange(e.target.value)}
 								/>
+								{field.state.meta.errors.length > 0 && (
+									<p className="text-destructive text-sm">
+										{String(field.state.meta.errors[0])}
+									</p>
+								)}
 							</div>
 						)}
 					</form.Field>
@@ -109,6 +104,11 @@ export default function SignInForm({
 									onBlur={field.handleBlur}
 									onChange={(e) => field.handleChange(e.target.value)}
 								/>
+								{field.state.meta.errors.length > 0 && (
+									<p className="text-destructive text-sm">
+										{String(field.state.meta.errors[0])}
+									</p>
+								)}
 							</div>
 						)}
 					</form.Field>

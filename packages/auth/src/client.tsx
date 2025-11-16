@@ -2,6 +2,7 @@
 
 import type { SignInInput, SignUpInput } from "@rythmons/validation";
 import { signInSchema, signUpSchema } from "@rythmons/validation";
+import { useForm } from "@tanstack/react-form";
 import type { BetterAuthClientPlugin } from "better-auth/client";
 import { createAuthClient } from "better-auth/react";
 import { createContext, type ReactNode, useContext, useState } from "react";
@@ -154,4 +155,95 @@ export function useSignUp(authClient: AuthClient) {
 	);
 
 	return { signUp: execute, isLoading, error };
+}
+
+// ============================================================================
+// Shared Form Hooks with Validation
+// ============================================================================
+
+/**
+ * Shared hook for sign-in form with TanStack Form and Zod validation.
+ * This hook provides form state management, validation, and submission logic
+ * that can be used in both web and native applications.
+ *
+ * @param callbacks - Optional callbacks for success, error, and finished states
+ * @returns An object containing the form instance and loading state
+ *
+ * @example
+ * ```tsx
+ * const { form, isLoading } = useSignInForm({
+ *   onSuccess: () => router.push("/dashboard"),
+ *   onError: (error) => toast.error(error),
+ * });
+ *
+ * // In your component:
+ * <form.Provider>
+ *   <form.Field name="email">
+ *     {(field) => <input {...field} />}
+ *   </form.Field>
+ * </form.Provider>
+ * ```
+ */
+export function useSignInForm(callbacks?: AuthActionCallbacks) {
+	const authClient = useAuth();
+	const { signIn, isLoading } = useSignIn(authClient);
+
+	const form = useForm({
+		defaultValues: {
+			email: "",
+			password: "",
+		},
+		validators: {
+			onChange: signInSchema,
+		},
+		onSubmit: async ({ value }) => {
+			await signIn(value, callbacks);
+		},
+	});
+
+	return { form, isLoading };
+}
+
+/**
+ * Shared hook for sign-up form with TanStack Form and Zod validation.
+ * This hook provides form state management, validation, and submission logic
+ * that can be used in both web and native applications.
+ *
+ * @param callbacks - Optional callbacks for success, error, and finished states
+ * @returns An object containing the form instance and loading state
+ *
+ * @example
+ * ```tsx
+ * const { form, isLoading } = useSignUpForm({
+ *   onSuccess: () => router.push("/dashboard"),
+ *   onError: (error) => toast.error(error),
+ * });
+ *
+ * // In your component:
+ * <form.Provider>
+ *   <form.Field name="name">
+ *     {(field) => <input {...field} />}
+ *   </form.Field>
+ * </form.Provider>
+ * ```
+ */
+export function useSignUpForm(callbacks?: AuthActionCallbacks) {
+	const authClient = useAuth();
+	const { signUp, isLoading } = useSignUp(authClient);
+
+	const form = useForm({
+		defaultValues: {
+			name: "",
+			email: "",
+			password: "",
+		},
+		validators: {
+			onChange: signUpSchema,
+		},
+		onSubmit: async ({ value }) => {
+			await signUp(value, callbacks);
+		},
+	});
+
+	return { form, isLoading };
 }
