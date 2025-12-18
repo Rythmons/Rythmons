@@ -1,8 +1,6 @@
-import { useForm } from "@tanstack/react-form";
+import { useAuth, useSignUpForm } from "@rythmons/auth/client";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import z from "zod";
-import { authClient } from "@/lib/auth-client";
 import Loader from "./loader";
 import { GoogleAuthButton } from "./social-auth-button";
 import { Button } from "./ui/button";
@@ -15,40 +13,16 @@ export default function SignUpForm({
 	onSwitchToSignIn: () => void;
 }) {
 	const router = useRouter();
+	const authClient = useAuth();
 	const { isPending } = authClient.useSession();
 
-	const form = useForm({
-		defaultValues: {
-			email: "",
-			password: "",
-			name: "",
+	const { form, isLoading: isSigningUp } = useSignUpForm({
+		onSuccess: () => {
+			router.push("/dashboard");
+			toast.success("Inscription réussie");
 		},
-		onSubmit: async ({ value }) => {
-			await authClient.signUp.email(
-				{
-					email: value.email,
-					password: value.password,
-					name: value.name,
-				},
-				{
-					onSuccess: () => {
-						router.push("/dashboard");
-						toast.success("Inscription réussie");
-					},
-					onError: (error) => {
-						toast.error(error.error.message || error.error.statusText);
-					},
-				},
-			);
-		},
-		validators: {
-			onSubmit: z.object({
-				name: z.string().min(2, "Le nom doit contenir au moins 2 caractères"),
-				email: z.email("Adresse e-mail invalide"),
-				password: z
-					.string()
-					.min(8, "Le mot de passe doit contenir au moins 8 caractères"),
-			}),
+		onError: (error) => {
+			toast.error(error);
 		},
 	});
 
@@ -91,11 +65,11 @@ export default function SignUpForm({
 									onBlur={field.handleBlur}
 									onChange={(e) => field.handleChange(e.target.value)}
 								/>
-								{field.state.meta.errors.map((error) => (
-									<p key={error?.message} className="text-red-500">
-										{error?.message}
+								{field.state.meta.errors.length > 0 && (
+									<p className="text-destructive text-sm">
+										{String(field.state.meta.errors[0])}
 									</p>
-								))}
+								)}
 							</div>
 						)}
 					</form.Field>
@@ -114,11 +88,11 @@ export default function SignUpForm({
 									onBlur={field.handleBlur}
 									onChange={(e) => field.handleChange(e.target.value)}
 								/>
-								{field.state.meta.errors.map((error) => (
-									<p key={error?.message} className="text-red-500">
-										{error?.message}
+								{field.state.meta.errors.length > 0 && (
+									<p className="text-destructive text-sm">
+										{String(field.state.meta.errors[0])}
 									</p>
-								))}
+								)}
 							</div>
 						)}
 					</form.Field>
@@ -137,27 +111,19 @@ export default function SignUpForm({
 									onBlur={field.handleBlur}
 									onChange={(e) => field.handleChange(e.target.value)}
 								/>
-								{field.state.meta.errors.map((error) => (
-									<p key={error?.message} className="text-red-500">
-										{error?.message}
+								{field.state.meta.errors.length > 0 && (
+									<p className="text-destructive text-sm">
+										{String(field.state.meta.errors[0])}
 									</p>
-								))}
+								)}
 							</div>
 						)}
 					</form.Field>
 				</div>
 
-				<form.Subscribe>
-					{(state) => (
-						<Button
-							type="submit"
-							className="w-full"
-							disabled={!state.canSubmit || state.isSubmitting}
-						>
-							{state.isSubmitting ? "Envoi…" : "Inscription"}
-						</Button>
-					)}
-				</form.Subscribe>
+				<Button type="submit" className="w-full" disabled={isSigningUp}>
+					{isSigningUp ? "Envoi…" : "Inscription"}
+				</Button>
 			</form>
 
 			<div className="mt-4 text-center">
