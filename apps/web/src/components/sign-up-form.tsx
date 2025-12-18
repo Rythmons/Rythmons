@@ -1,8 +1,6 @@
-import { useForm } from "@tanstack/react-form";
+import { useAuth, useSignUpForm } from "@rythmons/auth/client";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import z from "zod";
-import { authClient } from "@/lib/auth-client";
 import Loader from "./loader";
 import { GoogleAuthButton } from "./social-auth-button";
 import { Button } from "./ui/button";
@@ -15,76 +13,16 @@ export default function SignUpForm({
 	onSwitchToSignIn: () => void;
 }) {
 	const router = useRouter();
+	const authClient = useAuth();
 	const { isPending } = authClient.useSession();
 
-	const form = useForm({
-		defaultValues: {
-			email: "",
-			password: "",
-			passwordConfirmation: "",
-			name: "",
+	const { form, isLoading: isSigningUp } = useSignUpForm({
+		onSuccess: () => {
+			router.push("/dashboard");
+			toast.success("Inscription réussie");
 		},
-		onSubmit: async ({ value }) => {
-			await authClient.signUp.email(
-				{
-					email: value.email,
-					password: value.password,
-					name: value.name,
-				},
-				{
-					onSuccess: () => {
-						router.push("/dashboard");
-						toast.success("Inscription réussie");
-					},
-					onError: (error) => {
-						toast.error(error.error.message || error.error.statusText);
-					},
-				},
-			);
-		},
-		validators: {
-			onSubmit: ({ value }) => {
-				const schema = z
-					.object({
-						name: z
-							.string()
-							.min(2, "Le nom doit contenir au moins 2 caractères"),
-						email: z.string().email("Adresse e-mail invalide"),
-						password: z
-							.string()
-							.min(8, "Le mot de passe doit contenir au moins 8 caractères")
-							.regex(
-								/[A-Z]/,
-								"Le mot de passe doit contenir au moins une majuscule",
-							)
-							.regex(
-								/[a-z]/,
-								"Le mot de passe doit contenir au moins une minuscule",
-							)
-							.regex(
-								/[0-9]/,
-								"Le mot de passe doit contenir au moins un chiffre",
-							)
-							.regex(
-								/[^A-Za-z0-9]/,
-								"Le mot de passe doit contenir au moins un caractère spécial",
-							),
-						passwordConfirmation: z.string(),
-					})
-					.refine((data) => data.password === data.passwordConfirmation, {
-						message: "Les mots de passe ne correspondent pas",
-						path: ["passwordConfirmation"],
-					});
-
-				try {
-					schema.parse(value);
-					return undefined;
-				} catch (error) {
-					if (error instanceof z.ZodError) {
-						return error.format();
-					}
-				}
-			},
+		onError: (error) => {
+			toast.error(error);
 		},
 	});
 
@@ -128,13 +66,9 @@ export default function SignUpForm({
 									onChange={(e) => field.handleChange(e.target.value)}
 								/>
 								{field.state.meta.errors.length > 0 && (
-									<div className="space-y-1">
-										{field.state.meta.errors.map((error) => (
-											<p key={String(error)} className="text-red-500 text-sm">
-												{String(error)}
-											</p>
-										))}
-									</div>
+									<p className="text-destructive text-sm">
+										{String(field.state.meta.errors[0])}
+									</p>
 								)}
 							</div>
 						)}
@@ -155,13 +89,9 @@ export default function SignUpForm({
 									onChange={(e) => field.handleChange(e.target.value)}
 								/>
 								{field.state.meta.errors.length > 0 && (
-									<div className="space-y-1">
-										{field.state.meta.errors.map((error) => (
-											<p key={String(error)} className="text-red-500 text-sm">
-												{String(error)}
-											</p>
-										))}
-									</div>
+									<p className="text-destructive text-sm">
+										{String(field.state.meta.errors[0])}
+									</p>
 								)}
 							</div>
 						)}
@@ -184,7 +114,10 @@ export default function SignUpForm({
 								{field.state.meta.errors.length > 0 && (
 									<div className="space-y-1">
 										{field.state.meta.errors.map((error) => (
-											<p key={String(error)} className="text-red-500 text-sm">
+											<p
+												key={String(error)}
+												className="text-destructive text-sm"
+											>
 												{String(error)}
 											</p>
 										))}
@@ -209,30 +142,18 @@ export default function SignUpForm({
 									onChange={(e) => field.handleChange(e.target.value)}
 								/>
 								{field.state.meta.errors.length > 0 && (
-									<div className="space-y-1">
-										{field.state.meta.errors.map((error) => (
-											<p key={String(error)} className="text-red-500 text-sm">
-												{String(error)}
-											</p>
-										))}
-									</div>
+									<p className="text-destructive text-sm">
+										{String(field.state.meta.errors[0])}
+									</p>
 								)}
 							</div>
 						)}
 					</form.Field>
 				</div>
 
-				<form.Subscribe>
-					{(state) => (
-						<Button
-							type="submit"
-							className="w-full"
-							disabled={!state.canSubmit || state.isSubmitting}
-						>
-							{state.isSubmitting ? "Envoi…" : "Inscription"}
-						</Button>
-					)}
-				</form.Subscribe>
+				<Button type="submit" className="w-full" disabled={isSigningUp}>
+					{isSigningUp ? "Envoi…" : "Inscription"}
+				</Button>
 			</form>
 
 			<div className="mt-4 text-center">

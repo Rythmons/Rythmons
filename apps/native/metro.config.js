@@ -4,13 +4,26 @@ const { FileStore } = require("metro-cache");
 const { withNativeWind } = require("nativewind/metro");
 const path = require("node:path");
 
+const projectRoot = __dirname;
+const workspaceRoot = path.resolve(projectRoot, "../..");
+
 const config = withTurborepoManagedCache(
-	withNativeWind(getDefaultConfig(__dirname), {
+	withNativeWind(getDefaultConfig(projectRoot), {
 		input: "./global.css",
 		configPath: "./tailwind.config.js",
 	}),
 );
 
+// Watch all files in workspace
+config.watchFolders = [workspaceRoot];
+
+// Resolve modules from workspace root
+config.resolver.nodeModulesPaths = [
+	path.resolve(projectRoot, "node_modules"),
+	path.resolve(workspaceRoot, "node_modules"),
+];
+
+// Enable package exports
 config.resolver.unstable_enablePackageExports = true;
 
 module.exports = config;
