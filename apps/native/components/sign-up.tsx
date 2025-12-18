@@ -18,14 +18,14 @@ export function SignUp() {
 	return (
 		<View className="mt-6 rounded-lg border border-border bg-card p-4">
 			<Text className="mb-4 font-semibold text-foreground text-lg">
-				Create Account
+				Créer un compte
 			</Text>
 			<form.Field name="name">
 				{(field) => (
 					<View className="mb-3">
 						<TextInput
 							className="rounded-md border border-input bg-input p-4 text-foreground"
-							placeholder="Name"
+							placeholder="Nom"
 							value={field.state.value}
 							onChangeText={field.handleChange}
 							onBlur={field.handleBlur}
@@ -44,7 +44,7 @@ export function SignUp() {
 					<View className="mb-3">
 						<TextInput
 							className="rounded-md border border-input bg-input p-4 text-foreground"
-							placeholder="Email"
+							placeholder="Adresse email"
 							value={field.state.value}
 							onChangeText={field.handleChange}
 							onBlur={field.handleBlur}
@@ -65,7 +65,7 @@ export function SignUp() {
 					<View className="mb-4">
 						<TextInput
 							className="rounded-md border border-input bg-input p-4 text-foreground"
-							placeholder="Password"
+							placeholder="Mot de passe"
 							value={field.state.value}
 							onChangeText={field.handleChange}
 							onBlur={field.handleBlur}
@@ -88,7 +88,9 @@ export function SignUp() {
 				{isLoading ? (
 					<ActivityIndicator size="small" color="#fff" />
 				) : (
-					<Text className="font-medium text-primary-foreground">Sign Up</Text>
+					<Text className="font-medium text-primary-foreground">
+						S'inscrire
+					</Text>
 				)}
 			</TouchableOpacity>
 		</View>

@@ -18,14 +18,14 @@ export function SignIn() {
 	return (
 		<View className="mt-6 rounded-lg border border-border bg-card p-4">
 			<Text className="mb-4 font-semibold text-foreground text-lg">
-				Sign In
+				Se connecter
 			</Text>
 			<form.Field name="email">
 				{(field) => (
 					<View className="mb-3">
 						<TextInput
 							className="rounded-md border border-input bg-input p-4 text-foreground"
-							placeholder="Email"
+							placeholder="Adresse email"
 							value={field.state.value}
 							onChangeText={field.handleChange}
 							onBlur={field.handleBlur}
@@ -46,7 +46,7 @@ export function SignIn() {
 					<View className="mb-4">
 						<TextInput
 							className="rounded-md border border-input bg-input p-4 text-foreground"
-							placeholder="Password"
+							placeholder="Mot de passe"
 							value={field.state.value}
 							onChangeText={field.handleChange}
 							onBlur={field.handleBlur}
@@ -69,7 +69,9 @@ export function SignIn() {
 				{isLoading ? (
 					<ActivityIndicator size="small" color="#fff" />
 				) : (
-					<Text className="font-medium text-primary-foreground">Sign In</Text>
+					<Text className="font-medium text-primary-foreground">
+						Se connecter
+					</Text>
 				)}
 			</TouchableOpacity>
 		</View>
