@@ -1,9 +1,7 @@
-import { useForm } from "@tanstack/react-form";
+import { useAuth, useSignInForm } from "@rythmons/auth/client";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { toast } from "sonner";
-import z from "zod";
-import { authClient } from "@/lib/auth-client";
 import Loader from "./loader";
 import { GoogleAuthButton } from "./social-auth-button";
 import { Button } from "./ui/button";
@@ -18,6 +16,7 @@ export default function SignInForm({
 	onSwitchToForgottenPassword: () => void;
 }) {
 	const router = useRouter();
+	const authClient = useAuth();
 	const { isPending, data: session } = authClient.useSession();
 
 	useEffect(() => {
@@ -26,38 +25,16 @@ export default function SignInForm({
 		}
 	}, [session?.user, router]);
 
-	const form = useForm({
-		defaultValues: {
-			email: "",
-			password: "",
+	const { form, isLoading: isSigningIn } = useSignInForm({
+		onSuccess: async () => {
+			toast.success("Connexion réussie");
+			// Wait for session to be set before redirecting
+			await new Promise((resolve) => setTimeout(resolve, 500));
+			router.push("/dashboard");
+			router.refresh();
 		},
-		onSubmit: async ({ value }) => {
-			await authClient.signIn.email(
-				{
-					email: value.email,
-					password: value.password,
-				},
-				{
-					onSuccess: async () => {
-						toast.success("Connexion réussie");
-						// Wait for session to be set before redirecting
-						await new Promise((resolve) => setTimeout(resolve, 500));
-						router.push("/dashboard");
-						router.refresh();
-					},
-					onError: (error) => {
-						toast.error(error.error.message || error.error.statusText);
-					},
-				},
-			);
-		},
-		validators: {
-			onSubmit: z.object({
-				email: z.email("Adresse e-mail invalide"),
-				password: z
-					.string()
-					.min(8, "Le mot de passe doit contenir au moins 8 caractères"),
-			}),
+		onError: (error) => {
+			toast.error(error);
 		},
 	});
 
@@ -106,11 +83,11 @@ export default function SignInForm({
 									onBlur={field.handleBlur}
 									onChange={(e) => field.handleChange(e.target.value)}
 								/>
-								{field.state.meta.errors.map((error) => (
-									<p key={error?.message} className="text-red-500">
-										{error?.message}
+								{field.state.meta.errors.length > 0 && (
+									<p className="text-destructive text-sm">
+										{String(field.state.meta.errors[0])}
 									</p>
-								))}
+								)}
 							</div>
 						)}
 					</form.Field>
@@ -129,27 +106,19 @@ export default function SignInForm({
 									onBlur={field.handleBlur}
 									onChange={(e) => field.handleChange(e.target.value)}
 								/>
-								{field.state.meta.errors.map((error) => (
-									<p key={error?.message} className="text-red-500">
-										{error?.message}
+								{field.state.meta.errors.length > 0 && (
+									<p className="text-destructive text-sm">
+										{String(field.state.meta.errors[0])}
 									</p>
-								))}
+								)}
 							</div>
 						)}
 					</form.Field>
 				</div>
 
-				<form.Subscribe>
-					{(state) => (
-						<Button
-							type="submit"
-							className="w-full"
-							disabled={!state.canSubmit || state.isSubmitting}
-						>
-							{state.isSubmitting ? "Envoi…" : "Se connecter"}
-						</Button>
-					)}
-				</form.Subscribe>
+				<Button type="submit" className="w-full" disabled={isSigningIn}>
+					{isSigningIn ? "Envoi…" : "Se connecter"}
+				</Button>
 			</form>
 
 			<div className="mt-4 text-center">
