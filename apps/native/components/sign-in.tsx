@@ -40,7 +40,7 @@ export function SignIn() {
 						)}
 					</View>
 				)}
-			</form.Field>{" "}
+			</form.Field>
 			<form.Field name="password">
 				{(field) => (
 					<View className="mb-4">
