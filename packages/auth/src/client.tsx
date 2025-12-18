@@ -81,7 +81,7 @@ function useAuthAction<TInput>(
 		const validation = validationSchema.safeParse(input);
 		if (!validation.success) {
 			const firstError = validation.error.issues[0];
-			const errorMessage = firstError?.message || "Validation error";
+			const errorMessage = firstError?.message || "Erreur de validation";
 			setError(errorMessage);
 			callbacks?.onError?.(errorMessage);
 			setIsLoading(false);
@@ -106,7 +106,9 @@ function useAuthAction<TInput>(
 			return { success: true };
 		} catch (err) {
 			const errorMessage =
-				err instanceof Error ? err.message : "An unexpected error occurred";
+				err instanceof Error
+					? err.message
+					: "Une erreur inattendue s'est produite";
 			setError(errorMessage);
 			callbacks?.onError?.(errorMessage);
 			setIsLoading(false);
@@ -131,7 +133,7 @@ export function useSignIn(authClient: AuthClient) {
 				callbacks,
 			);
 		},
-		"Failed to sign in",
+		"Échec de la connexion",
 	);
 
 	return { signIn: execute, isLoading, error };
@@ -151,7 +153,7 @@ export function useSignUp(authClient: AuthClient) {
 				callbacks,
 			);
 		},
-		"Failed to sign up",
+		"Échec de l'inscription",
 	);
 
 	return { signUp: execute, isLoading, error };

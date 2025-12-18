@@ -10,8 +10,8 @@ const DrawerLayout = () => {
 			<Drawer.Screen
 				name="index"
 				options={{
-					headerTitle: "Home",
-					drawerLabel: "Home",
+					headerTitle: "Accueil",
+					drawerLabel: "Accueil",
 					drawerIcon: ({ size, color }) => (
 						<Ionicons name="home-outline" size={size} color={color} />
 					),
@@ -20,8 +20,8 @@ const DrawerLayout = () => {
 			<Drawer.Screen
 				name="(tabs)"
 				options={{
-					headerTitle: "Tabs",
-					drawerLabel: "Tabs",
+					headerTitle: "Onglets",
+					drawerLabel: "Onglets",
 					drawerIcon: ({ size, color }) => (
 						<MaterialIcons name="border-bottom" size={size} color={color} />
 					),
