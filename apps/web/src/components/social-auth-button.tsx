@@ -1,9 +1,9 @@
 "use client";
 
+import { useAuth } from "@rythmons/auth/client";
 import { Loader2 } from "lucide-react";
 import { type SVGProps, useState } from "react";
 import { toast } from "sonner";
-import { authClient } from "@/lib/auth-client";
 import { Button } from "./ui/button";
 
 type SocialAuthButtonProps = {
@@ -11,6 +11,7 @@ type SocialAuthButtonProps = {
 };
 
 export function GoogleAuthButton({ action }: SocialAuthButtonProps) {
+	const authClient = useAuth();
 	const [isLoading, setIsLoading] = useState(false);
 
 	const label =

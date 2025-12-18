@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import * as Linking from "expo-linking";
 import { useState } from "react";
 import {
 	ActivityIndicator,
@@ -55,9 +56,9 @@ export function GoogleAuthButton({ action }: GoogleAuthButtonProps) {
 			await authClient.signIn.social(
 				{
 					provider: "google",
-					callbackURL: "/(tabs)/dashboard",
-					errorCallbackURL: "/(tabs)/auth",
-					newUserCallbackURL: "/(tabs)/dashboard",
+					callbackURL: Linking.createURL("/(drawer)/(tabs)/dashboard"),
+					errorCallbackURL: Linking.createURL("/"),
+					newUserCallbackURL: Linking.createURL("/(drawer)/(tabs)/dashboard"),
 				},
 				{
 					onError: (error) => {
