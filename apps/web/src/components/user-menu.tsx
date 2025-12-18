@@ -1,3 +1,4 @@
+import { useAuth } from "@rythmons/auth/client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -8,12 +9,12 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { authClient } from "@/lib/auth-client";
 import { Button } from "./ui/button";
 import { Skeleton } from "./ui/skeleton";
 
 export default function UserMenu() {
 	const router = useRouter();
+	const authClient = useAuth();
 	const { data: session, isPending } = authClient.useSession();
 
 	if (isPending) {

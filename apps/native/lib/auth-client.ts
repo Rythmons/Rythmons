@@ -1,9 +1,9 @@
 import { expoClient } from "@better-auth/expo/client";
-import { createAuthClient } from "better-auth/react";
+import { createClient } from "@rythmons/auth/client";
 import * as SecureStore from "expo-secure-store";
 
-export const authClient = createAuthClient({
-	baseURL: process.env.EXPO_PUBLIC_SERVER_URL,
+export const authClient = createClient({
+	baseURL: process.env.EXPO_PUBLIC_SERVER_URL || "",
 	plugins: [
 		expoClient({
 			scheme: "mybettertapp",

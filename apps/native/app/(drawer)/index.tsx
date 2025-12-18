@@ -22,7 +22,7 @@ export default function Home() {
 						<View className="mb-6 rounded-lg border border-border bg-card p-4">
 							<View className="mb-2 flex-row items-center justify-between">
 								<Text className="text-base text-foreground">
-									Welcome,{" "}
+									Bienvenue,{" "}
 									<Text className="font-medium">{session.user.name}</Text>
 								</Text>
 							</View>
@@ -37,12 +37,14 @@ export default function Home() {
 									queryClient.invalidateQueries();
 								}}
 							>
-								<Text className="font-medium text-white">Sign Out</Text>
+								<Text className="font-medium text-white">Se déconnecter</Text>
 							</TouchableOpacity>
 						</View>
 					) : null}
 					<View className="mb-6 rounded-lg border border-border p-4">
-						<Text className="mb-3 font-medium text-foreground">API Status</Text>
+						<Text className="mb-3 font-medium text-foreground">
+							État de l'API
+						</Text>
 						<View className="flex-row items-center gap-2">
 							<View
 								className={`h-3 w-3 rounded-full ${
@@ -51,16 +53,19 @@ export default function Home() {
 							/>
 							<Text className="text-muted-foreground">
 								{healthCheck.isLoading
-									? "Checking..."
+									? "Vérification..."
 									: healthCheck.data
-										? "Connected to API"
-										: "API Disconnected"}
+										? "Connecté à l'API"
+										: `API Déconnectée : ${healthCheck.error?.message ?? "Inconnu"}`}
+							</Text>
+							<Text className="mt-1 text-muted-foreground text-xs">
+								URL: {process.env.EXPO_PUBLIC_SERVER_URL}
 							</Text>
 						</View>
 					</View>
 					<View className="mb-6 rounded-lg border border-border p-4">
 						<Text className="mb-3 font-medium text-foreground">
-							Private Data
+							Données Privées
 						</Text>
 						{privateData && (
 							<View>
