@@ -38,7 +38,7 @@ export function SignUp() {
 						)}
 					</View>
 				)}
-			</form.Field>{" "}
+			</form.Field>
 			<form.Field name="email">
 				{(field) => (
 					<View className="mb-3">

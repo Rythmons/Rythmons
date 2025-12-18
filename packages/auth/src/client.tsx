@@ -56,7 +56,7 @@ interface AuthActionResult {
  * Generic hook for handling authentication actions with validation, loading, and error states
  */
 function useAuthAction<TInput>(
-	authClient: AuthClient,
+	_authClient: AuthClient,
 	validationSchema: ZodSchema<TInput>,
 	action: (
 		input: TInput,

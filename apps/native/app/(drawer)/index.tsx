@@ -54,7 +54,10 @@ export default function Home() {
 									? "Checking..."
 									: healthCheck.data
 										? "Connected to API"
-										: "API Disconnected"}
+										: `API Disconnected: ${healthCheck.error?.message ?? "Unknown"}`}
+							</Text>
+							<Text className="mt-1 text-muted-foreground text-xs">
+								URL: {process.env.EXPO_PUBLIC_SERVER_URL}
 							</Text>
 						</View>
 					</View>
