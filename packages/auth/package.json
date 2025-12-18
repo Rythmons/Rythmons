@@ -17,6 +17,7 @@
 		"@better-auth/expo": "^1.3.13",
 		"@rythmons/db": "workspace:*",
 		"@rythmons/validation": "workspace:*",
+		"@rythmons/email": "workspace:*",
 		"@tanstack/react-form": "^1.25.0",
 		"better-auth": "^1.3.13",
 		"server-only": "^0.0.1"

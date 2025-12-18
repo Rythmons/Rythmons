@@ -1,15 +1,13 @@
-import "server-only";
-
 import { expo } from "@better-auth/expo";
-import { db } from "@rythmons/db";
-// import { Resend } from "resend";
-// import {sendMail} from "@rythmons/email";
-import { resetPasswordTemplate, sendMailTest } from "@rythmons/email";
+import { Prisma } from "@rythmons/db";
+import { resetPasswordTemplate, sendMail, sendMailTest } from "@rythmons/email";
 import { type BetterAuthOptions, betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
-import { parseCorsOrigins } from "./utils";
 
-const trustedOriginsFromEnv = parseCorsOrigins(process.env.CORS_ORIGIN || "");
+const trustedOriginsFromEnv = (process.env.CORS_ORIGIN || "")
+	.split(",")
+	.map((origin) => origin.trim())
+	.filter(Boolean);
 
 const googleProviderConfig =
 	process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
@@ -41,14 +39,13 @@ if (resolvedBaseURL) {
 }
 
 export const auth = betterAuth<BetterAuthOptions>({
-	database: prismaAdapter(db, {
+	database: prismaAdapter(Prisma, {
 		provider: "postgresql",
 	}),
 	baseURL: resolvedBaseURL,
 	trustedOrigins,
 	emailAndPassword: {
 		enabled: true,
-
 		sendResetPassword: async ({ user, token }) => {
 			const resetUrl = `${process.env.BETTER_AUTH_URL}/reset-password?token=${token}`;
 
@@ -62,15 +59,4 @@ export const auth = betterAuth<BetterAuthOptions>({
 			});
 		},
 	},
-	advanced: {
-		defaultCookieAttributes: {
-			sameSite: "lax", // First-party cookies for same-domain setup
-			secure: process.env.NODE_ENV === "production",
-			httpOnly: true,
-		},
-	},
-	socialProviders: {
-		...(googleProviderConfig ? { google: googleProviderConfig } : {}),
-	},
-	plugins: [expo()],
 });
