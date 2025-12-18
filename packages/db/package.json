@@ -1,0 +1,19 @@
+{
+	"name": "@rythmons/db",
+	"version": "0.0.0",
+	"private": true,
+	"main": "./src/index.ts",
+	"types": "./src/index.ts",
+	"scripts": {
+		"build": "prisma generate && tsc --build"
+	},
+	"dependencies": {
+		"@prisma/client": "^6.15.0",
+		"server-only": "^0.0.1"
+	},
+	"devDependencies": {
+		"@rythmons/tsconfig": "workspace:*",
+		"prisma": "^6.15.0",
+		"typescript": "^5.8.2"
+	}
+}

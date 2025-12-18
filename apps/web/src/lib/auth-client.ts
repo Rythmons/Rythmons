@@ -1,6 +1,6 @@
-import { createAuthClient } from "better-auth/react";
+import { createClient } from "@rythmons/auth/client";
 
-export const authClient = createAuthClient({
+export const authClient = createClient({
 	// Use relative URL - same domain in full-stack setup
 	baseURL: typeof window !== "undefined" ? window.location.origin : "",
 	fetchOptions: {
