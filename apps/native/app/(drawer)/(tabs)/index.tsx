@@ -7,10 +7,10 @@ export default function TabOne() {
 			<ScrollView className="flex-1 p-6">
 				<View className="py-8">
 					<Text className="mb-2 font-bold text-3xl text-foreground">
-						Tab One
+						Onglet Un
 					</Text>
 					<Text className="text-lg text-muted-foreground">
-						Explore the first section of your app
+						Explorez la première section de votre application
 					</Text>
 				</View>
 			</ScrollView>

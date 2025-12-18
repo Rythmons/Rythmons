@@ -1,12 +1,12 @@
+import "server-only";
+
 import { expo } from "@better-auth/expo";
+import { db } from "@rythmons/db";
 import { type BetterAuthOptions, betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
-import prisma from "../db";
+import { parseCorsOrigins } from "./utils";
 
-const trustedOriginsFromEnv = (process.env.CORS_ORIGIN || "")
-	.split(",")
-	.map((origin) => origin.trim())
-	.filter(Boolean);
+const trustedOriginsFromEnv = parseCorsOrigins(process.env.CORS_ORIGIN || "");
 
 const googleProviderConfig =
 	process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
@@ -38,7 +38,7 @@ if (resolvedBaseURL) {
 }
 
 export const auth = betterAuth<BetterAuthOptions>({
-	database: prismaAdapter(prisma, {
+	database: prismaAdapter(db, {
 		provider: "postgresql",
 	}),
 	baseURL: resolvedBaseURL,
@@ -48,7 +48,7 @@ export const auth = betterAuth<BetterAuthOptions>({
 	},
 	advanced: {
 		defaultCookieAttributes: {
-			sameSite: "lax", // First-party cookies for same-domain setup
+			sameSite: "lax",
 			secure: process.env.NODE_ENV === "production",
 			httpOnly: true,
 		},
