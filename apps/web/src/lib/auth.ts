@@ -1,7 +1,10 @@
 import { expo } from "@better-auth/expo";
 import { type BetterAuthOptions, betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
+import { Resend } from "resend";
 import prisma from "../db";
+import { resetPasswordTemplate } from "../server/emails/resetPassword";
+import { sendMail, sendMailTest } from "../server/mailer";
 
 const trustedOriginsFromEnv = (process.env.CORS_ORIGIN || "")
 	.split(",")
@@ -45,31 +48,17 @@ export const auth = betterAuth<BetterAuthOptions>({
 	trustedOrigins,
 	emailAndPassword: {
 		enabled: true,
-		sendResetPassword: async ({ user, token, url }) => {
-			// Send reset email to user
-			// You'll need to implement your email sending logic here
-			// Example using a service like Resend, SendGrid, etc.
-			console.log(
-				`Reset password URL for ${user.email}: ${url}/reset-password`,
-			);
+		sendResetPassword: async ({ user, token }) => {
+			const resetUrl = `${process.env.BETTER_AUTH_URL}/reset-password?token=${token}`;
 
-			// TODO: Replace with your actual email service
-			// await sendEmail({
-			//   to: user.email,
-			//   subject: "Reset your password",
-			//   html: `Click here to reset: <a href="${url}?token=${token}">Reset Password</a>`
-			// });
+			await sendMailTest({
+				to: user.email,
+				subject: "Reset your password",
+				html: resetPasswordTemplate({
+					name: user.name,
+					resetUrl,
+				}),
+			});
 		},
 	},
-	advanced: {
-		defaultCookieAttributes: {
-			sameSite: "lax", // First-party cookies for same-domain setup
-			secure: process.env.NODE_ENV === "production",
-			httpOnly: true,
-		},
-	},
-	socialProviders: {
-		...(googleProviderConfig ? { google: googleProviderConfig } : {}),
-	},
-	plugins: [expo()],
 });

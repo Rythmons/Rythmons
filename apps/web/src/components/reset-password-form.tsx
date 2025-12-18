@@ -110,7 +110,7 @@ export default function SignInForm() {
 					<form.Field name="passwordConfirm">
 						{(field) => (
 							<div className="space-y-2">
-								<Label htmlFor={field.name}>
+								<Label htmlFor={field.name} className="mt-4">
 									Confirmer le nouveau mot de passe
 								</Label>
 								<Input
