@@ -1,5 +1,7 @@
 {
-	"extends": "@rythmons/tsconfig/base.json",
+	"devDependencies": {
+		"@rythmons/tsconfig": "workspace:*"
+	},
 	"compilerOptions": {
 		"outDir": "dist",
 		"rootDir": "src",

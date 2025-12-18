@@ -13,6 +13,7 @@
 		"db:migrate": "prisma migrate dev --schema=../../packages/db/prisma/schema.prisma"
 	},
 	"dependencies": {
+		"@rythmons/email": "workspace:*",
 		"@better-auth/expo": "^1.3.13",
 		"@prisma/client": "^6.15.0",
 		"@rythmons/api": "workspace:*",
