@@ -32,6 +32,16 @@ const DrawerLayout = () => {
 					),
 				}}
 			/>
+			<Drawer.Screen
+				name="profile"
+				options={{
+					headerTitle: "Mon Profil",
+					drawerLabel: "Mon Profil",
+					drawerIcon: ({ size, color }) => (
+						<Ionicons name="person-circle-outline" size={size} color={color} />
+					),
+				}}
+			/>
 		</Drawer>
 	);
 };

@@ -38,6 +38,12 @@ export default function UserMenu() {
 				<DropdownMenuLabel>Mon compte</DropdownMenuLabel>
 				<DropdownMenuSeparator />
 				<DropdownMenuItem>{session.user.email}</DropdownMenuItem>
+				<DropdownMenuSeparator />
+				<DropdownMenuItem asChild>
+					<Link href="/dashboard/profile" className="w-full cursor-pointer">
+						Mon Profil
+					</Link>
+				</DropdownMenuItem>
 				<DropdownMenuItem asChild>
 					<Button
 						variant="destructive"
