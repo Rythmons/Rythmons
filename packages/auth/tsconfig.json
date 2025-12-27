@@ -8,22 +8,14 @@
 		"outDir": "dist",
 		"rootDir": "src",
 		"jsx": "react-jsx",
-		"lib": [
-			"ES2022",
-			"DOM"
-		],
+		"lib": ["ES2022", "DOM"],
 		"esModuleInterop": true,
 		"skipLibCheck": true,
 		"strict": true,
 		"moduleResolution": "bundler"
 	},
-	"include": [
-		"src"
-	],
-	"exclude": [
-		"node_modules",
-		"dist"
-	],
+	"include": ["src"],
+	"exclude": ["node_modules", "dist"],
 	"references": [
 		{
 			"path": "../db"
