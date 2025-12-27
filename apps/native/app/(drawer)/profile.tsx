@@ -27,16 +27,23 @@ export default function ProfileScreen() {
 	const handleSave = async () => {
 		setIsSaving(true);
 		try {
-			// Placeholder for update logic
-			// await authClient.updateUser({ name });
+			await authClient.updateUser({
+				name,
+			});
+			// We don't have a direct "refresh" for the session hook in this simple client
+			// forcing a session refetch or relying on potential internal revalidation
+			// For now, we rely on the fact that if the update succeeds, the session
+			// *should* eventually reflect it or we can manually refetch if the hook exposes it.
+			// Better-auth's useSession usually dedupes, but let's assume update success means success.
+
+			// Optional: Manually trigger a query invalidation if trpc was used for user data
 			// await queryClient.invalidateQueries();
-			setTimeout(() => {
-				setIsSaving(false);
-				Alert.alert("Succès", "Profil mis à jour !");
-			}, 1000);
+
+			Alert.alert("Succès", "Profil mis à jour !");
 		} catch (_) {
-			setIsSaving(false);
 			Alert.alert("Erreur", "Erreur lors de la mise à jour");
+		} finally {
+			setIsSaving(false);
 		}
 	};
 
