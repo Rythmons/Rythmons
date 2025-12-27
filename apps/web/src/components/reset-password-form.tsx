@@ -1,16 +1,15 @@
 import { useForm } from "@tanstack/react-form";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import z from "zod";
 import { authClient } from "@/lib/auth-client";
 import Loader from "./loader";
-import { GoogleAuthButton } from "./social-auth-button";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 
-export default function SignInForm() {
+export default function ResetPasswordForm() {
 	const router = useRouter();
 	const { isPending, data: session } = authClient.useSession();
 
@@ -34,9 +33,14 @@ export default function SignInForm() {
 			const urlParams = new URLSearchParams(window.location.search);
 			const token = urlParams.get("token");
 
+			if (!token) {
+				toast.error("Token de réinitialisation manquant ou invalide");
+				return;
+			}
+
 			await authClient.resetPassword(
 				{
-					token: token ?? undefined,
+					token,
 					newPassword: value.password,
 				},
 				{
