@@ -1,6 +1,5 @@
-import { expo } from "@better-auth/expo";
 import { Prisma } from "@rythmons/db";
-import { resetPasswordTemplate, sendMail, sendMailTest } from "@rythmons/email";
+import { resetPasswordTemplate, sendMailTest } from "@rythmons/email";
 import { type BetterAuthOptions, betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 
@@ -8,17 +7,6 @@ const trustedOriginsFromEnv = (process.env.CORS_ORIGIN || "")
 	.split(",")
 	.map((origin) => origin.trim())
 	.filter(Boolean);
-
-const googleProviderConfig =
-	process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
-		? {
-				clientId: process.env.GOOGLE_CLIENT_ID,
-				clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-				scope: ["openid", "email", "profile"],
-				accessType: "offline" as const,
-				prompt: "select_account consent" as const,
-			}
-		: undefined;
 
 const resolvedBaseURL =
 	process.env.BETTER_AUTH_URL ||

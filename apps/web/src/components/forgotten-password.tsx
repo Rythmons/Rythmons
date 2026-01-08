@@ -10,7 +10,6 @@ import { Label } from "./ui/label";
 
 export default function ForgottenPassword({
 	onSwitchToSignIn,
-	onSwitchToSignUp,
 }: {
 	onSwitchToSignIn: () => void;
 	onSwitchToSignUp: () => void;

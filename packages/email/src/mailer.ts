@@ -70,8 +70,13 @@ export async function sendMail({
 }) {
 	const client = getResend();
 
+	const from = process.env.MAIL_FROM;
+	if (!from) {
+		throw new Error("MAIL_FROM is not set");
+	}
+
 	await client.emails.send({
-		from: process.env.MAIL_FROM!,
+		from,
 		to,
 		subject,
 		html,
