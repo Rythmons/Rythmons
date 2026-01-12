@@ -20,6 +20,7 @@ export function SignUp() {
 			<Text className="mb-4 font-semibold text-foreground text-lg">
 				Créer un compte
 			</Text>
+
 			<form.Field name="name">
 				{(field) => (
 					<View className="mb-3">
@@ -39,12 +40,13 @@ export function SignUp() {
 					</View>
 				)}
 			</form.Field>
+
 			<form.Field name="email">
 				{(field) => (
 					<View className="mb-3">
 						<TextInput
 							className="rounded-md border border-input bg-input p-4 text-foreground"
-							placeholder="Adresse email"
+							placeholder="Adresse e-mail"
 							value={field.state.value}
 							onChangeText={field.handleChange}
 							onBlur={field.handleBlur}
@@ -60,12 +62,38 @@ export function SignUp() {
 					</View>
 				)}
 			</form.Field>
+
 			<form.Field name="password">
+				{(field) => (
+					<View className="mb-3">
+						<TextInput
+							className="rounded-md border border-input bg-input p-4 text-foreground"
+							placeholder="Mot de passe"
+							value={field.state.value}
+							onChangeText={field.handleChange}
+							onBlur={field.handleBlur}
+							placeholderTextColor="#9CA3AF"
+							secureTextEntry
+						/>
+						{field.state.meta.errors.length > 0 && (
+							<View className="mt-1">
+								{field.state.meta.errors.map((err) => (
+									<Text key={String(err)} className="text-destructive text-sm">
+										• {String(err)}
+									</Text>
+								))}
+							</View>
+						)}
+					</View>
+				)}
+			</form.Field>
+
+			<form.Field name="passwordConfirmation">
 				{(field) => (
 					<View className="mb-4">
 						<TextInput
 							className="rounded-md border border-input bg-input p-4 text-foreground"
-							placeholder="Mot de passe"
+							placeholder="Confirmation du mot de passe"
 							value={field.state.value}
 							onChangeText={field.handleChange}
 							onBlur={field.handleBlur}
@@ -80,6 +108,7 @@ export function SignUp() {
 					</View>
 				)}
 			</form.Field>
+
 			<TouchableOpacity
 				onPress={form.handleSubmit}
 				disabled={isLoading}

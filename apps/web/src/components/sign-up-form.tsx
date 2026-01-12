@@ -112,6 +112,36 @@ export default function SignUpForm({
 									onChange={(e) => field.handleChange(e.target.value)}
 								/>
 								{field.state.meta.errors.length > 0 && (
+									<div className="space-y-1">
+										{field.state.meta.errors.map((error) => (
+											<p
+												key={String(error)}
+												className="text-destructive text-sm"
+											>
+												{String(error)}
+											</p>
+										))}
+									</div>
+								)}
+							</div>
+						)}
+					</form.Field>
+				</div>
+
+				<div>
+					<form.Field name="passwordConfirmation">
+						{(field) => (
+							<div className="space-y-2">
+								<Label htmlFor={field.name}>Confirmation du mot de passe</Label>
+								<Input
+									id={field.name}
+									name={field.name}
+									type="password"
+									value={field.state.value}
+									onBlur={field.handleBlur}
+									onChange={(e) => field.handleChange(e.target.value)}
+								/>
+								{field.state.meta.errors.length > 0 && (
 									<p className="text-destructive text-sm">
 										{String(field.state.meta.errors[0])}
 									</p>
