@@ -1,6 +1,6 @@
 "use client";
 
-import { useAuth } from "@rythmons/auth/client";
+import { useAuth } from "@rythmons/auth-react";
 import { Loader2 } from "lucide-react";
 import { type SVGProps, useState } from "react";
 import { toast } from "sonner";

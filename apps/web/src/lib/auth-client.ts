@@ -1,4 +1,4 @@
-import { createClient } from "@rythmons/auth/client";
+import { createClient } from "@rythmons/auth-react";
 
 export const authClient = createClient({
 	// Use relative URL - same domain in full-stack setup
