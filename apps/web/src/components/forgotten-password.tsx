@@ -4,14 +4,13 @@ import { toast } from "sonner";
 import z from "zod";
 import { authClient } from "@/lib/auth-client";
 import Loader from "./loader";
-import { GoogleAuthButton } from "./social-auth-button";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 
 export default function ForgottenPassword({
 	onSwitchToSignIn,
-	onSwitchToSignUp,
+	// onSwitchToSignUp,
 }: {
 	onSwitchToSignIn: () => void;
 	onSwitchToSignUp: () => void;
