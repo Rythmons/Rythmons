@@ -1,82 +1,48 @@
 "use client";
-
-import type { SignInInput, SignUpInput } from "@rythmons/validation";
-import { signInSchema, signUpSchema } from "@rythmons/validation";
-import { useForm } from "@tanstack/react-form";
-import type { BetterAuthClientPlugin } from "better-auth/client";
-import { createAuthClient } from "better-auth/react";
-import { createContext, type ReactNode, useContext, useState } from "react";
-import type { ZodSchema } from "zod";
-import type { Session } from "./types";
-
-export type AuthClient = ReturnType<typeof createAuthClient>;
-export type { Session };
-
-export interface AuthClientConfig {
-	baseURL: string;
-	fetchOptions?: RequestInit;
-	plugins?: BetterAuthClientPlugin[];
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.createClient = createClient;
+exports.AuthProvider = AuthProvider;
+exports.useAuth = useAuth;
+exports.useSignIn = useSignIn;
+exports.useSignUp = useSignUp;
+exports.useSignInForm = useSignInForm;
+exports.useSignUpForm = useSignUpForm;
+const jsx_runtime_1 = require("react/jsx-runtime");
+const validation_1 = require("@rythmons/validation");
+const react_form_1 = require("@tanstack/react-form");
+const react_1 = require("better-auth/react");
+const react_2 = require("react");
+const AuthContext = (0, react_2.createContext)(null);
+function createClient(config) {
+	return (0, react_1.createAuthClient)(config);
 }
-
-const AuthContext = createContext<AuthClient | null>(null);
-
-export function createClient(config: AuthClientConfig): AuthClient {
-	return createAuthClient(config);
+function AuthProvider({ client, children }) {
+	return (0, jsx_runtime_1.jsx)(AuthContext.Provider, {
+		value: client,
+		children: children,
+	});
 }
-
-export interface AuthProviderProps {
-	client: AuthClient;
-	children: ReactNode;
-}
-
-export function AuthProvider({ client, children }: AuthProviderProps) {
-	return <AuthContext.Provider value={client}>{children}</AuthContext.Provider>;
-}
-
-export function useAuth(): AuthClient {
-	const context = useContext(AuthContext);
+function useAuth() {
+	const context = (0, react_2.useContext)(AuthContext);
 	if (!context) {
 		throw new Error("useAuth must be used within an AuthProvider");
 	}
 	return context;
 }
-
-export interface AuthActionCallbacks {
-	onSuccess?: () => void | Promise<void>;
-	onError?: (error: string) => void;
-	onFinished?: () => void;
-}
-
-interface AuthActionResult {
-	success: boolean;
-	error?: string;
-}
-
 /**
  * Generic hook for handling authentication actions with validation, loading, and error states
  */
-function useAuthAction<TInput>(
-	_authClient: AuthClient,
-	validationSchema: ZodSchema<TInput>,
-	action: (
-		input: TInput,
-		callbacks: {
-			onSuccess: () => void | Promise<void>;
-			onError: (error: { error?: { message?: string } }) => void;
-		},
-	) => Promise<void>,
-	defaultErrorMessage: string,
+function useAuthAction(
+	_authClient,
+	validationSchema,
+	action,
+	defaultErrorMessage,
 ) {
-	const [isLoading, setIsLoading] = useState(false);
-	const [error, setError] = useState<string | null>(null);
-
-	const execute = async (
-		input: TInput,
-		callbacks?: AuthActionCallbacks,
-	): Promise<AuthActionResult> => {
+	const [isLoading, setIsLoading] = (0, react_2.useState)(false);
+	const [error, setError] = (0, react_2.useState)(null);
+	const execute = async (input, callbacks) => {
 		setIsLoading(true);
 		setError(null);
-
 		// Validate input
 		const validation = validationSchema.safeParse(input);
 		if (!validation.success) {
@@ -88,7 +54,6 @@ function useAuthAction<TInput>(
 			callbacks?.onFinished?.();
 			return { success: false, error: errorMessage };
 		}
-
 		try {
 			await action(input, {
 				onError: (error) => {
@@ -116,15 +81,13 @@ function useAuthAction<TInput>(
 			return { success: false, error: errorMessage };
 		}
 	};
-
 	return { execute, isLoading, error };
 }
-
-export function useSignIn(authClient: AuthClient) {
+function useSignIn(authClient) {
 	const { execute, isLoading, error } = useAuthAction(
 		authClient,
-		signInSchema,
-		async (input: SignInInput, callbacks) => {
+		validation_1.signInSchema,
+		async (input, callbacks) => {
 			await authClient.signIn.email(
 				{
 					email: input.email,
@@ -135,15 +98,13 @@ export function useSignIn(authClient: AuthClient) {
 		},
 		"Échec de la connexion",
 	);
-
 	return { signIn: execute, isLoading, error };
 }
-
-export function useSignUp(authClient: AuthClient) {
+function useSignUp(authClient) {
 	const { execute, isLoading, error } = useAuthAction(
 		authClient,
-		signUpSchema,
-		async (input: SignUpInput, callbacks) => {
+		validation_1.signUpSchema,
+		async (input, callbacks) => {
 			await authClient.signUp.email(
 				{
 					name: input.name,
@@ -155,14 +116,11 @@ export function useSignUp(authClient: AuthClient) {
 		},
 		"Échec de l'inscription",
 	);
-
 	return { signUp: execute, isLoading, error };
 }
-
 // ============================================================================
 // Shared Form Hooks with Validation
 // ============================================================================
-
 /**
  * Shared hook for sign-in form with TanStack Form and Zod validation.
  * This hook provides form state management, validation, and submission logic
@@ -186,26 +144,23 @@ export function useSignUp(authClient: AuthClient) {
  * </form.Provider>
  * ```
  */
-export function useSignInForm(callbacks?: AuthActionCallbacks) {
+function useSignInForm(callbacks) {
 	const authClient = useAuth();
 	const { signIn, isLoading } = useSignIn(authClient);
-
-	const form = useForm({
+	const form = (0, react_form_1.useForm)({
 		defaultValues: {
 			email: "",
 			password: "",
 		},
 		validators: {
-			onChange: signInSchema,
+			onChange: validation_1.signInSchema,
 		},
 		onSubmit: async ({ value }) => {
 			await signIn(value, callbacks);
 		},
 	});
-
 	return { form, isLoading };
 }
-
 /**
  * Shared hook for sign-up form with TanStack Form and Zod validation.
  * This hook provides form state management, validation, and submission logic
@@ -229,23 +184,21 @@ export function useSignInForm(callbacks?: AuthActionCallbacks) {
  * </form.Provider>
  * ```
  */
-export function useSignUpForm(callbacks?: AuthActionCallbacks) {
+function useSignUpForm(callbacks) {
 	const authClient = useAuth();
 	const { signUp, isLoading } = useSignUp(authClient);
-
-	const form = useForm({
+	const form = (0, react_form_1.useForm)({
 		defaultValues: {
 			name: "",
 			email: "",
 			password: "",
 		},
 		validators: {
-			onChange: signUpSchema,
+			onChange: validation_1.signUpSchema,
 		},
 		onSubmit: async ({ value }) => {
 			await signUp(value, callbacks);
 		},
 	});
-
 	return { form, isLoading };
 }

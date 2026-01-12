@@ -1,3 +1,4 @@
+export type { Session } from "./types";
 import "server-only";
 
 import { expo } from "@better-auth/expo";

@@ -1,6 +1,5 @@
-import { expo } from "@better-auth/expo";
 import { Prisma } from "@rythmons/db";
-import { resetPasswordTemplate, sendMail, sendMailTest } from "@rythmons/email";
+import { resetPasswordTemplate, sendMailTest } from "@rythmons/email";
 import { type BetterAuthOptions, betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 
@@ -9,7 +8,7 @@ const trustedOriginsFromEnv = (process.env.CORS_ORIGIN || "")
 	.map((origin) => origin.trim())
 	.filter(Boolean);
 
-const googleProviderConfig =
+const _googleProviderConfig =
 	process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
 		? {
 				clientId: process.env.GOOGLE_CLIENT_ID,
