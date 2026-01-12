@@ -1,6 +1,6 @@
 "use client";
 
-import { AuthProvider } from "@rythmons/auth/client";
+import { AuthProvider } from "@rythmons/auth-react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { authClient } from "@/lib/auth-client";
