@@ -5,6 +5,7 @@ const nextConfig: NextConfig = {
 	serverExternalPackages: ["@prisma/client", "prisma"],
 	transpilePackages: [
 		"@rythmons/auth",
+		"@rythmons/auth-react",
 		"@rythmons/api",
 		"@rythmons/db",
 		"@rythmons/validation",
