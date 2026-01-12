@@ -156,6 +156,9 @@ importers:
       '@rythmons/auth':
         specifier: workspace:*
         version: link:../../packages/auth
+      '@rythmons/auth-react':
+        specifier: workspace:*
+        version: link:../../packages/auth-react
       '@rythmons/db':
         specifier: workspace:*
         version: link:../../packages/db
