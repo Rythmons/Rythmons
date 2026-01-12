@@ -238,6 +238,7 @@ export function useSignUpForm(callbacks?: AuthActionCallbacks) {
 			name: "",
 			email: "",
 			password: "",
+			passwordConfirmation: "",
 		},
 		validators: {
 			onChange: signUpSchema,
