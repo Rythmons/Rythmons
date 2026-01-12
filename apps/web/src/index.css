@@ -5,13 +5,16 @@
 
 @theme {
 	--font-sans:
-		"Inter", "Geist", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",
-		"Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+		var(--font-montserrat), ui-sans-serif, system-ui, sans-serif,
+		"Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+	--font-display: var(--font-fugaz-one), ui-serif, Georgia, serif;
 }
 
 html,
 body {
-	@apply bg-white dark:bg-gray-950;
+	/* Use brand colors instead of Tailwind defaults */
+	background-color: var(--background);
+	color: var(--foreground);
 
 	@media (prefers-color-scheme: dark) {
 		color-scheme: dark;
@@ -19,72 +22,121 @@ body {
 }
 
 :root {
+	/* Rythmons Brand Colors */
+	--brand-primary: #EA0D40;
+	/* Rouge vif - Primary/CTA */
+	--brand-secondary: #80003B;
+	/* Bordeaux - Secondary */
+	--brand-accent: #2E003D;
+	/* Violet foncé - Accent */
+	--brand-dark: #17011F;
+	/* Violet très foncé - Cards dark */
+	--brand-black: #0A010E;
+	/* Noir profond - Background dark */
+
 	--radius: 0.625rem;
-	--background: oklch(1 0 0);
-	--foreground: oklch(0.145 0 0);
+
+	/* Light Mode - Clean with brand accents */
+	--background: oklch(0.99 0 0);
+	--foreground: oklch(0.12 0.02 320);
 	--card: oklch(1 0 0);
-	--card-foreground: oklch(0.145 0 0);
+	--card-foreground: oklch(0.12 0.02 320);
 	--popover: oklch(1 0 0);
-	--popover-foreground: oklch(0.145 0 0);
-	--primary: oklch(0.205 0 0);
-	--primary-foreground: oklch(0.985 0 0);
-	--secondary: oklch(0.97 0 0);
-	--secondary-foreground: oklch(0.205 0 0);
-	--muted: oklch(0.97 0 0);
-	--muted-foreground: oklch(0.556 0 0);
-	--accent: oklch(0.97 0 0);
-	--accent-foreground: oklch(0.205 0 0);
-	--destructive: oklch(0.577 0.245 27.325);
-	--border: oklch(0.922 0 0);
-	--input: oklch(0.922 0 0);
-	--ring: oklch(0.708 0 0);
-	--chart-1: oklch(0.646 0.222 41.116);
-	--chart-2: oklch(0.6 0.118 184.704);
-	--chart-3: oklch(0.398 0.07 227.392);
-	--chart-4: oklch(0.828 0.189 84.429);
-	--chart-5: oklch(0.769 0.188 70.08);
-	--sidebar: oklch(0.985 0 0);
-	--sidebar-foreground: oklch(0.145 0 0);
-	--sidebar-primary: oklch(0.205 0 0);
-	--sidebar-primary-foreground: oklch(0.985 0 0);
-	--sidebar-accent: oklch(0.97 0 0);
-	--sidebar-accent-foreground: oklch(0.205 0 0);
-	--sidebar-border: oklch(0.922 0 0);
-	--sidebar-ring: oklch(0.708 0 0);
+	--popover-foreground: oklch(0.12 0.02 320);
+
+	/* Primary: Rouge vif #EA0D40 */
+	--primary: oklch(0.55 0.24 15);
+	--primary-foreground: oklch(0.99 0 0);
+
+	/* Secondary: Bordeaux #80003B */
+	--secondary: oklch(0.35 0.15 350);
+	--secondary-foreground: oklch(0.99 0 0);
+
+	/* Muted: Light violet tint */
+	--muted: oklch(0.96 0.01 320);
+	--muted-foreground: oklch(0.45 0.03 320);
+
+	/* Accent: Violet foncé #2E003D */
+	--accent: oklch(0.22 0.1 310);
+	--accent-foreground: oklch(0.99 0 0);
+
+	--destructive: oklch(0.55 0.24 15);
+	--border: oklch(0.90 0.01 320);
+	--input: oklch(0.90 0.01 320);
+	--ring: oklch(0.55 0.24 15);
+
+	/* Charts using brand palette */
+	--chart-1: oklch(0.55 0.24 15);
+	/* Rouge vif */
+	--chart-2: oklch(0.35 0.15 350);
+	/* Bordeaux */
+	--chart-3: oklch(0.22 0.1 310);
+	/* Violet foncé */
+	--chart-4: oklch(0.65 0.2 30);
+	/* Orange chaleureux */
+	--chart-5: oklch(0.45 0.18 340);
+	/* Magenta */
+
+	--sidebar: oklch(0.98 0.005 320);
+	--sidebar-foreground: oklch(0.12 0.02 320);
+	--sidebar-primary: oklch(0.55 0.24 15);
+	--sidebar-primary-foreground: oklch(0.99 0 0);
+	--sidebar-accent: oklch(0.94 0.01 320);
+	--sidebar-accent-foreground: oklch(0.12 0.02 320);
+	--sidebar-border: oklch(0.90 0.01 320);
+	--sidebar-ring: oklch(0.55 0.24 15);
 }
 
 .dark {
-	--background: oklch(0.145 0 0);
-	--foreground: oklch(0.985 0 0);
-	--card: oklch(0.205 0 0);
-	--card-foreground: oklch(0.985 0 0);
-	--popover: oklch(0.205 0 0);
-	--popover-foreground: oklch(0.985 0 0);
-	--primary: oklch(0.922 0 0);
-	--primary-foreground: oklch(0.205 0 0);
-	--secondary: oklch(0.269 0 0);
-	--secondary-foreground: oklch(0.985 0 0);
-	--muted: oklch(0.269 0 0);
-	--muted-foreground: oklch(0.708 0 0);
-	--accent: oklch(0.269 0 0);
-	--accent-foreground: oklch(0.985 0 0);
-	--destructive: oklch(0.704 0.191 22.216);
-	--border: oklch(1 0 0 / 10%);
-	--input: oklch(1 0 0 / 15%);
-	--ring: oklch(0.556 0 0);
-	--chart-1: oklch(0.488 0.243 264.376);
-	--chart-2: oklch(0.696 0.17 162.48);
-	--chart-3: oklch(0.769 0.188 70.08);
-	--chart-4: oklch(0.627 0.265 303.9);
-	--chart-5: oklch(0.645 0.246 16.439);
-	--sidebar: oklch(0.205 0 0);
-	--sidebar-foreground: oklch(0.985 0 0);
-	--sidebar-primary: oklch(0.488 0.243 264.376);
-	--sidebar-primary-foreground: oklch(0.985 0 0);
-	--sidebar-accent: oklch(0.269 0 0);
-	--sidebar-accent-foreground: oklch(0.985 0 0);
-	--sidebar-border: oklch(1 0 0 / 10%);
-	--sidebar-ring: oklch(0.556 0 0);
+	/* Dark Mode - Full brand experience */
+	/* Background: Noir profond #0A010E */
+	--background: oklch(0.08 0.02 310);
+	--foreground: oklch(0.95 0.01 320);
+
+	/* Card: Violet très foncé #17011F */
+	--card: oklch(0.12 0.03 310);
+	--card-foreground: oklch(0.95 0.01 320);
+
+	--popover: oklch(0.12 0.03 310);
+	--popover-foreground: oklch(0.95 0.01 320);
+
+	/* Primary: Rouge vif #EA0D40 */
+	--primary: oklch(0.58 0.24 15);
+	--primary-foreground: oklch(0.99 0 0);
+
+	/* Secondary: Bordeaux #80003B */
+	--secondary: oklch(0.18 0.06 310);
+	--secondary-foreground: oklch(0.95 0.01 320);
+
+	/* Muted: Based on brand-dark */
+	--muted: oklch(0.16 0.04 310);
+	--muted-foreground: oklch(0.65 0.02 320);
+
+	/* Accent: Violet foncé #2E003D mixed */
+	--accent: oklch(0.20 0.08 310);
+	--accent-foreground: oklch(0.95 0.01 320);
+
+	--destructive: oklch(0.60 0.22 20);
+	--border: oklch(0.20 0.04 310);
+	--input: oklch(0.18 0.04 310);
+	--ring: oklch(0.58 0.24 15);
+
+	/* Charts */
+	--chart-1: oklch(0.58 0.24 15);
+	--chart-2: oklch(0.45 0.18 340);
+	--chart-3: oklch(0.70 0.15 30);
+	--chart-4: oklch(0.55 0.20 350);
+	--chart-5: oklch(0.40 0.12 300);
+
+	/* Sidebar: Slightly elevated from background */
+	--sidebar: oklch(0.10 0.025 310);
+	--sidebar-foreground: oklch(0.95 0.01 320);
+	--sidebar-primary: oklch(0.58 0.24 15);
+	--sidebar-primary-foreground: oklch(0.99 0 0);
+	--sidebar-accent: oklch(0.16 0.04 310);
+	--sidebar-accent-foreground: oklch(0.95 0.01 320);
+	--sidebar-border: oklch(0.20 0.04 310);
+	--sidebar-ring: oklch(0.58 0.24 15);
 }
 
 @theme inline {
@@ -129,6 +181,7 @@ body {
 	* {
 		@apply border-border outline-ring/50;
 	}
+
 	body {
 		@apply bg-background text-foreground;
 	}

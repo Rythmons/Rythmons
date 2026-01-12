@@ -22,21 +22,17 @@ export default function ForgottenPassword({
 			email: "",
 		},
 		onSubmit: async ({ value }) => {
-			await authClient.forgetPassword(
-				{
-					email: value.email,
-				},
-				{
-					onSuccess: async () => {
-						toast.success("Email envoyé avec succès !");
-						router.push("/login");
-						router.refresh();
-					},
-					onError: (error) => {
-						toast.error(error.error.message || error.error.statusText);
-					},
-				},
-			);
+			const { error } = await authClient.requestPasswordReset({
+				email: value.email,
+				redirectTo: "/reset-password",
+			});
+			if (error) {
+				toast.error(error.message || "Erreur lors de l'envoi de l'email");
+			} else {
+				toast.success("Email envoyé avec succès !");
+				router.push("/login");
+				router.refresh();
+			}
 		},
 		validators: {
 			onSubmit: z.object({

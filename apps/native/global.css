@@ -4,47 +4,92 @@
 
 @layer base {
 	:root {
-		--background: 0 0% 100%;
-		--foreground: 222.2 84% 4.9%;
+		/* 
+		 * Rythmons Brand Colors (HSL format):
+		 * #EA0D40 → 348 91% 49% (Rouge vif - Primary)
+		 * #80003B → 332 100% 25% (Bordeaux - Secondary)
+		 * #2E003D → 289 100% 12% (Violet foncé - Accent)
+		 * #17011F → 280 93% 6% (Violet très foncé - Cards dark)
+		 * #0A010E → 278 86% 3% (Noir profond - Background dark)
+		 */
+
+		/* Light Mode - Clean with brand accents */
+		--background: 0 0% 99%;
+		--foreground: 289 30% 10%;
 		--card: 0 0% 100%;
-		--card-foreground: 222.2 84% 4.9%;
+		--card-foreground: 289 30% 10%;
 		--popover: 0 0% 100%;
-		--popover-foreground: 222.2 84% 4.9%;
-		--primary: 221.2 83.2% 53.3%;
-		--primary-foreground: 210 40% 98%;
-		--secondary: 210 40% 96%;
-		--secondary-foreground: 222.2 84% 4.9%;
-		--muted: 210 40% 96%;
-		--muted-foreground: 215.4 16.3% 40%;
-		--accent: 210 40% 96%;
-		--accent-foreground: 222.2 84% 4.9%;
-		--destructive: 0 84.2% 60.2%;
-		--destructive-foreground: 210 40% 98%;
-		--border: 214.3 31.8% 91.4%;
-		--input: 214.3 31.8% 91.4%;
-		--ring: 221.2 83.2% 53.3%;
-		--radius: 8px;
+		--popover-foreground: 289 30% 10%;
+
+		/* Primary: Rouge vif #EA0D40 */
+		--primary: 348 91% 49%;
+		--primary-foreground: 0 0% 100%;
+
+		/* Secondary: Bordeaux #80003B */
+		--secondary: 332 100% 25%;
+		--secondary-foreground: 0 0% 100%;
+
+		/* Muted: Light violet tint */
+		--muted: 289 10% 95%;
+		--muted-foreground: 289 20% 40%;
+
+		/* Accent: Violet foncé #2E003D */
+		--accent: 289 100% 12%;
+		--accent-foreground: 0 0% 100%;
+
+		--destructive: 348 91% 49%;
+		--destructive-foreground: 0 0% 100%;
+		--border: 289 10% 88%;
+		--input: 289 10% 88%;
+		--ring: 348 91% 49%;
+		--radius: 10px;
+		
+		/* Fonts */
+		--font-sans: 'Montserrat-Regular';
+		--font-sans-medium: 'Montserrat-Medium';
+		--font-sans-bold: 'Montserrat-Bold';
+		--font-display: 'FugazOne-Regular';
 	}
 
 	.dark:root {
-		--background: 222.2 84% 4.9%;
-		--foreground: 210 40% 98%;
-		--card: 222.2 84% 4.9%;
-		--card-foreground: 210 40% 98%;
-		--popover: 222.2 84% 4.9%;
-		--popover-foreground: 210 40% 98%;
-		--primary: 217.2 91.2% 59.8%;
-		--primary-foreground: 222.2 84% 4.9%;
-		--secondary: 217.2 32.6% 17.5%;
-		--secondary-foreground: 210 40% 98%;
-		--muted: 217.2 32.6% 17.5%;
-		--muted-foreground: 215 20.2% 70%;
-		--accent: 217.2 32.6% 17.5%;
-		--accent-foreground: 210 40% 98%;
-		--destructive: 0 72% 51%;
-		--destructive-foreground: 210 40% 98%;
-		--border: 217.2 32.6% 17.5%;
-		--input: 217.2 32.6% 17.5%;
-		--ring: 224.3 76.3% 94.1%;
+		/* Dark Mode - Full brand experience */
+		/* Background: Noir profond #0A010E */
+		--background: 278 86% 3%;
+		--foreground: 289 10% 95%;
+
+		/* Card: Violet très foncé #17011F */
+		--card: 280 93% 6%;
+		--card-foreground: 289 10% 95%;
+
+		--popover: 280 93% 6%;
+		--popover-foreground: 289 10% 95%;
+
+		/* Primary: Rouge vif #EA0D40 */
+		--primary: 348 91% 52%;
+		--primary-foreground: 0 0% 100%;
+
+		/* Secondary: Darker violet blend */
+		--secondary: 280 60% 12%;
+		--secondary-foreground: 289 10% 95%;
+
+		/* Muted: Based on brand-dark */
+		--muted: 280 50% 10%;
+		--muted-foreground: 289 15% 60%;
+
+		/* Accent: Violet foncé mixed */
+		--accent: 289 80% 14%;
+		--accent-foreground: 289 10% 95%;
+
+		--destructive: 348 80% 55%;
+		--destructive-foreground: 0 0% 100%;
+		--border: 280 40% 14%;
+		--input: 280 50% 12%;
+		--ring: 348 91% 52%;
+	}
+}
+
+@layer base {
+	* {
+		@apply border-border;
 	}
 }

@@ -1,3 +1,4 @@
+import { venueRouter } from "./routers/venue";
 import { protectedProcedure, publicProcedure, router } from "./trpc";
 
 export const appRouter = router({
@@ -10,6 +11,7 @@ export const appRouter = router({
 			user: ctx.session.user,
 		};
 	}),
+	venue: venueRouter,
 });
 
 export type AppRouter = typeof appRouter;

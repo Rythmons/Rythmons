@@ -1,12 +1,18 @@
-import { Ionicons, MaterialIcons } from "@expo/vector-icons";
-import { Link } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { Drawer } from "expo-router/drawer";
-
-import { HeaderButton } from "@/components/header-button";
 
 const DrawerLayout = () => {
 	return (
-		<Drawer>
+		<Drawer
+			screenOptions={{
+				headerTitleStyle: {
+					fontFamily: "FugazOne-Regular",
+				},
+				drawerLabelStyle: {
+					fontFamily: "Montserrat-Regular",
+				},
+			}}
+		>
 			<Drawer.Screen
 				name="index"
 				options={{
@@ -18,21 +24,6 @@ const DrawerLayout = () => {
 				}}
 			/>
 			<Drawer.Screen
-				name="(tabs)"
-				options={{
-					headerTitle: "Onglets",
-					drawerLabel: "Onglets",
-					drawerIcon: ({ size, color }) => (
-						<MaterialIcons name="border-bottom" size={size} color={color} />
-					),
-					headerRight: () => (
-						<Link href="/modal" asChild>
-							<HeaderButton />
-						</Link>
-					),
-				}}
-			/>
-			<Drawer.Screen
 				name="profile"
 				options={{
 					headerTitle: "Mon Profil",
@@ -40,6 +31,22 @@ const DrawerLayout = () => {
 					drawerIcon: ({ size, color }) => (
 						<Ionicons name="person-circle-outline" size={size} color={color} />
 					),
+				}}
+			/>
+			<Drawer.Screen
+				name="venue"
+				options={{
+					headerTitle: "Mon Lieu",
+					drawerLabel: "Mon Lieu",
+					drawerIcon: ({ size, color }) => (
+						<Ionicons name="business-outline" size={size} color={color} />
+					),
+				}}
+			/>
+			<Drawer.Screen
+				name="(tabs)"
+				options={{
+					drawerItemStyle: { display: "none" },
 				}}
 			/>
 		</Drawer>

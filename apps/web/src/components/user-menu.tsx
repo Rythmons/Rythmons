@@ -45,6 +45,11 @@ export default function UserMenu() {
 					</Link>
 				</DropdownMenuItem>
 				<DropdownMenuItem asChild>
+					<Link href="/dashboard/venue" className="w-full cursor-pointer">
+						Mon Lieu
+					</Link>
+				</DropdownMenuItem>
+				<DropdownMenuItem asChild>
 					<Button
 						variant="destructive"
 						className="w-full"

@@ -17,7 +17,7 @@ export const nameSchema = z
 // Sign-in validation schema
 export const signInSchema = z.object({
 	email: emailSchema,
-	password: passwordSchema,
+	password: z.string().min(1, "Le mot de passe est requis"),
 });
 
 export type SignInInput = z.infer<typeof signInSchema>;

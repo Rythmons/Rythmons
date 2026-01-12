@@ -4,7 +4,10 @@ import { useQuery } from "@tanstack/react-query";
 import { trpc } from "@/utils/trpc";
 
 export default function Dashboard({ session }: { session: Session }) {
-	const privateData = useQuery(trpc.privateData.queryOptions());
+	const privateData = useQuery({
+		...trpc.privateData.queryOptions(),
+		enabled: !!session?.user,
+	});
 	const privateMessage = (privateData.data as { message?: string } | undefined)
 		?.message;
 	const userDisplayName =

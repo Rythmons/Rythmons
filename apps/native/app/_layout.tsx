@@ -9,8 +9,16 @@ import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "../global.css";
+import { FugazOne_400Regular } from "@expo-google-fonts/fugaz-one";
+import {
+	Montserrat_400Regular,
+	Montserrat_500Medium,
+	Montserrat_700Bold,
+} from "@expo-google-fonts/montserrat";
 import { AuthProvider } from "@rythmons/auth/client";
-import React, { useRef } from "react";
+import { useFonts } from "expo-font";
+import * as SplashScreen from "expo-splash-screen";
+import React, { useEffect, useRef, useState } from "react";
 import { Platform } from "react-native";
 import { setAndroidNavigationBar } from "@/lib/android-navigation-bar";
 import { authClient } from "@/lib/auth-client";
@@ -31,10 +39,26 @@ export const unstable_settings = {
 	initialRouteName: "(drawer)",
 };
 
+// Keep the splash screen visible while we fetch resources
+SplashScreen.preventAutoHideAsync();
+
 export default function RootLayout() {
 	const hasMounted = useRef(false);
 	const { colorScheme, isDarkColorScheme } = useColorScheme();
-	const [isColorSchemeLoaded, setIsColorSchemeLoaded] = React.useState(false);
+	const [isColorSchemeLoaded, setIsColorSchemeLoaded] = useState(false);
+
+	const [loaded, error] = useFonts({
+		"Montserrat-Regular": Montserrat_400Regular,
+		"Montserrat-Medium": Montserrat_500Medium,
+		"Montserrat-Bold": Montserrat_700Bold,
+		"FugazOne-Regular": FugazOne_400Regular,
+	});
+
+	useEffect(() => {
+		if (loaded || error) {
+			SplashScreen.hideAsync();
+		}
+	}, [loaded, error]);
 
 	useIsomorphicLayoutEffect(() => {
 		if (hasMounted.current) {
@@ -49,7 +73,7 @@ export default function RootLayout() {
 		hasMounted.current = true;
 	}, []);
 
-	if (!isColorSchemeLoaded) {
+	if (!isColorSchemeLoaded || !loaded) {
 		return null;
 	}
 	return (
@@ -58,7 +82,16 @@ export default function RootLayout() {
 				<ThemeProvider value={isDarkColorScheme ? DARK_THEME : LIGHT_THEME}>
 					<StatusBar style={isDarkColorScheme ? "light" : "dark"} />
 					<GestureHandlerRootView style={{ flex: 1 }}>
-						<Stack>
+						<Stack
+							screenOptions={{
+								headerTitleStyle: {
+									fontFamily: "FugazOne-Regular",
+								},
+								headerBackTitleStyle: {
+									fontFamily: "Montserrat-Regular",
+								},
+							}}
+						>
 							<Stack.Screen name="(drawer)" options={{ headerShown: false }} />
 							<Stack.Screen
 								name="modal"

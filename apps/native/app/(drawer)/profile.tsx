@@ -5,12 +5,12 @@ import {
 	ActivityIndicator,
 	Alert,
 	ScrollView,
-	Text,
-	TextInput,
 	TouchableOpacity,
 	View,
 } from "react-native";
 import { Container } from "@/components/container";
+import { Input } from "@/components/ui/input";
+import { Text, Title } from "@/components/ui/typography";
 import { authClient } from "@/lib/auth-client";
 import { queryClient } from "@/utils/trpc";
 
@@ -74,7 +74,7 @@ export default function ProfileScreen() {
 						className="rounded-lg bg-primary px-4 py-2"
 						onPress={() => router.replace("/")}
 					>
-						<Text className="font-medium text-primary-foreground">
+						<Text className="font-sans-medium text-primary-foreground">
 							Se connecter
 						</Text>
 					</TouchableOpacity>
@@ -86,13 +86,11 @@ export default function ProfileScreen() {
 	return (
 		<Container>
 			<ScrollView className="flex-1 p-4">
-				<Text className="mb-6 font-bold text-2xl text-foreground">
-					Mon Profil
-				</Text>
+				<Title className="mb-6 text-2xl text-foreground">Mon Profil</Title>
 
 				<View className="mb-6 space-y-4">
 					<View>
-						<Text className="mb-1 font-medium text-foreground text-sm">
+						<Text className="mb-1 font-sans-medium text-foreground text-sm">
 							Email
 						</Text>
 						<View className="rounded-lg border border-border bg-muted p-3">
@@ -106,10 +104,10 @@ export default function ProfileScreen() {
 					</View>
 
 					<View>
-						<Text className="mb-1 font-medium text-foreground text-sm">
+						<Text className="mb-1 font-sans-medium text-foreground text-sm">
 							Nom
 						</Text>
-						<TextInput
+						<Input
 							className="rounded-lg border border-border bg-background p-3 text-foreground"
 							value={name}
 							onChangeText={setName}
@@ -133,7 +131,7 @@ export default function ProfileScreen() {
 								className="mr-2"
 							/>
 						)}
-						<Text className="font-medium text-primary-foreground">
+						<Text className="font-sans-medium text-primary-foreground">
 							{isSaving ? "Enregistrement..." : "Enregistrer les modifications"}
 						</Text>
 					</TouchableOpacity>
@@ -150,7 +148,7 @@ export default function ProfileScreen() {
 							color="white"
 							className="mr-2"
 						/>
-						<Text className="font-medium text-white">Se déconnecter</Text>
+						<Text className="font-sans-medium text-white">Se déconnecter</Text>
 					</TouchableOpacity>
 				</View>
 			</ScrollView>

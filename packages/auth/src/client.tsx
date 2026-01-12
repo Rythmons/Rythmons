@@ -6,8 +6,16 @@ import { useForm } from "@tanstack/react-form";
 import type { BetterAuthClientPlugin } from "better-auth/client";
 import { createAuthClient } from "better-auth/react";
 import { createContext, type ReactNode, useContext, useState } from "react";
-import type { ZodSchema } from "zod";
 import type { Session } from "./types";
+
+// Structural type for Zod-like schemas (compatible with both Zod v3 and v4)
+interface ZodLike<TInput> {
+	safeParse(
+		data: unknown,
+	):
+		| { success: true; data: TInput }
+		| { success: false; error: { issues: { message: string }[] } };
+}
 
 export type AuthClient = ReturnType<typeof createAuthClient>;
 export type { Session };
@@ -57,7 +65,7 @@ interface AuthActionResult {
  */
 function useAuthAction<TInput>(
 	_authClient: AuthClient,
-	validationSchema: ZodSchema<TInput>,
+	validationSchema: ZodLike<TInput>,
 	action: (
 		input: TInput,
 		callbacks: {
@@ -188,7 +196,7 @@ export function useSignUp(authClient: AuthClient) {
  */
 export function useSignInForm(callbacks?: AuthActionCallbacks) {
 	const authClient = useAuth();
-	const { signIn, isLoading } = useSignIn(authClient);
+	const { signIn, isLoading, error } = useSignIn(authClient);
 
 	const form = useForm({
 		defaultValues: {
@@ -203,7 +211,7 @@ export function useSignInForm(callbacks?: AuthActionCallbacks) {
 		},
 	});
 
-	return { form, isLoading };
+	return { form, isLoading, error };
 }
 
 /**
@@ -216,7 +224,7 @@ export function useSignInForm(callbacks?: AuthActionCallbacks) {
  *
  * @example
  * ```tsx
- * const { form, isLoading } = useSignUpForm({
+ * const { form, isLoading, error } = useSignUpForm({
  *   onSuccess: () => router.push("/dashboard"),
  *   onError: (error) => toast.error(error),
  * });
@@ -231,7 +239,7 @@ export function useSignInForm(callbacks?: AuthActionCallbacks) {
  */
 export function useSignUpForm(callbacks?: AuthActionCallbacks) {
 	const authClient = useAuth();
-	const { signUp, isLoading } = useSignUp(authClient);
+	const { signUp, isLoading, error } = useSignUp(authClient);
 
 	const form = useForm({
 		defaultValues: {
@@ -247,5 +255,5 @@ export function useSignUpForm(callbacks?: AuthActionCallbacks) {
 		},
 	});
 
-	return { form, isLoading };
+	return { form, isLoading, error };
 }
