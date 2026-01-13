@@ -67,7 +67,10 @@ export default function SignUpForm({
 								/>
 								{field.state.meta.errors.length > 0 && (
 									<p className="text-destructive text-sm">
-										{String(field.state.meta.errors[0])}
+										{typeof field.state.meta.errors[0] === "object"
+											? (field.state.meta.errors[0] as { message: string })
+													.message
+											: String(field.state.meta.errors[0])}
 									</p>
 								)}
 							</div>
@@ -90,7 +93,10 @@ export default function SignUpForm({
 								/>
 								{field.state.meta.errors.length > 0 && (
 									<p className="text-destructive text-sm">
-										{String(field.state.meta.errors[0])}
+										{typeof field.state.meta.errors[0] === "object"
+											? (field.state.meta.errors[0] as { message: string })
+													.message
+											: String(field.state.meta.errors[0])}
 									</p>
 								)}
 							</div>
@@ -113,14 +119,20 @@ export default function SignUpForm({
 								/>
 								{field.state.meta.errors.length > 0 && (
 									<div className="space-y-1">
-										{field.state.meta.errors.map((error) => (
-											<p
-												key={String(error)}
-												className="text-destructive text-sm"
-											>
-												{String(error)}
-											</p>
-										))}
+										{field.state.meta.errors.map((error) => {
+											const errorMessage =
+												typeof error === "object"
+													? (error as { message: string }).message
+													: String(error);
+											return (
+												<p
+													key={errorMessage}
+													className="text-destructive text-sm"
+												>
+													{errorMessage}
+												</p>
+											);
+										})}
 									</div>
 								)}
 							</div>
@@ -143,7 +155,10 @@ export default function SignUpForm({
 								/>
 								{field.state.meta.errors.length > 0 && (
 									<p className="text-destructive text-sm">
-										{String(field.state.meta.errors[0])}
+										{typeof field.state.meta.errors[0] === "object"
+											? (field.state.meta.errors[0] as { message: string })
+													.message
+											: String(field.state.meta.errors[0])}
 									</p>
 								)}
 							</div>

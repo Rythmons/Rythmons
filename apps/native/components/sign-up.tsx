@@ -34,7 +34,9 @@ export function SignUp() {
 						/>
 						{field.state.meta.errors.length > 0 && (
 							<Text className="mt-1 text-destructive text-sm">
-								{String(field.state.meta.errors[0])}
+								{typeof field.state.meta.errors[0] === "object"
+									? (field.state.meta.errors[0] as { message: string }).message
+									: String(field.state.meta.errors[0])}
 							</Text>
 						)}
 					</View>
@@ -56,7 +58,9 @@ export function SignUp() {
 						/>
 						{field.state.meta.errors.length > 0 && (
 							<Text className="mt-1 text-destructive text-sm">
-								{String(field.state.meta.errors[0])}
+								{typeof field.state.meta.errors[0] === "object"
+									? (field.state.meta.errors[0] as { message: string }).message
+									: String(field.state.meta.errors[0])}
 							</Text>
 						)}
 					</View>
@@ -77,11 +81,20 @@ export function SignUp() {
 						/>
 						{field.state.meta.errors.length > 0 && (
 							<View className="mt-1">
-								{field.state.meta.errors.map((err) => (
-									<Text key={String(err)} className="text-destructive text-sm">
-										• {String(err)}
-									</Text>
-								))}
+								{field.state.meta.errors.map((err) => {
+									const errorMessage =
+										typeof err === "object"
+											? (err as { message: string }).message
+											: String(err);
+									return (
+										<Text
+											key={errorMessage}
+											className="text-destructive text-sm"
+										>
+											• {errorMessage}
+										</Text>
+									);
+								})}
 							</View>
 						)}
 					</View>
@@ -102,7 +115,9 @@ export function SignUp() {
 						/>
 						{field.state.meta.errors.length > 0 && (
 							<Text className="mt-1 text-destructive text-sm">
-								{String(field.state.meta.errors[0])}
+								{typeof field.state.meta.errors[0] === "object"
+									? (field.state.meta.errors[0] as { message: string }).message
+									: String(field.state.meta.errors[0])}
 							</Text>
 						)}
 					</View>
