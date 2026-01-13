@@ -1,7 +1,6 @@
 "use client";
+import ResetPasswordForm from "@/components/reset-password-form";
 
-import ResetPassword from "@/components/reset-password-form";
-
-export default function LoginPage() {
-	return <ResetPassword />;
+export default function ResetPasswordPage() {
+	return <ResetPasswordForm />;
 }

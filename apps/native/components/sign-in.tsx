@@ -1,4 +1,4 @@
-import { useSignInForm } from "@rythmons/auth-react";
+import { useSignInForm } from "@rythmons/auth/client";
 import {
 	ActivityIndicator,
 	Text,

@@ -1,4 +1,4 @@
-import { useAuth, useSignUpForm } from "@rythmons/auth-react";
+import { useAuth, useSignUpForm } from "@rythmons/auth/client";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import Loader from "./loader";

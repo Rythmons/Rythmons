@@ -1,4 +1,4 @@
-import { useAuth } from "@rythmons/auth-react";
+import { useAuth } from "@rythmons/auth/client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
