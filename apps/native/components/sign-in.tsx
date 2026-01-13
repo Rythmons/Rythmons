@@ -50,7 +50,9 @@ export function SignIn({ onSwitchToSignUp }: { onSwitchToSignUp: () => void }) {
 						/>
 						{field.state.meta.errors.length > 0 && (
 							<Text className="mt-1 text-destructive text-sm">
-								{String(field.state.meta.errors[0])}
+								{typeof field.state.meta.errors[0] === "object"
+									? (field.state.meta.errors[0] as { message: string }).message
+									: String(field.state.meta.errors[0])}
 							</Text>
 						)}
 					</View>
@@ -70,7 +72,9 @@ export function SignIn({ onSwitchToSignUp }: { onSwitchToSignUp: () => void }) {
 						/>
 						{field.state.meta.errors.length > 0 && (
 							<Text className="mt-1 text-destructive text-sm">
-								{String(field.state.meta.errors[0])}
+								{typeof field.state.meta.errors[0] === "object"
+									? (field.state.meta.errors[0] as { message: string }).message
+									: String(field.state.meta.errors[0])}
 							</Text>
 						)}
 					</View>

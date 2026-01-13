@@ -67,7 +67,10 @@ export default function SignUpForm({
 								/>
 								{field.state.meta.errors.length > 0 && (
 									<p className="text-destructive text-sm">
-										{String(field.state.meta.errors[0])}
+										{typeof field.state.meta.errors[0] === "object"
+											? (field.state.meta.errors[0] as { message: string })
+													.message
+											: String(field.state.meta.errors[0])}
 									</p>
 								)}
 							</div>
@@ -90,7 +93,10 @@ export default function SignUpForm({
 								/>
 								{field.state.meta.errors.length > 0 && (
 									<p className="text-destructive text-sm">
-										{String(field.state.meta.errors[0])}
+										{typeof field.state.meta.errors[0] === "object"
+											? (field.state.meta.errors[0] as { message: string })
+													.message
+											: String(field.state.meta.errors[0])}
 									</p>
 								)}
 							</div>
@@ -112,8 +118,47 @@ export default function SignUpForm({
 									onChange={(e) => field.handleChange(e.target.value)}
 								/>
 								{field.state.meta.errors.length > 0 && (
+									<div className="space-y-1">
+										{field.state.meta.errors.map((error) => {
+											const errorMessage =
+												typeof error === "object"
+													? (error as { message: string }).message
+													: String(error);
+											return (
+												<p
+													key={errorMessage}
+													className="text-destructive text-sm"
+												>
+													{errorMessage}
+												</p>
+											);
+										})}
+									</div>
+								)}
+							</div>
+						)}
+					</form.Field>
+				</div>
+
+				<div>
+					<form.Field name="passwordConfirmation">
+						{(field) => (
+							<div className="space-y-2">
+								<Label htmlFor={field.name}>Confirmation du mot de passe</Label>
+								<Input
+									id={field.name}
+									name={field.name}
+									type="password"
+									value={field.state.value}
+									onBlur={field.handleBlur}
+									onChange={(e) => field.handleChange(e.target.value)}
+								/>
+								{field.state.meta.errors.length > 0 && (
 									<p className="text-destructive text-sm">
-										{String(field.state.meta.errors[0])}
+										{typeof field.state.meta.errors[0] === "object"
+											? (field.state.meta.errors[0] as { message: string })
+													.message
+											: String(field.state.meta.errors[0])}
 									</p>
 								)}
 							</div>
