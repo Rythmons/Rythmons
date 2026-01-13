@@ -48,18 +48,21 @@ export function SignUp({ onSwitchToSignIn }: { onSwitchToSignIn: () => void }) {
 						/>
 						{field.state.meta.errors.length > 0 && (
 							<Text className="mt-1 text-destructive text-sm">
-								{String(field.state.meta.errors[0])}
+								{typeof field.state.meta.errors[0] === "object"
+									? (field.state.meta.errors[0] as { message: string }).message
+									: String(field.state.meta.errors[0])}
 							</Text>
 						)}
 					</View>
 				)}
 			</form.Field>
+
 			<form.Field name="email">
 				{(field) => (
 					<View className="mb-3">
 						<TextInput
 							className="rounded-md border border-input bg-input p-4 text-foreground"
-							placeholder="Adresse email"
+							placeholder="Adresse e-mail"
 							value={field.state.value}
 							onChangeText={field.handleChange}
 							onBlur={field.handleBlur}
@@ -69,15 +72,18 @@ export function SignUp({ onSwitchToSignIn }: { onSwitchToSignIn: () => void }) {
 						/>
 						{field.state.meta.errors.length > 0 && (
 							<Text className="mt-1 text-destructive text-sm">
-								{String(field.state.meta.errors[0])}
+								{typeof field.state.meta.errors[0] === "object"
+									? (field.state.meta.errors[0] as { message: string }).message
+									: String(field.state.meta.errors[0])}
 							</Text>
 						)}
 					</View>
 				)}
 			</form.Field>
+
 			<form.Field name="password">
 				{(field) => (
-					<View className="mb-4">
+					<View className="mb-3">
 						<TextInput
 							className="rounded-md border border-input bg-input p-4 text-foreground"
 							placeholder="Mot de passe"
@@ -88,13 +94,50 @@ export function SignUp({ onSwitchToSignIn }: { onSwitchToSignIn: () => void }) {
 							secureTextEntry
 						/>
 						{field.state.meta.errors.length > 0 && (
+							<View className="mt-1">
+								{field.state.meta.errors.map((err) => {
+									const errorMessage =
+										typeof err === "object"
+											? (err as { message: string }).message
+											: String(err);
+									return (
+										<Text
+											key={errorMessage}
+											className="text-destructive text-sm"
+										>
+											• {errorMessage}
+										</Text>
+									);
+								})}
+							</View>
+						)}
+					</View>
+				)}
+			</form.Field>
+
+			<form.Field name="passwordConfirmation">
+				{(field) => (
+					<View className="mb-4">
+						<TextInput
+							className="rounded-md border border-input bg-input p-4 text-foreground"
+							placeholder="Confirmation du mot de passe"
+							value={field.state.value}
+							onChangeText={field.handleChange}
+							onBlur={field.handleBlur}
+							placeholderTextColor="#9CA3AF"
+							secureTextEntry
+						/>
+						{field.state.meta.errors.length > 0 && (
 							<Text className="mt-1 text-destructive text-sm">
-								{String(field.state.meta.errors[0])}
+								{typeof field.state.meta.errors[0] === "object"
+									? (field.state.meta.errors[0] as { message: string }).message
+									: String(field.state.meta.errors[0])}
 							</Text>
 						)}
 					</View>
 				)}
 			</form.Field>
+
 			<TouchableOpacity
 				onPress={form.handleSubmit}
 				disabled={isLoading}
