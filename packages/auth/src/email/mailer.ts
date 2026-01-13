@@ -30,7 +30,9 @@ async function getTransporter() {
 		},
 	});
 
-	console.log("📧 Ethereal inbox:", testAccount.web);
+	if (process.env.NODE_ENV !== "production") {
+		console.log("📧 Ethereal inbox:", testAccount.web);
+	}
 
 	return cachedTransporter;
 }
@@ -44,6 +46,10 @@ export async function sendMailTest({
 	subject: string;
 	html: string;
 }) {
+	if (!process.env.MAIL_FROM) {
+		throw new Error("MAIL_FROM is not set");
+	}
+
 	const transporter = await getTransporter();
 
 	const info = await transporter.sendMail({
@@ -54,7 +60,7 @@ export async function sendMailTest({
 	});
 
 	const preview = nodemailer.getTestMessageUrl(info);
-	if (preview) {
+	if (preview && process.env.NODE_ENV !== "production") {
 		console.log("📨 Email preview:", preview);
 	}
 }
@@ -68,12 +74,24 @@ export async function sendMail({
 	subject: string;
 	html: string;
 }) {
+	if (!process.env.MAIL_FROM) {
+		throw new Error("MAIL_FROM is not set");
+	}
+
 	const client = getResend();
 
-	await client.emails.send({
-		from: process.env.MAIL_FROM!,
+	const result = await client.emails.send({
+		from: process.env.MAIL_FROM,
 		to,
 		subject,
 		html,
 	});
+
+	if ((result as any)?.error) {
+		throw (result as any).error;
+	}
+
+	if (process.env.VERCEL_ENV && process.env.VERCEL_ENV !== "production") {
+		console.log("📨 Resend id:", (result as any)?.data?.id);
+	}
 }

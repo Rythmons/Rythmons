@@ -29,7 +29,9 @@ export default function ForgottenPassword({
 				},
 				{
 					onSuccess: async () => {
-						toast.success("Email envoyé avec succès !");
+						toast.success(
+							"Si un compte existe pour cet e-mail, vous recevrez un message de réinitialisation.",
+						);
 						router.push("/login");
 						router.refresh();
 					},

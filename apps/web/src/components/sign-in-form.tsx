@@ -1,4 +1,4 @@
-import { useAuth, useSignInForm } from "@rythmons/auth-react";
+import { useAuth, useSignInForm } from "@rythmons/auth/client";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { toast } from "sonner";

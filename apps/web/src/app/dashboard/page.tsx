@@ -5,11 +5,15 @@ import Dashboard from "./dashboard";
 export default async function DashboardPage() {
 	const session = await getServerSession();
 
-	console.log("[DashboardPage] session:", session);
-	console.log("[DashboardPage] session.data:", session.data);
+	if (process.env.NODE_ENV !== "production") {
+		console.log("[DashboardPage] session:", session);
+		console.log("[DashboardPage] session.data:", session.data);
+	}
 
 	if (!session.data) {
-		console.log("[DashboardPage] No session data, redirecting to /login");
+		if (process.env.NODE_ENV !== "production") {
+			console.log("[DashboardPage] No session data, redirecting to /login");
+		}
 		redirect("/login");
 	}
 

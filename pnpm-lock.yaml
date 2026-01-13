@@ -156,15 +156,9 @@ importers:
       '@rythmons/auth':
         specifier: workspace:*
         version: link:../../packages/auth
-      '@rythmons/auth-react':
-        specifier: workspace:*
-        version: link:../../packages/auth-react
       '@rythmons/db':
         specifier: workspace:*
         version: link:../../packages/db
-      '@rythmons/email':
-        specifier: workspace:*
-        version: link:../../packages/email
       '@rythmons/validation':
         specifier: workspace:*
         version: link:../../packages/validation
@@ -296,49 +290,42 @@ importers:
       '@rythmons/db':
         specifier: workspace:*
         version: link:../db
-      '@rythmons/email':
-        specifier: workspace:*
-        version: link:../email
       '@rythmons/validation':
         specifier: workspace:*
         version: link:../validation
       '@tanstack/react-form':
-        specifier: ^1.25.0
+        specifier: ^1.24.1
         version: 1.25.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       better-auth:
         specifier: ^1.3.13
         version: 1.3.26(next@16.0.10(@babel/core@7.28.4)(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      nodemailer:
+        specifier: ^7.0.4
+        version: 7.0.12
       react:
-        specifier: ^19.1.0
+        specifier: ^18.0.0 || ^19.0.0
         version: 19.1.0
+      resend:
+        specifier: ^4.0.3
+        version: 4.8.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       server-only:
         specifier: ^0.0.1
         version: 0.0.1
+      zod:
+        specifier: ^4.0.2
+        version: 4.1.11
     devDependencies:
       '@rythmons/tsconfig':
         specifier: workspace:*
         version: link:../tsconfig
+      '@types/nodemailer':
+        specifier: ^7.0.4
+        version: 7.0.4
       '@types/react':
         specifier: ^19.2.0
         version: 19.2.0
       typescript:
         specifier: ^5.8.2
-        version: 5.8.3
-
-  packages/auth-react:
-    dependencies:
-      '@rythmons/auth':
-        specifier: workspace:*
-        version: link:../auth
-      react:
-        specifier: ^18.0.0
-        version: 18.3.1
-    devDependencies:
-      '@rythmons/tsconfig':
-        specifier: workspace:*
-        version: link:../tsconfig
-      typescript:
-        specifier: ^5.2.2
         version: 5.8.3
 
   packages/db:
@@ -359,15 +346,6 @@ importers:
       typescript:
         specifier: ^5.8.2
         version: 5.8.3
-
-  packages/email:
-    dependencies:
-      nodemailer:
-        specifier: ^6.9.13
-        version: 6.10.1
-      resend:
-        specifier: ^4.0.0
-        version: 4.8.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
 
   packages/tsconfig: {}
 
@@ -493,6 +471,10 @@ packages:
 
   '@aws-sdk/types@3.953.0':
     resolution: {integrity: sha512-M9Iwg9kTyqTErI0vOTVVpcnTHWzS3VplQppy8MuL02EE+mJ0BIwpWfsaAPQW+/XnVpdNpWZTsHcNE29f1+hR8g==}
+    engines: {node: '>=18.0.0'}
+
+  '@aws-sdk/types@3.957.0':
+    resolution: {integrity: sha512-wzWC2Nrt859ABk6UCAVY/WYEbAd7FjkdrQL6m24+tfmWYDNRByTJ9uOgU/kw9zqLCAwb//CPvrJdhqjTznWXAg==}
     engines: {node: '>=18.0.0'}
 
   '@aws-sdk/util-arn-parser@3.953.0':
@@ -2561,6 +2543,10 @@ packages:
     resolution: {integrity: sha512-K9mY7V/f3Ul+/Gz4LJANZ3vJ/yiBIwCyxe0sPT4vNJK63Srvd+Yk1IzP0t+nE7XFSpIGtzR71yljtnqpUTYFlQ==}
     engines: {node: '>=18.0.0'}
 
+  '@smithy/types@4.11.0':
+    resolution: {integrity: sha512-mlrmL0DRDVe3mNrjTcVcZEgkFmufITfUAPBEA+AHYiIeYyJebso/He1qLbP3PssRe22KUzLRpQSdBPbXdgZ2VA==}
+    engines: {node: '>=18.0.0'}
+
   '@smithy/url-parser@4.2.6':
     resolution: {integrity: sha512-tVoyzJ2vXp4R3/aeV4EQjBDmCuWxRa8eo3KybL7Xv4wEM16nObYh7H1sNfcuLWHAAAzb0RVyxUz1S3sGj4X+Tg==}
     engines: {node: '>=18.0.0'}
@@ -4627,8 +4613,8 @@ packages:
   node-releases@2.0.23:
     resolution: {integrity: sha512-cCmFDMSm26S6tQSDpBCg/NR8NENrVPhAJSf+XbxBG4rPFaaonlEoE9wHQmun+cls499TQGSb7ZyPBRlzgKfpeg==}
 
-  nodemailer@6.10.1:
-    resolution: {integrity: sha512-Z+iLaBGVaSjbIzQ4pX6XV41HrooLsQ10ZWPUehGmuantvzWoDVBnmsdUcOIDM1t+yPor5pDhVlDESgOMEGxhHA==}
+  nodemailer@7.0.12:
+    resolution: {integrity: sha512-H+rnK5bX2Pi/6ms3sN4/jRQvYSMltV6vqup/0SFOrxYYY/qoNvhXPlYq3e+Pm9RFJRwrMGbMIwi81M4dxpomhA==}
     engines: {node: '>=6.0.0'}
 
   normalize-path@3.0.0:
@@ -5092,10 +5078,6 @@ packages:
     peerDependenciesMeta:
       '@types/react':
         optional: true
-
-  react@18.3.1:
-    resolution: {integrity: sha512-wS+hAgJShR0KhEvPJArfuPVN1+Hz1t0Y6n5jLrGQbkb4urgPE/0Rve+1kMB1v/oWgHgm4WIcV+i7F2pTVj+2iQ==}
-    engines: {node: '>=0.10.0'}
 
   react@19.1.0:
     resolution: {integrity: sha512-FS+XFBNvn3GTAWq26joslQgWNoFu08F4kl0J4CgdNKADkdSGXQyTCnKteIAJy96Br6YbpEU1LSzV5dYtjMkMDg==}
@@ -5839,7 +5821,7 @@ snapshots:
       '@aws-crypto/sha256-js': 5.2.0
       '@aws-crypto/supports-web-crypto': 5.2.0
       '@aws-crypto/util': 5.2.0
-      '@aws-sdk/types': 3.953.0
+      '@aws-sdk/types': 3.957.0
       '@aws-sdk/util-locate-window': 3.953.0
       '@smithy/util-utf8': 2.3.0
       tslib: 2.8.1
@@ -5847,7 +5829,7 @@ snapshots:
   '@aws-crypto/sha256-js@5.2.0':
     dependencies:
       '@aws-crypto/util': 5.2.0
-      '@aws-sdk/types': 3.953.0
+      '@aws-sdk/types': 3.957.0
       tslib: 2.8.1
 
   '@aws-crypto/supports-web-crypto@5.2.0':
@@ -5856,7 +5838,7 @@ snapshots:
 
   '@aws-crypto/util@5.2.0':
     dependencies:
-      '@aws-sdk/types': 3.953.0
+      '@aws-sdk/types': 3.957.0
       '@smithy/util-utf8': 2.3.0
       tslib: 2.8.1
 
@@ -6191,6 +6173,11 @@ snapshots:
   '@aws-sdk/types@3.953.0':
     dependencies:
       '@smithy/types': 4.10.0
+      tslib: 2.8.1
+
+  '@aws-sdk/types@3.957.0':
+    dependencies:
+      '@smithy/types': 4.11.0
       tslib: 2.8.1
 
   '@aws-sdk/util-arn-parser@3.953.0':
@@ -9191,6 +9178,10 @@ snapshots:
     dependencies:
       tslib: 2.8.1
 
+  '@smithy/types@4.11.0':
+    dependencies:
+      tslib: 2.8.1
+
   '@smithy/url-parser@4.2.6':
     dependencies:
       '@smithy/querystring-parser': 4.2.6
@@ -11628,7 +11619,7 @@ snapshots:
 
   node-releases@2.0.23: {}
 
-  nodemailer@6.10.1: {}
+  nodemailer@7.0.12: {}
 
   normalize-path@3.0.0: {}
 
@@ -12315,10 +12306,6 @@ snapshots:
       tslib: 2.8.1
     optionalDependencies:
       '@types/react': 19.2.0
-
-  react@18.3.1:
-    dependencies:
-      loose-envify: 1.4.0
 
   react@19.1.0: {}
 
