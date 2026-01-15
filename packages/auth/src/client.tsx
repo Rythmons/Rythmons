@@ -1,5 +1,6 @@
 "use client";
 
+import type { Session } from "@rythmons/auth";
 import type { SignInInput, SignUpInput } from "@rythmons/validation";
 import { signInSchema, signUpSchema } from "@rythmons/validation";
 import { useForm } from "@tanstack/react-form";
@@ -7,7 +8,6 @@ import type { BetterAuthClientPlugin } from "better-auth/client";
 import { createAuthClient } from "better-auth/react";
 import { createContext, type ReactNode, useContext, useState } from "react";
 import type { ZodSchema } from "zod";
-import type { Session } from "./types";
 
 export type AuthClient = ReturnType<typeof createAuthClient>;
 export type { Session };

@@ -1,24 +1,29 @@
 import { cookies, headers } from "next/headers";
 
 /**
- * Get session from server component
- * Uses the local proxy which properly handles cookies on the same domain
+ * Récupère la session depuis un composant serveur.
+ * Utilise le proxy local qui gère correctement les cookies sur le même domaine.
  */
 export async function getServerSession() {
 	const cookieStore = await cookies();
 	const allCookies = cookieStore.getAll();
 
-	// Reconstruct cookie header from all cookies
+	// Reconstruit l'en-tête cookie à partir de tous les cookies
 	const cookieHeader = allCookies
 		.map((cookie) => `${cookie.name}=${cookie.value}`)
 		.join("; ");
 
-	console.log("[getServerSession] Using local proxy /api/auth/get-session");
-	console.log(
-		"[getServerSession] cookies:",
-		cookieHeader ? "present" : "missing",
-	);
-	console.log("[getServerSession] cookie count:", allCookies.length);
+	const isProd = process.env.NODE_ENV === "production";
+	if (!isProd) {
+		console.log(
+			"[getServerSession] Utilisation du proxy local /api/auth/get-session",
+		);
+		console.log(
+			"[getServerSession] cookies:",
+			cookieHeader ? "présents" : "absents",
+		);
+		console.log("[getServerSession] nombre de cookies :", allCookies.length);
+	}
 
 	try {
 		const headersList = await headers();
@@ -31,13 +36,15 @@ export async function getServerSession() {
 			originFromHeaders;
 
 		if (!baseURL) {
-			console.error("[getServerSession] Unable to determine baseURL for fetch");
-			return { data: null, error: new Error("Missing base URL") };
+			console.error(
+				"[getServerSession] Impossible de déterminer l'URL de base pour le fetch",
+			);
+			return { data: null, error: new Error("URL de base manquante") };
 		}
 
 		const endpoint = new URL("/api/auth/get-session", baseURL);
 
-		// Use local proxy instead of external server so cookies remain first-party
+		// Utilise le proxy local plutôt qu'un serveur externe pour garder les cookies en first-party
 		const response = await fetch(endpoint, {
 			method: "GET",
 			headers: {
@@ -47,23 +54,32 @@ export async function getServerSession() {
 			cache: "no-store",
 		});
 
-		console.log("[getServerSession] response status:", response.status);
+		if (!isProd) {
+			console.log("[getServerSession] statut de la réponse :", response.status);
+		}
 
 		if (!response.ok) {
-			console.log("[getServerSession] response not ok");
+			if (!isProd) {
+				console.log("[getServerSession] réponse non OK");
+			}
 			return { data: null, error: null };
 		}
 
 		const sessionData = await response.json();
-		console.log(
-			"[getServerSession] session found:",
-			sessionData ? "yes" : "no",
-		);
+		if (!isProd) {
+			console.log(
+				"[getServerSession] session trouvée :",
+				sessionData ? "oui" : "non",
+			);
+		}
 
-		// Better Auth returns the session object directly (with user property) or null
+		// Better Auth renvoie l'objet session directement (avec user) ou null
 		return { data: sessionData, error: null };
 	} catch (error) {
-		console.error("[getServerSession] Error fetching session:", error);
+		console.error(
+			"[getServerSession] Erreur lors de la récupération de la session :",
+			error,
+		);
 		return { data: null, error };
 	}
 }

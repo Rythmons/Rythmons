@@ -10,8 +10,10 @@ import { Label } from "./ui/label";
 
 export default function SignInForm({
 	onSwitchToSignUp,
+	onSwitchToForgottenPassword,
 }: {
 	onSwitchToSignUp: () => void;
+	onSwitchToForgottenPassword: () => void;
 }) {
 	const router = useRouter();
 	const authClient = useAuth();
@@ -132,6 +134,13 @@ export default function SignInForm({
 					className="text-indigo-600 hover:text-indigo-800"
 				>
 					Besoin d’un compte ? Inscrivez-vous
+				</Button>
+				<Button
+					variant="link"
+					onClick={onSwitchToForgottenPassword}
+					className="text-indigo-600 hover:text-indigo-800"
+				>
+					Mot de passe oublié ?
 				</Button>
 			</div>
 		</div>
