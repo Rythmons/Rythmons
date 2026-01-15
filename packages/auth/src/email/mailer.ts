@@ -74,6 +74,10 @@ export async function sendMail({
 	subject: string;
 	html: string;
 }) {
+	if (process.env.NODE_ENV !== "production") {
+		return sendMailTest({ to, subject, html });
+	}
+
 	if (!process.env.MAIL_FROM) {
 		throw new Error("MAIL_FROM is not set");
 	}
