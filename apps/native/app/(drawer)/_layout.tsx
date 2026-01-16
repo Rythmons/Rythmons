@@ -1,39 +1,37 @@
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
-import { Link } from "expo-router";
 import { Drawer } from "expo-router/drawer";
 
-import { HeaderButton } from "@/components/header-button";
-
-const DrawerLayout = () => {
+export default function DrawerLayout() {
 	return (
-		<Drawer>
+		<Drawer
+			screenOptions={{
+				headerShown: true, // shows header on top
+				drawerType: "front", // standard drawer
+			}}
+		>
+			{/* Accueil */}
 			<Drawer.Screen
 				name="index"
 				options={{
 					headerTitle: "Accueil",
 					drawerLabel: "Accueil",
-					drawerIcon: ({ size, color }) => (
+					drawerIcon: ({ color, size }) => (
 						<Ionicons name="home-outline" size={size} color={color} />
 					),
 				}}
 			/>
+
+			{/* Login */}
 			<Drawer.Screen
-				name="(tabs)"
+				name="login"
 				options={{
-					headerTitle: "Onglets",
-					drawerLabel: "Onglets",
-					drawerIcon: ({ size, color }) => (
-						<MaterialIcons name="border-bottom" size={size} color={color} />
-					),
-					headerRight: () => (
-						<Link href="/modal" asChild>
-							<HeaderButton />
-						</Link>
+					headerTitle: "Login",
+					drawerLabel: "Login",
+					drawerIcon: ({ color, size }) => (
+						<MaterialIcons name="login" size={size} color={color} />
 					),
 				}}
 			/>
 		</Drawer>
 	);
-};
-
-export default DrawerLayout;
+}

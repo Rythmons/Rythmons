@@ -7,7 +7,7 @@ import { expo } from "@better-auth/expo";
 import { db } from "@rythmons/db";
 import { type BetterAuthOptions, betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
-import { sendMail, sendMailTest } from "./email/mailer";
+import { sendMail } from "./email/mailer";
 import { resetPasswordTemplate } from "./email/templates";
 import { parseCorsOrigins } from "./utils";
 
@@ -109,28 +109,34 @@ export const auth = betterAuth<BetterAuthOptions>({
 	emailAndPassword: {
 		enabled: true,
 
-		sendResetPassword: async ({ user, token }) => {
-			const baseUrl = resolvedBaseURL || process.env.BETTER_AUTH_URL;
+		sendResetPassword: async ({
+			user,
+			token,
+		}: {
+			user: { email: string; name?: string | null };
+			token: string;
+		}) => {
+			const baseUrl =
+				resolvedBaseURL ||
+				process.env.BETTER_AUTH_URL ||
+				process.env.NEXT_PUBLIC_APP_URL;
+
 			if (!baseUrl) {
 				throw new Error("Missing base URL for reset password link");
 			}
+
 			const resetUrl = `${baseUrl.replace(/\/$/, "")}/reset-password?token=${token}`;
 
-			const mailer = process.env.RESEND_API_KEY ? sendMail : sendMailTest;
-
 			try {
-				await mailer({
+				await sendMail({
 					to: user.email,
 					subject: "Réinitialisez votre mot de passe",
 					html: resetPasswordTemplate({
-						name: user.name,
+						name: user.name ?? undefined,
 						resetUrl,
 					}),
 				});
 			} catch (error) {
-				// In production we avoid failing the forgot-password flow (prevents account enumeration
-				// and keeps UX stable if the email provider is temporarily unavailable).
-				// In Preview/Dev we want this to be visible during testing.
 				console.error("[auth] Failed to send reset-password email", error);
 				if (process.env.VERCEL_ENV !== "production") {
 					throw error;
@@ -138,6 +144,7 @@ export const auth = betterAuth<BetterAuthOptions>({
 			}
 		},
 	},
+
 	advanced: {
 		defaultCookieAttributes: {
 			sameSite: "lax", // First-party cookies for same-domain setup

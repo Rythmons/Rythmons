@@ -23,6 +23,8 @@ export default function ForgottenPassword({
 			email: "",
 		},
 		onSubmit: async ({ value }) => {
+			console.log("Sending reset password email to", value.email);
+
 			await authClient.forgetPassword(
 				{
 					email: value.email,
