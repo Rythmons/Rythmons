@@ -1,8 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { Container } from "@/components/container";
-import { SignIn } from "@/components/sign-in";
-import { SignUp } from "@/components/sign-up";
+import { Login } from "@/components/login/login";
 import { authClient } from "@/lib/auth-client";
 import { queryClient, trpc } from "@/utils/trpc";
 
@@ -16,8 +15,9 @@ export default function Home() {
 			<ScrollView className="flex-1">
 				<View className="px-4">
 					<Text className="mb-4 font-bold font-mono text-3xl text-foreground">
-						BETTER T STACK
+						ACCUEIL
 					</Text>
+
 					{session?.user ? (
 						<View className="mb-6 rounded-lg border border-border bg-card p-4">
 							<View className="mb-2 flex-row items-center justify-between">
@@ -75,12 +75,6 @@ export default function Home() {
 							</View>
 						)}
 					</View>
-					{!session?.user && (
-						<>
-							<SignIn />
-							<SignUp />
-						</>
-					)}
 				</View>
 			</ScrollView>
 		</Container>
