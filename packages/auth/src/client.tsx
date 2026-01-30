@@ -154,10 +154,11 @@ export function useSignUp(authClient: AuthClient) {
 		async (input: SignUpInput, callbacks) => {
 			await authClient.signUp.email(
 				{
-					name: input.name,
+					name: `${input.firstName} ${input.lastName}`.trim(),
 					email: input.email,
 					password: input.password,
-				},
+					role: input.role,
+				} as any,
 				callbacks,
 			);
 		},
@@ -231,7 +232,7 @@ export function useSignInForm(callbacks?: AuthActionCallbacks) {
  *
  * // In your component:
  * <form.Provider>
- *   <form.Field name="name">
+ *   <form.Field name="firstName">
  *     {(field) => <input {...field} />}
  *   </form.Field>
  * </form.Provider>
@@ -243,9 +244,13 @@ export function useSignUpForm(callbacks?: AuthActionCallbacks) {
 
 	const form = useForm({
 		defaultValues: {
-			name: "",
+			firstName: "",
+			lastName: "",
 			email: "",
 			password: "",
+			confirmPassword: "",
+			role: "ARTIST" as SignUpInput["role"],
+			acceptTerms: false,
 		},
 		validators: {
 			onChange: signUpSchema,

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Fugaz_One, Montserrat } from "next/font/google";
 import "../index.css";
+import "@uploadthing/react/styles.css";
 import Header from "@/components/header";
 import Providers from "@/components/providers";
 
@@ -20,6 +21,9 @@ export const metadata: Metadata = {
 	description: "Plateforme Rythmons",
 };
 
+import { extractRouterConfig } from "uploadthing/server";
+import { ourFileRouter } from "@/app/api/uploadthing/core";
+
 export default function RootLayout({
 	children,
 }: Readonly<{
@@ -30,7 +34,7 @@ export default function RootLayout({
 			<body
 				className={`${montserrat.className} ${montserrat.variable} ${fugazOne.variable} antialiased`}
 			>
-				<Providers>
+				<Providers routerConfig={extractRouterConfig(ourFileRouter)}>
 					<div className="grid h-svh grid-rows-[auto_1fr]">
 						<Header />
 						{children}

@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Text, Title } from "@/components/ui/typography";
 import { authClient } from "@/lib/auth-client";
 import { queryClient, trpc } from "@/utils/trpc";
+import { getVenueTypeLabel } from "@/utils/venue-labels";
 
 // Venue types with French labels
 const VENUE_TYPES = [
@@ -52,13 +53,15 @@ interface FormData {
 export default function VenueScreen() {
 	const { data: session, isPending: sessionPending } = authClient.useSession();
 	const {
-		data: venue,
+		data: venues,
 		isLoading: venueLoading,
 		refetch,
 	} = useQuery({
-		...trpc.venue.getMyVenue.queryOptions(),
+		...trpc.venue.getMyVenues.queryOptions(),
 		enabled: !!session?.user,
 	});
+
+	const venue = venues?.[0];
 
 	// Fetch available genres
 	const { data: availableGenres = [] } = useQuery({
@@ -255,7 +258,7 @@ export default function VenueScreen() {
 							<View className="p-4">
 								<Title className="text-foreground text-lg">{venue.name}</Title>
 								<Text className="text-muted-foreground">
-									{venue.city} • {venue.venueType.replace(/_/g, " ")}
+									{venue.city} • {getVenueTypeLabel(venue.venueType)}
 								</Text>
 							</View>
 						</View>

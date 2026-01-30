@@ -12,4 +12,13 @@ if (process.env.NODE_ENV !== "production") {
 	globalForPrisma.prisma = db;
 }
 
-export * from "@prisma/client";
+export type {
+	Account,
+	Artist,
+	Genre,
+	Session,
+	User,
+	Venue,
+	Verification,
+} from "@prisma/client";
+export { Prisma, UserRole, VenueType } from "@prisma/client";

@@ -22,11 +22,24 @@ export const signInSchema = z.object({
 
 export type SignInInput = z.infer<typeof signInSchema>;
 
+const ROLES = ["ARTIST", "ORGANIZER", "MEDIA", "TECH_SERVICE"] as const;
+
 // Sign-up validation schema
-export const signUpSchema = z.object({
-	name: nameSchema,
-	email: emailSchema,
-	password: passwordSchema,
-});
+export const signUpSchema = z
+	.object({
+		firstName: z.string().min(1, "Le prénom est requis"),
+		lastName: z.string().min(1, "Le nom est requis"),
+		email: emailSchema,
+		password: passwordSchema,
+		confirmPassword: z.string().min(1, "La confirmation est requise"),
+		role: z.enum(ROLES),
+		acceptTerms: z.boolean().refine((val) => val === true, {
+			message: "Vous devez accepter les CGU",
+		}),
+	})
+	.refine((data) => data.password === data.confirmPassword, {
+		message: "Les mots de passe ne correspondent pas",
+		path: ["confirmPassword"],
+	});
 
 export type SignUpInput = z.infer<typeof signUpSchema>;

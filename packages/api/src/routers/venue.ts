@@ -53,12 +53,13 @@ const venueSchema = z.object({
 	photoUrl: z.string().url().optional().nullable(),
 	logoUrl: z.string().url().optional().nullable(),
 	genreNames: z.array(z.string()).optional(),
+	images: z.array(z.string()).default([]),
 });
 
 export const venueRouter = router({
-	// Get the current user's venue (if any)
-	getMyVenue: protectedProcedure.query(async ({ ctx }) => {
-		const venue = await db.venue.findFirst({
+	// Get the current user's venues
+	getMyVenues: protectedProcedure.query(async ({ ctx }) => {
+		const venues = await db.venue.findMany({
 			where: {
 				ownerId: ctx.session.user.id,
 			},
@@ -66,11 +67,11 @@ export const venueRouter = router({
 				genres: true,
 			},
 		});
-		return venue;
+		return venues;
 	}),
 
 	// Get a venue by ID (public)
-	getById: protectedProcedure
+	getById: publicProcedure
 		.input(z.object({ id: z.string() }))
 		.query(async ({ input }) => {
 			const venue = await db.venue.findUnique({
@@ -99,15 +100,17 @@ export const venueRouter = router({
 		.input(venueSchema)
 		.mutation(async ({ ctx, input }) => {
 			// Check if user already has a venue
-			const existingVenue = await db.venue.findFirst({
+			// Limit number of venues per user
+			const venueCount = await db.venue.count({
 				where: { ownerId: ctx.session.user.id },
 			});
 
-			if (existingVenue) {
-				throw new Error("Vous avez déjà un lieu enregistré");
+			if (venueCount >= 5) {
+				throw new Error("Vous avez atteint la limite de 5 lieux.");
 			}
 
 			const { genreNames, ...venueData } = input;
+			console.log("Creating venue with data:", venueData); // SERVER DEBUG LOG
 
 			// Create or connect genres
 			const genreConnections =
@@ -164,6 +167,7 @@ export const venueRouter = router({
 			}
 
 			const { genreNames, ...venueData } = input.data;
+			console.log("Updating venue with data:", venueData); // SERVER DEBUG LOG
 
 			// Handle genres update if provided
 			let genresUpdate = {};

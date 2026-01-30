@@ -1,44 +1,32 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { Building2, Loader2 } from "lucide-react";
+import { Loader2, Mic2 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect } from "react";
+import { Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
 import { queryClient, trpc } from "@/utils/trpc";
-import { VenueForm } from "./venue-form";
+import { ArtistForm } from "./artist-form";
 
-function VenuePageContent() {
-	const router = useRouter();
+function ArtistPageContent() {
 	const searchParams = useSearchParams();
 	const editId = searchParams.get("id");
+	const router = useRouter();
+
 	const { data: session, isPending: sessionPending } = authClient.useSession();
+
+	// Fetch all artists for this user
 	const {
-		data: venues,
+		data: artists,
 		isLoading,
 		error,
 	} = useQuery({
-		...trpc.venue.getMyVenues.queryOptions(),
+		...trpc.artist.myArtists.queryOptions(),
 		enabled: !!session?.user,
 	});
 
-	// If user wants to edit a specific venue, redirect to the profile page
-	useEffect(() => {
-		if (editId && !isLoading) {
-			router.replace(`/venue/${editId}` as any);
-		}
-	}, [editId, isLoading, router]);
-
-	// If user has venues and is not explicitly creating a new one, redirect to first venue
-	const isNewMode = searchParams.get("new") === "true";
-	useEffect(() => {
-		if (!isNewMode && !isLoading && venues && venues.length > 0) {
-			router.replace(`/venue/${(venues as any[])[0].id}` as any);
-		}
-	}, [isNewMode, isLoading, venues, router]);
-
-	if (sessionPending || isLoading || editId) {
+	if (sessionPending || isLoading) {
 		return (
 			<div className="container mx-auto max-w-4xl py-8">
 				<div className="flex items-center justify-center py-20">
@@ -66,39 +54,73 @@ function VenuePageContent() {
 		);
 	}
 
-	// Create New Mode (shown when no venues exist or explicitly creating new)
+	// Logic:
+	// 1. If editId is provided, find that artist to edit.
+	// 2. If no editId, we show "Create New" form.
+	// (The Dashboard handles the list view now).
+
+	const artistToEdit = editId
+		? (artists as any[])?.find((a) => a.id === editId)
+		: undefined;
+
+	// If ID provided but not found?
+	if (editId && !artistToEdit) {
+		return (
+			<div className="container mx-auto max-w-4xl py-8">
+				<p>Artiste introuvable.</p>
+				<Button onClick={() => router.push("/dashboard")}>
+					Retour au tableau de bord
+				</Button>
+			</div>
+		);
+	}
+
 	return (
 		<div className="container mx-auto max-w-4xl py-8">
 			{/* Welcome Header */}
 			<div className="mb-8 rounded-xl bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-8">
 				<div className="flex items-start gap-4">
 					<div className="rounded-xl bg-primary/20 p-3">
-						<Building2 className="h-8 w-8 text-primary" />
+						<Mic2 className="h-8 w-8 text-primary" />
 					</div>
 					<div>
 						<h1 className="mb-2 font-bold text-3xl">
-							{venues && venues.length > 0
-								? "Ajouter un nouveau lieu"
-								: "Créer le profil de votre lieu"}
+							{artistToEdit
+								? `Modifier ${artistToEdit.stageName}`
+								: "Nouveau projet artistique"}
 						</h1>
 						<p className="text-lg text-muted-foreground">
-							{venues && venues.length > 0
-								? "Ajoutez un nouveau lieu à votre portfolio."
-								: "Bienvenue ! Pour commencer à recevoir des propositions d'artistes, créez d'abord le profil de votre établissement."}
+							{artistToEdit
+								? "Mettez à jour vos informations."
+								: "Créez une fiche pour votre groupe ou projet solo pour démarcher des lieux."}
 						</p>
 					</div>
 				</div>
 			</div>
 
-			{/* Create Form */}
+			{/* Form */}
 			<div className="rounded-xl border bg-card p-8 shadow-sm">
-				<VenueForm
-					mode="create"
-					onSuccess={(venueId?: string) => {
+				<ArtistForm
+					mode={artistToEdit ? "edit" : "create"}
+					initialData={
+						artistToEdit
+							? {
+									id: artistToEdit.id,
+									stageName: artistToEdit.stageName,
+									bio: artistToEdit.bio ?? "",
+									website: artistToEdit.website ?? "",
+									techRequirements: artistToEdit.techRequirements ?? "",
+									feeMin: artistToEdit.feeMin ?? undefined,
+									feeMax: artistToEdit.feeMax ?? undefined,
+									genres: artistToEdit.genres,
+								}
+							: undefined
+					}
+					onSuccess={() => {
 						queryClient.invalidateQueries();
-						if (venueId) {
-							router.push(`/venue/${venueId}` as any);
-						} else {
+						if (!editId) {
+							// If created, go back to dashboard to see it in list?
+							// Or stay here?
 							router.push("/dashboard");
 						}
 					}}
@@ -108,7 +130,7 @@ function VenuePageContent() {
 	);
 }
 
-export default function VenuePage() {
+export default function ArtistPage() {
 	return (
 		<Suspense
 			fallback={
@@ -120,7 +142,7 @@ export default function VenuePage() {
 				</div>
 			}
 		>
-			<VenuePageContent />
+			<ArtistPageContent />
 		</Suspense>
 	);
 }

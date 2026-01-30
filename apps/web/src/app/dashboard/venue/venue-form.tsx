@@ -5,9 +5,10 @@ import { Building2, FileText, Image, MapPin, Music, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useId, useState as useReactState } from "react";
 import { toast } from "sonner";
-
+import { AddressAutocomplete } from "@/components/ui/address-autocomplete";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ImageUpload } from "@/components/ui/image-upload";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -56,7 +57,7 @@ interface VenueFormProps {
 		genres?: { id: string; name: string }[];
 	};
 	mode: "create" | "edit";
-	onSuccess?: () => void;
+	onSuccess?: (venueId?: string) => void;
 }
 
 export function VenueForm({ initialData, mode, onSuccess }: VenueFormProps) {
@@ -146,8 +147,13 @@ export function VenueForm({ initialData, mode, onSuccess }: VenueFormProps) {
 				genreNames: selectedGenres,
 			};
 
+			console.log("Submitting Venue Data:", submitData); // DEBUG LOG
+
+			let resultVenueId: string | undefined;
+
 			if (mode === "create") {
-				await createMutation.mutateAsync(submitData);
+				const result = await createMutation.mutateAsync(submitData);
+				resultVenueId = result.id;
 				toast.success("Lieu créé avec succès !");
 			} else {
 				if (!initialData?.id) throw new Error("ID manquant");
@@ -159,7 +165,7 @@ export function VenueForm({ initialData, mode, onSuccess }: VenueFormProps) {
 			}
 
 			router.refresh();
-			onSuccess?.();
+			onSuccess?.(resultVenueId);
 		} catch (error) {
 			const message =
 				error instanceof Error ? error.message : "Erreur lors de la sauvegarde";
@@ -240,19 +246,15 @@ export function VenueForm({ initialData, mode, onSuccess }: VenueFormProps) {
 
 				<div className="space-y-4">
 					<div className="space-y-2">
-						<Label htmlFor={`${id}-address`}>
-							Adresse complète <span className="text-destructive">*</span>
-						</Label>
-						<Input
-							id={`${id}-address`}
+						<AddressAutocomplete
 							value={formData.address}
-							onChange={(e) => updateField("address", e.target.value)}
-							placeholder="Ex: 123 Rue de la Musique"
-							aria-invalid={!!errors.address}
+							onChange={(address, city, postalCode) => {
+								updateField("address", address);
+								updateField("city", city);
+								updateField("postalCode", postalCode);
+							}}
+							error={errors.address}
 						/>
-						{errors.address && (
-							<p className="text-destructive text-sm">{errors.address}</p>
-						)}
 					</div>
 
 					<div className="grid gap-4 md:grid-cols-3">
@@ -416,69 +418,41 @@ export function VenueForm({ initialData, mode, onSuccess }: VenueFormProps) {
 					<span>Visuels</span>
 				</div>
 
-				<div className="grid gap-4 md:grid-cols-2">
+				<div className="grid gap-6 md:grid-cols-[2fr_1fr]">
+					{/* Photo Upload */}
 					<div className="space-y-2">
-						<Label htmlFor={`${id}-photoUrl`}>URL de la photo principale</Label>
-						<Input
-							id={`${id}-photoUrl`}
-							type="url"
+						<Label>Photo principale (bannière)</Label>
+						<ImageUpload
 							value={formData.photoUrl}
-							onChange={(e) => updateField("photoUrl", e.target.value)}
-							placeholder="https://..."
-							aria-invalid={!!errors.photoUrl}
+							onChange={(url) => {
+								updateField("photoUrl", url);
+								toast.success("Photo téléchargée !");
+							}}
+							onRemove={() => updateField("photoUrl", "")}
+							label="Déposez votre photo ici"
+							aspectRatio="video"
+							cropAspectRatio={16 / 9}
 						/>
-						{errors.photoUrl && (
-							<p className="text-destructive text-sm">{errors.photoUrl}</p>
-						)}
-						<p className="text-muted-foreground text-sm">
-							Photo principale de votre établissement
-						</p>
 					</div>
 
+					{/* Logo Upload */}
 					<div className="space-y-2">
-						<Label htmlFor={`${id}-logoUrl`}>URL du logo</Label>
-						<Input
-							id={`${id}-logoUrl`}
-							type="url"
-							value={formData.logoUrl}
-							onChange={(e) => updateField("logoUrl", e.target.value)}
-							placeholder="https://..."
-							aria-invalid={!!errors.logoUrl}
-						/>
-						{errors.logoUrl && (
-							<p className="text-destructive text-sm">{errors.logoUrl}</p>
-						)}
-						<p className="text-muted-foreground text-sm">
-							Logo ou image de marque
-						</p>
+						<Label>Logo</Label>
+						<div className="max-w-[200px]">
+							<ImageUpload
+								value={formData.logoUrl}
+								onChange={(url) => {
+									updateField("logoUrl", url);
+									toast.success("Logo téléchargé !");
+								}}
+								onRemove={() => updateField("logoUrl", "")}
+								label="Déposez votre logo ici"
+								aspectRatio="square"
+								cropAspectRatio={1}
+							/>
+						</div>
 					</div>
 				</div>
-
-				{/* Image Preview */}
-				{(formData.photoUrl || formData.logoUrl) && (
-					<div className="flex gap-4">
-						{formData.photoUrl && isValidUrl(formData.photoUrl) && (
-							<div className="space-y-2">
-								<p className="font-medium text-sm">Aperçu photo</p>
-								<img
-									src={formData.photoUrl}
-									alt="Aperçu"
-									className="h-32 w-48 rounded-lg object-cover shadow-sm"
-								/>
-							</div>
-						)}
-						{formData.logoUrl && isValidUrl(formData.logoUrl) && (
-							<div className="space-y-2">
-								<p className="font-medium text-sm">Aperçu logo</p>
-								<img
-									src={formData.logoUrl}
-									alt="Logo"
-									className="h-32 w-32 rounded-lg object-contain shadow-sm"
-								/>
-							</div>
-						)}
-					</div>
-				)}
 			</div>
 
 			{/* Submit Button */}

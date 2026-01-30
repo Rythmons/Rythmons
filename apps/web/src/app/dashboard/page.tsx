@@ -13,11 +13,5 @@ export default async function DashboardPage() {
 		redirect("/login");
 	}
 
-	return (
-		<div>
-			<h1>Tableau de bord</h1>
-			<p>Bienvenue {session.data.user.name}</p>
-			<Dashboard session={session.data} />
-		</div>
-	);
+	return <Dashboard session={session.data} />;
 }

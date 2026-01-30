@@ -83,11 +83,13 @@ export default function SignInForm({
 									onBlur={field.handleBlur}
 									onChange={(e) => field.handleChange(e.target.value)}
 								/>
-								{field.state.meta.errors.length > 0 && (
-									<p className="text-destructive text-sm">
-										{String(field.state.meta.errors[0])}
-									</p>
-								)}
+								{field.state.meta.isTouched &&
+									field.state.meta.errors.length > 0 && (
+										<p className="text-destructive text-sm">
+											{(field.state.meta.errors[0] as any)?.message ||
+												String(field.state.meta.errors[0])}
+										</p>
+									)}
 							</div>
 						)}
 					</form.Field>
@@ -106,11 +108,13 @@ export default function SignInForm({
 									onBlur={field.handleBlur}
 									onChange={(e) => field.handleChange(e.target.value)}
 								/>
-								{field.state.meta.errors.length > 0 && (
-									<p className="text-destructive text-sm">
-										{String(field.state.meta.errors[0])}
-									</p>
-								)}
+								{field.state.meta.isTouched &&
+									field.state.meta.errors.length > 0 && (
+										<p className="text-destructive text-sm">
+											{(field.state.meta.errors[0] as any)?.message ||
+												String(field.state.meta.errors[0])}
+										</p>
+									)}
 							</div>
 						)}
 					</form.Field>

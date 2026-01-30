@@ -12,9 +12,11 @@
 
 html,
 body {
-	/* Use brand colors instead of Tailwind defaults */
-	background-color: var(--background);
+	/* Rythmons signature gradient background */
+	background: linear-gradient(135deg, #0A010E 0%, #17011F 50%, #2E003D 100%);
+	background-attachment: fixed;
 	color: var(--foreground);
+	min-height: 100vh;
 
 	@media (prefers-color-scheme: dark) {
 		color-scheme: dark;
@@ -185,4 +187,27 @@ body {
 	body {
 		@apply bg-background text-foreground;
 	}
+
+	h1,
+	h2 {
+		font-family: var(--font-fugaz-one), ui-serif, Georgia, serif;
+	}
+}
+
+/* React Image Crop Custom Styles */
+.ReactCrop {
+	--rc-selection-border-color: var(--brand-primary, #EA0D40);
+	--rc-drag-handle-bg-color: var(--brand-primary, #EA0D40);
+	--rc-drag-handle-size: 12px;
+}
+
+.ReactCrop__crop-selection {
+	border-radius: 4px;
+	box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6);
+}
+
+.ReactCrop__drag-handle {
+	border-radius: 50%;
+	border: 2px solid white;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
