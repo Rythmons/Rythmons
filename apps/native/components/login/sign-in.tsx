@@ -1,13 +1,14 @@
 import { useSignInForm } from "@rythmons/auth/client";
 import {
 	ActivityIndicator,
+	Alert,
 	Text,
 	TextInput,
 	TouchableOpacity,
 	View,
 } from "react-native";
-import { toast } from "sonner";
 import { queryClient } from "@/utils/trpc";
+import { GoogleAuthButton } from "../google-auth-button";
 
 type Props = {
 	onSwitchToSignUp: () => void;
@@ -17,8 +18,8 @@ type Props = {
 export function SignIn({ onSwitchToSignUp, onSwitchToForgotPassword }: Props) {
 	const { form, isLoading } = useSignInForm({
 		onSuccess: async () => {
-			toast.success("Connexion réussie");
-			queryClient.refetchQueries();
+			Alert.alert("Succès", "Connexion réussie");
+			void queryClient.refetchQueries();
 		},
 	});
 
@@ -27,6 +28,19 @@ export function SignIn({ onSwitchToSignUp, onSwitchToForgotPassword }: Props) {
 			<Text className="mb-4 font-semibold text-foreground text-lg">
 				Se connecter
 			</Text>
+
+			<View className="mb-4">
+				<GoogleAuthButton action="sign-in" />
+			</View>
+
+			<View className="mb-4 flex-row items-center">
+				<View className="h-px flex-1 bg-border" />
+				<Text className="mx-2 text-muted-foreground text-xs uppercase">
+					Ou continuer avec
+				</Text>
+				<View className="h-px flex-1 bg-border" />
+			</View>
+
 			<form.Field name="email">
 				{(field) => (
 					<View className="mb-3">

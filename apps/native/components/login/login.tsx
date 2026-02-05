@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { View } from "react-native";
 import { ForgotPassword } from "@/components/login/forgot-password";
 import { SignIn } from "@/components/login/sign-in";
 import { SignUp } from "@/components/login/sign-up";

@@ -75,6 +75,11 @@ export default function Home() {
 							</View>
 						)}
 					</View>
+					{!session?.user ? (
+						<View className="mb-6">
+							<Login />
+						</View>
+					) : null}
 				</View>
 			</ScrollView>
 		</Container>
