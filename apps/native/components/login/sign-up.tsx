@@ -10,10 +10,15 @@ import {
 import { queryClient } from "@/utils/trpc";
 import { GoogleAuthButton } from "./google-auth-button";
 
-export function SignUp({ onSwitchToSignIn }: { onSwitchToSignIn: () => void }) {
+type Props = {
+	onSwitchToSignIn: () => void;
+};
+
+export function SignUp({ onSwitchToSignIn }: Props) {
 	const { form, isLoading } = useSignUpForm({
-		onSuccess: () => {
-			queryClient.refetchQueries();
+		onSuccess: async () => {
+			Alert.alert("Succès", "Compte créé avec succès");
+			void queryClient.refetchQueries();
 		},
 	});
 
@@ -141,21 +146,22 @@ export function SignUp({ onSwitchToSignIn }: { onSwitchToSignIn: () => void }) {
 			<TouchableOpacity
 				onPress={form.handleSubmit}
 				disabled={isLoading}
-				className="mb-2 flex-row items-center justify-center rounded-md bg-primary p-4"
+				className="flex-row items-center justify-center rounded-md bg-primary p-4"
 			>
 				{isLoading ? (
 					<ActivityIndicator size="small" color="#fff" />
 				) : (
 					<Text className="font-medium text-primary-foreground">
-						Créer mon compte
+						S'inscrire
 					</Text>
 				)}
 			</TouchableOpacity>
-			<TouchableOpacity onPress={onSwitchToSignIn} disabled={isLoading}>
-				<Text className="text-center font-medium text-primary">
-					Vous avez déjà un compte ? Connectez-vous
-				</Text>
-			</TouchableOpacity>
+			<View className="my-3 flex-row justify-center">
+				<Text className="text-muted-foreground text-sm">Déjà inscrit ? </Text>
+				<TouchableOpacity onPress={onSwitchToSignIn}>
+					<Text className="text-primary text-sm">Connectez-vous</Text>
+				</TouchableOpacity>
+			</View>
 		</View>
 	);
 }
