@@ -30,8 +30,7 @@
 	},
 	"lint-staged": {
 		"*.{ts,cjs,mjs,d.cts,d.mts,jsx,tsx,json,jsonc}": [
-			"biome check --write .",
-			"git add"
+			"biome check --write"
 		]
 	},
 	"packageManager": "pnpm@10.18.0"
