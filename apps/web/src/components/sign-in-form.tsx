@@ -85,7 +85,10 @@ export default function SignInForm({
 								/>
 								{field.state.meta.errors.length > 0 && (
 									<p className="text-destructive text-sm">
-										{String(field.state.meta.errors[0])}
+										{typeof field.state.meta.errors[0] === "object"
+											? (field.state.meta.errors[0] as { message: string })
+													.message
+											: String(field.state.meta.errors[0])}
 									</p>
 								)}
 							</div>
@@ -108,7 +111,10 @@ export default function SignInForm({
 								/>
 								{field.state.meta.errors.length > 0 && (
 									<p className="text-destructive text-sm">
-										{String(field.state.meta.errors[0])}
+										{typeof field.state.meta.errors[0] === "object"
+											? (field.state.meta.errors[0] as { message: string })
+													.message
+											: String(field.state.meta.errors[0])}
 									</p>
 								)}
 							</div>
