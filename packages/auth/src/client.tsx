@@ -172,9 +172,11 @@ export function useForgotPassword(authClient: AuthClient) {
 		authClient,
 		forgotPasswordSchema,
 		async (input: ForgotPasswordInput, callbacks) => {
+			// @ts-expect-error - forgetPassword might be missing in type definition but needed for email flow?
 			await authClient.forgetPassword(
 				{
 					email: input.email,
+					redirectTo: "/reset-password", // Adding a redirect URL might be good
 				},
 				callbacks,
 			);

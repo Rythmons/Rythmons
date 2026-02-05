@@ -1,14 +1,13 @@
+import type { AppRouter } from "@rythmons/api";
 import { useQuery } from "@tanstack/react-query";
 import type { TRPCClientErrorLike } from "@trpc/client";
 import type { inferRouterOutputs } from "@trpc/server";
 import type { TRPCQueryKey } from "@trpc/tanstack-react-query";
 import { ScrollView, Text, TouchableOpacity, View } from "react-native";
-
 import { Container } from "@/components/container";
 import { Loader } from "@/components/loader";
 import { authClient } from "@/lib/auth-client";
 import { useSignOut } from "@/lib/use-sign-out";
-import type { AppRouter } from "@/utils/trpc";
 import { trpc } from "@/utils/trpc";
 
 type PrivateDataResponse = inferRouterOutputs<AppRouter>["privateData"];
