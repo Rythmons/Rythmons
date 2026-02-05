@@ -17,7 +17,32 @@ import { createAuthClient } from "better-auth/react";
 import { createContext, type ReactNode, useContext, useState } from "react";
 import type { ZodSchema } from "zod";
 
-export type AuthClient = ReturnType<typeof createAuthClient>;
+type BetterAuthError = {
+	error?: {
+		message?: string;
+		statusText?: string;
+	};
+};
+
+type BetterAuthCallbacks = {
+	onSuccess?: () => void | Promise<void>;
+	onError?: (error: BetterAuthError) => void;
+};
+
+type BaseAuthClient = ReturnType<typeof createAuthClient>;
+
+export type AuthClient = Omit<BaseAuthClient, "forgetPassword"> & {
+	/**
+	 * Send a reset password email.
+	 *
+	 * `better-auth` doesn't always expose this action in its client types, but it
+	 * exists at runtime when `emailAndPassword.enabled` is enabled on the server.
+	 */
+	forgetPassword: (
+		input: ForgotPasswordInput & { redirectTo?: string },
+		callbacks?: BetterAuthCallbacks,
+	) => Promise<unknown>;
+};
 export type { Session };
 
 export interface AuthClientConfig {
@@ -29,7 +54,7 @@ export interface AuthClientConfig {
 const AuthContext = createContext<AuthClient | null>(null);
 
 export function createClient(config: AuthClientConfig): AuthClient {
-	return createAuthClient(config);
+	return createAuthClient(config) as AuthClient;
 }
 
 export interface AuthProviderProps {
@@ -172,7 +197,6 @@ export function useForgotPassword(authClient: AuthClient) {
 		authClient,
 		forgotPasswordSchema,
 		async (input: ForgotPasswordInput, callbacks) => {
-			// @ts-expect-error - forgetPassword might be missing in type definition but needed for email flow?
 			await authClient.forgetPassword(
 				{
 					email: input.email,

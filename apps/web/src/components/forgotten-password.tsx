@@ -38,7 +38,11 @@ export default function ForgottenPassword({
 						router.refresh();
 					},
 					onError: (error) => {
-						toast.error(error.error.message || error.error.statusText);
+						toast.error(
+							error.error?.message ||
+								error.error?.statusText ||
+								"Erreur lors de la réinitialisation",
+						);
 					},
 				},
 			);
