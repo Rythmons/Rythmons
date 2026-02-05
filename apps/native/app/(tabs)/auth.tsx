@@ -15,13 +15,15 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Container } from "@/components/container";
 import { GoogleAuthButton } from "@/components/google-auth-button";
 import { Loader } from "@/components/loader";
-import { SignIn } from "@/components/sign-in";
-import { SignUp } from "@/components/sign-up";
+import { ForgotPassword } from "@/components/login/forgot-password";
+import { SignIn } from "@/components/login/sign-in";
+import { SignUp } from "@/components/login/sign-up";
 import { authClient } from "@/lib/auth-client";
 import { useSignOut } from "@/lib/use-sign-out";
 
 export default function AuthScreen() {
 	const [showSignIn, setShowSignIn] = useState(true);
+	const [showForgotPassword, setShowForgotPassword] = useState(false);
 	const { data: session, isPending } = authClient.useSession();
 	const headerHeight = useHeaderHeight();
 	const insets = useSafeAreaInsets();
@@ -102,12 +104,31 @@ export default function AuthScreen() {
 							</View>
 						) : (
 							<View className="gap-6">
-								{showSignIn ? (
-									<SignIn onSwitchToSignUp={() => setShowSignIn(false)} />
+								{showForgotPassword ? (
+									<ForgotPassword
+										onSwitchToSignIn={() => {
+											setShowForgotPassword(false);
+											setShowSignIn(true);
+										}}
+										onSwitchToSignUp={() => {
+											setShowForgotPassword(false);
+											setShowSignIn(false);
+										}}
+									/>
+								) : showSignIn ? (
+									<SignIn
+										onSwitchToSignUp={() => setShowSignIn(false)}
+										onSwitchToForgotPassword={() => setShowForgotPassword(true)}
+									/>
 								) : (
 									<SignUp onSwitchToSignIn={() => setShowSignIn(true)} />
 								)}
-								<GoogleAuthButton mode={showSignIn ? "sign-in" : "sign-up"} />
+
+								{!showForgotPassword && (
+									<GoogleAuthButton
+										action={showSignIn ? "sign-in" : "sign-up"}
+									/>
+								)}
 							</View>
 						)}
 					</View>

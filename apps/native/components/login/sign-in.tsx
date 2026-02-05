@@ -8,7 +8,7 @@ import {
 	View,
 } from "react-native";
 import { queryClient } from "@/utils/trpc";
-import { GoogleAuthButton } from "./google-auth-button";
+import { GoogleAuthButton } from "../google-auth-button";
 
 type Props = {
 	onSwitchToSignUp: () => void;
