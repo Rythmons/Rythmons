@@ -12,3 +12,24 @@ export const authClient = createClient({
 		}),
 	],
 });
+
+export async function requestPasswordReset(email: string) {
+	const res = await fetch(
+		`${process.env.EXPO_PUBLIC_SERVER_URL}/api/forgotten-password`,
+		{
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify({ email }),
+		},
+	);
+
+	const data = await res.json();
+
+	if (!res.ok) {
+		throw new Error(data.error || "Erreur lors de la demande");
+	}
+
+	return data;
+}

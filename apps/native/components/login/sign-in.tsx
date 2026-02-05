@@ -10,16 +10,22 @@ import {
 import { queryClient } from "@/utils/trpc";
 import { GoogleAuthButton } from "./google-auth-button";
 
-export function SignIn({ onSwitchToSignUp }: { onSwitchToSignUp: () => void }) {
+type Props = {
+	onSwitchToSignUp: () => void;
+	onSwitchToForgotPassword: () => void;
+};
+
+export function SignIn({ onSwitchToSignUp, onSwitchToForgotPassword }: Props) {
 	const { form, isLoading } = useSignInForm({
-		onSuccess: () => {
-			queryClient.refetchQueries();
+		onSuccess: async () => {
+			Alert.alert("Succès", "Connexion réussie");
+			void queryClient.refetchQueries();
 		},
 	});
 
 	return (
-		<View className="rounded-lg border border-border bg-card p-4">
-			<Text className="mb-4 font-semibold text-foreground text-xl">
+		<View className="mt-6 rounded-lg border border-border bg-card p-4">
+			<Text className="mb-4 font-semibold text-foreground text-lg">
 				Se connecter
 			</Text>
 
@@ -83,7 +89,7 @@ export function SignIn({ onSwitchToSignUp }: { onSwitchToSignUp: () => void }) {
 			<TouchableOpacity
 				onPress={form.handleSubmit}
 				disabled={isLoading}
-				className="mb-2 flex-row items-center justify-center rounded-md bg-primary p-4"
+				className="flex-row items-center justify-center rounded-md bg-primary p-4"
 			>
 				{isLoading ? (
 					<ActivityIndicator size="small" color="#fff" />
@@ -93,11 +99,22 @@ export function SignIn({ onSwitchToSignUp }: { onSwitchToSignUp: () => void }) {
 					</Text>
 				)}
 			</TouchableOpacity>
-			<TouchableOpacity onPress={onSwitchToSignUp} disabled={isLoading}>
-				<Text className="text-center font-medium text-primary">
-					Besoin d’un compte ? Inscrivez-vous
-				</Text>
-			</TouchableOpacity>
+			<View className="mt-4 gap-3">
+				<TouchableOpacity onPress={onSwitchToForgotPassword}>
+					<Text className="text-center text-primary text-sm">
+						Mot de passe oublié ?
+					</Text>
+				</TouchableOpacity>
+
+				<View className="flex-row justify-center">
+					<Text className="text-muted-foreground text-sm">
+						Pas encore de compte ?{" "}
+					</Text>
+					<TouchableOpacity onPress={onSwitchToSignUp}>
+						<Text className="text-primary text-sm">Créer un compte</Text>
+					</TouchableOpacity>
+				</View>
+			</View>
 		</View>
 	);
 }
