@@ -29,8 +29,9 @@
 		"lint-staged": "^16.1.2"
 	},
 	"lint-staged": {
-		"*.{js,ts,cjs,mjs,d.cts,d.mts,jsx,tsx,json,jsonc}": [
-			"biome check --write ."
+		"*.{ts,cjs,mjs,d.cts,d.mts,jsx,tsx,json,jsonc}": [
+			"biome check --write .",
+			"git add"
 		]
 	},
 	"packageManager": "pnpm@10.18.0"
