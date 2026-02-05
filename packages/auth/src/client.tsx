@@ -1,13 +1,21 @@
 "use client";
 
-import type { SignInInput, SignUpInput } from "@rythmons/validation";
-import { signInSchema, signUpSchema } from "@rythmons/validation";
+import type { Session } from "@rythmons/auth";
+import type {
+	ForgotPasswordInput,
+	SignInInput,
+	SignUpInput,
+} from "@rythmons/validation";
+import {
+	forgotPasswordSchema,
+	signInSchema,
+	signUpSchema,
+} from "@rythmons/validation";
 import { useForm } from "@tanstack/react-form";
 import type { BetterAuthClientPlugin } from "better-auth/client";
 import { createAuthClient } from "better-auth/react";
 import { createContext, type ReactNode, useContext, useState } from "react";
 import type { ZodSchema } from "zod";
-import type { Session } from "./types";
 
 export type AuthClient = ReturnType<typeof createAuthClient>;
 export type { Session };
@@ -159,6 +167,24 @@ export function useSignUp(authClient: AuthClient) {
 	return { signUp: execute, isLoading, error };
 }
 
+export function useForgotPassword(authClient: AuthClient) {
+	const { execute, isLoading, error } = useAuthAction(
+		authClient,
+		forgotPasswordSchema,
+		async (input: ForgotPasswordInput, callbacks) => {
+			await authClient.forgetPassword(
+				{
+					email: input.email,
+				},
+				callbacks,
+			);
+		},
+		"Échec de la demande de réinitialisation",
+	);
+
+	return { forgotPassword: execute, isLoading, error };
+}
+
 // ============================================================================
 // Shared Form Hooks with Validation
 // ============================================================================
@@ -245,6 +271,25 @@ export function useSignUpForm(callbacks?: AuthActionCallbacks) {
 		},
 		onSubmit: async ({ value }) => {
 			await signUp(value, callbacks);
+		},
+	});
+
+	return { form, isLoading };
+}
+
+export function useForgotPasswordForm(callbacks?: AuthActionCallbacks) {
+	const authClient = useAuth();
+	const { forgotPassword, isLoading } = useForgotPassword(authClient);
+
+	const form = useForm({
+		defaultValues: {
+			email: "",
+		},
+		validators: {
+			onChange: forgotPasswordSchema,
+		},
+		onSubmit: async ({ value }) => {
+			await forgotPassword(value, callbacks);
 		},
 	});
 

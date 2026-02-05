@@ -6,11 +6,17 @@ import {
 	TouchableOpacity,
 	View,
 } from "react-native";
+import { toast } from "sonner";
 import { queryClient } from "@/utils/trpc";
 
-export function SignUp() {
+type Props = {
+	onSwitchToSignIn: () => void;
+};
+
+export function SignUp({ onSwitchToSignIn }: Props) {
 	const { form, isLoading } = useSignUpForm({
-		onSuccess: () => {
+		onSuccess: async () => {
+			toast.success("Compte créé avec succès");
 			queryClient.refetchQueries();
 		},
 	});
@@ -137,6 +143,12 @@ export function SignUp() {
 					</Text>
 				)}
 			</TouchableOpacity>
+			<View className="my-3 flex-row justify-center">
+				<Text className="text-muted-foreground text-sm">Déjà inscrit ? </Text>
+				<TouchableOpacity onPress={onSwitchToSignIn}>
+					<Text className="text-primary text-sm">Connectez-vous</Text>
+				</TouchableOpacity>
+			</View>
 		</View>
 	);
 }
