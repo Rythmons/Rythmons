@@ -8,7 +8,14 @@ export const emailSchema = z
 
 export const passwordSchema = z
 	.string()
-	.min(8, "Le mot de passe doit contenir au moins 8 caractères");
+	.min(8, "Le mot de passe doit contenir au moins 8 caractères")
+	.regex(/[A-Z]/, "Le mot de passe doit contenir au moins une majuscule")
+	.regex(/[a-z]/, "Le mot de passe doit contenir au moins une minuscule")
+	.regex(/[0-9]/, "Le mot de passe doit contenir au moins un chiffre")
+	.regex(
+		/[^A-Za-z0-9]/,
+		"Le mot de passe doit contenir au moins un caractère spécial",
+	);
 
 export const nameSchema = z
 	.string()
@@ -17,29 +24,28 @@ export const nameSchema = z
 // Sign-in validation schema
 export const signInSchema = z.object({
 	email: emailSchema,
-	password: z.string().min(1, "Le mot de passe est requis"),
+	password: passwordSchema,
 });
 
 export type SignInInput = z.infer<typeof signInSchema>;
 
-const ROLES = ["ARTIST", "ORGANIZER", "MEDIA", "TECH_SERVICE"] as const;
-
 // Sign-up validation schema
 export const signUpSchema = z
 	.object({
-		firstName: z.string().min(1, "Le prénom est requis"),
-		lastName: z.string().min(1, "Le nom est requis"),
+		name: nameSchema,
 		email: emailSchema,
 		password: passwordSchema,
-		confirmPassword: z.string().min(1, "La confirmation est requise"),
-		role: z.enum(ROLES),
-		acceptTerms: z.boolean().refine((val) => val === true, {
-			message: "Vous devez accepter les CGU",
-		}),
+		passwordConfirmation: z.string(),
 	})
-	.refine((data) => data.password === data.confirmPassword, {
+	.refine((data) => data.password === data.passwordConfirmation, {
 		message: "Les mots de passe ne correspondent pas",
-		path: ["confirmPassword"],
+		path: ["passwordConfirmation"],
 	});
 
 export type SignUpInput = z.infer<typeof signUpSchema>;
+
+export const forgotPasswordSchema = z.object({
+	email: emailSchema,
+});
+
+export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;

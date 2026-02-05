@@ -1,33 +1,29 @@
 import { useQuery } from "@tanstack/react-query";
-import { ScrollView, TouchableOpacity, View } from "react-native";
+import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { Container } from "@/components/container";
-import { SignIn } from "@/components/sign-in";
-import { SignUp } from "@/components/sign-up";
-import { Text, Title } from "@/components/ui/typography";
+import { Login } from "@/components/login/login";
 import { authClient } from "@/lib/auth-client";
 import { queryClient, trpc } from "@/utils/trpc";
 
 export default function Home() {
-	const { data: session } = authClient.useSession();
 	const healthCheck = useQuery(trpc.healthCheck.queryOptions());
-	const privateData = useQuery({
-		...trpc.privateData.queryOptions(),
-		enabled: !!session?.user,
-	});
+	const privateData = useQuery(trpc.privateData.queryOptions());
+	const { data: session } = authClient.useSession();
 
 	return (
 		<Container>
 			<ScrollView className="flex-1">
 				<View className="px-4">
-					<Title className="mb-4 text-3xl text-foreground">
-						BETTER T STACK
-					</Title>
+					<Text className="mb-4 font-bold font-mono text-3xl text-foreground">
+						ACCUEIL
+					</Text>
+
 					{session?.user ? (
 						<View className="mb-6 rounded-lg border border-border bg-card p-4">
 							<View className="mb-2 flex-row items-center justify-between">
 								<Text className="text-base text-foreground">
 									Bienvenue,{" "}
-									<Text className="font-sans-medium">{session.user.name}</Text>
+									<Text className="font-medium">{session.user.name}</Text>
 								</Text>
 							</View>
 							<Text className="mb-4 text-muted-foreground text-sm">
@@ -41,14 +37,12 @@ export default function Home() {
 									queryClient.invalidateQueries();
 								}}
 							>
-								<Text className="font-sans-medium text-white">
-									Se déconnecter
-								</Text>
+								<Text className="font-medium text-white">Se déconnecter</Text>
 							</TouchableOpacity>
 						</View>
 					) : null}
 					<View className="mb-6 rounded-lg border border-border p-4">
-						<Text className="mb-3 font-sans-medium text-foreground">
+						<Text className="mb-3 font-medium text-foreground">
 							État de l'API
 						</Text>
 						<View className="flex-row items-center gap-2">
@@ -70,7 +64,7 @@ export default function Home() {
 						</View>
 					</View>
 					<View className="mb-6 rounded-lg border border-border p-4">
-						<Text className="mb-3 font-sans-medium text-foreground">
+						<Text className="mb-3 font-medium text-foreground">
 							Données Privées
 						</Text>
 						{privateData && (
@@ -81,12 +75,11 @@ export default function Home() {
 							</View>
 						)}
 					</View>
-					{!session?.user && (
-						<>
-							<SignIn />
-							<SignUp />
-						</>
-					)}
+					{!session?.user ? (
+						<View className="mb-6">
+							<Login />
+						</View>
+					) : null}
 				</View>
 			</ScrollView>
 		</Container>

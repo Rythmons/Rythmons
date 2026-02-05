@@ -10,6 +10,7 @@ import { Label } from "./ui/label";
 
 export default function ForgottenPassword({
 	onSwitchToSignIn,
+	// onSwitchToSignUp,
 }: {
 	onSwitchToSignIn: () => void;
 	onSwitchToSignUp: () => void;
@@ -22,17 +23,29 @@ export default function ForgottenPassword({
 			email: "",
 		},
 		onSubmit: async ({ value }) => {
-			const { error } = await authClient.requestPasswordReset({
-				email: value.email,
-				redirectTo: "/reset-password",
-			});
-			if (error) {
-				toast.error(error.message || "Erreur lors de l'envoi de l'email");
-			} else {
-				toast.success("Email envoyé avec succès !");
-				router.push("/login");
-				router.refresh();
-			}
+			console.log("Sending reset password email to", value.email);
+
+			await authClient.forgetPassword(
+				{
+					email: value.email,
+				},
+				{
+					onSuccess: async () => {
+						toast.success(
+							"Si un compte existe pour cet e-mail, vous recevrez un message de réinitialisation.",
+						);
+						router.push("/login");
+						router.refresh();
+					},
+					onError: (error) => {
+						toast.error(
+							error.error?.message ||
+								error.error?.statusText ||
+								"Erreur lors de la réinitialisation",
+						);
+					},
+				},
+			);
 		},
 		validators: {
 			onSubmit: z.object({

@@ -1,12 +1,14 @@
+export type { Session } from "./types";
+export type * from "./utils";
+
 import "server-only";
 
 import { expo } from "@better-auth/expo";
 import { db } from "@rythmons/db";
-// import { Resend } from "resend";
-// import {sendMail} from "@rythmons/email";
-import { resetPasswordTemplate, sendMailTest } from "@rythmons/email";
 import { type BetterAuthOptions, betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
+import { sendMail } from "./email/mailer";
+import { resetPasswordTemplate } from "./email/templates";
 import { parseCorsOrigins } from "./utils";
 
 const trustedOriginsFromEnv = parseCorsOrigins(process.env.CORS_ORIGIN || "");
@@ -22,22 +24,61 @@ const googleProviderConfig =
 			}
 		: undefined;
 
-const resolvedBaseURL =
-	process.env.BETTER_AUTH_URL ||
-	process.env.NEXT_PUBLIC_APP_URL ||
-	(process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined);
+const vercelDeploymentUrl = process.env.VERCEL_URL
+	? `https://${process.env.VERCEL_URL}`
+	: undefined;
+
+const isVercelPreview =
+	process.env.VERCEL_ENV === "preview" ||
+	(process.env.VERCEL && process.env.NODE_ENV !== "production");
+
+const resolvedBaseURL = isVercelPreview
+	? vercelDeploymentUrl ||
+		process.env.NEXT_PUBLIC_APP_URL ||
+		process.env.BETTER_AUTH_URL
+	: process.env.BETTER_AUTH_URL ||
+		process.env.NEXT_PUBLIC_APP_URL ||
+		vercelDeploymentUrl;
 
 const trustedOrigins = [...trustedOriginsFromEnv, "mybettertapp://", "exp://"];
 
-if (resolvedBaseURL) {
+const originCandidates = [
+	resolvedBaseURL,
+	process.env.BETTER_AUTH_URL,
+	process.env.NEXT_PUBLIC_APP_URL,
+	vercelDeploymentUrl,
+].filter(Boolean) as string[];
+
+for (const candidate of originCandidates) {
 	try {
-		const baseOrigin = new URL(resolvedBaseURL).origin;
-		if (!trustedOrigins.includes(baseOrigin)) {
-			trustedOrigins.push(baseOrigin);
+		const origin = new URL(candidate).origin;
+		if (!trustedOrigins.includes(origin)) {
+			trustedOrigins.push(origin);
 		}
 	} catch (error) {
-		console.warn("Invalid BETTER_AUTH_URL provided:", resolvedBaseURL, error);
+		console.warn("Invalid origin provided:", candidate, error);
 	}
+}
+
+function getRequestOrigin(request?: Request) {
+	if (!request) return null;
+	const originHeader = request.headers.get("origin");
+	if (originHeader) {
+		try {
+			return new URL(originHeader).origin;
+		} catch {
+			// ignore
+		}
+	}
+
+	const forwardedProto = request.headers.get("x-forwarded-proto") || "https";
+	const forwardedHost =
+		request.headers.get("x-forwarded-host") || request.headers.get("host");
+	if (forwardedHost) {
+		return `${forwardedProto}://${forwardedHost}`;
+	}
+
+	return null;
 }
 
 export const auth = betterAuth<BetterAuthOptions>({
@@ -45,23 +86,66 @@ export const auth = betterAuth<BetterAuthOptions>({
 		provider: "postgresql",
 	}),
 	baseURL: resolvedBaseURL,
-	trustedOrigins,
+	trustedOrigins: async (request) => {
+		const dynamicOrigins = [...trustedOrigins];
+		const requestOrigin = getRequestOrigin(request);
+		if (!requestOrigin) return dynamicOrigins;
+
+		try {
+			const { hostname } = new URL(requestOrigin);
+			const isVercelPreviewHost = hostname.endsWith(".vercel.app");
+			const isLocalhost = hostname === "localhost" || hostname === "127.0.0.1";
+			if (
+				(isVercelPreviewHost || isLocalhost) &&
+				!dynamicOrigins.includes(requestOrigin)
+			) {
+				dynamicOrigins.push(requestOrigin);
+			}
+		} catch {
+			// ignore
+		}
+
+		return dynamicOrigins;
+	},
 	emailAndPassword: {
 		enabled: true,
 
-		sendResetPassword: async ({ user, token }) => {
-			const resetUrl = `${process.env.BETTER_AUTH_URL}/reset-password?token=${token}`;
+		sendResetPassword: async ({
+			user,
+			token,
+		}: {
+			user: { email: string; name?: string | null };
+			token: string;
+		}) => {
+			const baseUrl =
+				resolvedBaseURL ||
+				process.env.BETTER_AUTH_URL ||
+				process.env.NEXT_PUBLIC_APP_URL;
 
-			await sendMailTest({
-				to: user.email,
-				subject: "Reset your password",
-				html: resetPasswordTemplate({
-					name: user.name,
-					resetUrl,
-				}),
-			});
+			if (!baseUrl) {
+				throw new Error("Missing base URL for reset password link");
+			}
+
+			const resetUrl = `${baseUrl.replace(/\/$/, "")}/reset-password?token=${token}`;
+
+			try {
+				await sendMail({
+					to: user.email,
+					subject: "Réinitialisez votre mot de passe",
+					html: resetPasswordTemplate({
+						name: user.name ?? undefined,
+						resetUrl,
+					}),
+				});
+			} catch (error) {
+				console.error("[auth] Failed to send reset-password email", error);
+				if (process.env.VERCEL_ENV !== "production") {
+					throw error;
+				}
+			}
 		},
 	},
+
 	advanced: {
 		defaultCookieAttributes: {
 			sameSite: "lax", // First-party cookies for same-domain setup

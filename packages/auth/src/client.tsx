@@ -1,23 +1,48 @@
 "use client";
 
-import type { SignInInput, SignUpInput } from "@rythmons/validation";
-import { signInSchema, signUpSchema } from "@rythmons/validation";
+import type { Session } from "@rythmons/auth";
+import type {
+	ForgotPasswordInput,
+	SignInInput,
+	SignUpInput,
+} from "@rythmons/validation";
+import {
+	forgotPasswordSchema,
+	signInSchema,
+	signUpSchema,
+} from "@rythmons/validation";
 import { useForm } from "@tanstack/react-form";
 import type { BetterAuthClientPlugin } from "better-auth/client";
 import { createAuthClient } from "better-auth/react";
 import { createContext, type ReactNode, useContext, useState } from "react";
-import type { Session } from "./types";
+import type { ZodSchema } from "zod";
 
-// Structural type for Zod-like schemas (compatible with both Zod v3 and v4)
-interface ZodLike<TInput> {
-	safeParse(
-		data: unknown,
-	):
-		| { success: true; data: TInput }
-		| { success: false; error: { issues: { message: string }[] } };
-}
+type BetterAuthError = {
+	error?: {
+		message?: string;
+		statusText?: string;
+	};
+};
 
-export type AuthClient = ReturnType<typeof createAuthClient>;
+type BetterAuthCallbacks = {
+	onSuccess?: () => void | Promise<void>;
+	onError?: (error: BetterAuthError) => void;
+};
+
+type BaseAuthClient = ReturnType<typeof createAuthClient>;
+
+export type AuthClient = Omit<BaseAuthClient, "forgetPassword"> & {
+	/**
+	 * Send a reset password email.
+	 *
+	 * `better-auth` doesn't always expose this action in its client types, but it
+	 * exists at runtime when `emailAndPassword.enabled` is enabled on the server.
+	 */
+	forgetPassword: (
+		input: ForgotPasswordInput & { redirectTo?: string },
+		callbacks?: BetterAuthCallbacks,
+	) => Promise<unknown>;
+};
 export type { Session };
 
 export interface AuthClientConfig {
@@ -29,7 +54,7 @@ export interface AuthClientConfig {
 const AuthContext = createContext<AuthClient | null>(null);
 
 export function createClient(config: AuthClientConfig): AuthClient {
-	return createAuthClient(config);
+	return createAuthClient(config) as AuthClient;
 }
 
 export interface AuthProviderProps {
@@ -65,7 +90,7 @@ interface AuthActionResult {
  */
 function useAuthAction<TInput>(
 	_authClient: AuthClient,
-	validationSchema: ZodLike<TInput>,
+	validationSchema: ZodSchema<TInput>,
 	action: (
 		input: TInput,
 		callbacks: {
@@ -154,11 +179,10 @@ export function useSignUp(authClient: AuthClient) {
 		async (input: SignUpInput, callbacks) => {
 			await authClient.signUp.email(
 				{
-					name: `${input.firstName} ${input.lastName}`.trim(),
+					name: input.name,
 					email: input.email,
 					password: input.password,
-					role: input.role,
-				} as any,
+				},
 				callbacks,
 			);
 		},
@@ -166,6 +190,25 @@ export function useSignUp(authClient: AuthClient) {
 	);
 
 	return { signUp: execute, isLoading, error };
+}
+
+export function useForgotPassword(authClient: AuthClient) {
+	const { execute, isLoading, error } = useAuthAction(
+		authClient,
+		forgotPasswordSchema,
+		async (input: ForgotPasswordInput, callbacks) => {
+			await authClient.forgetPassword(
+				{
+					email: input.email,
+					redirectTo: "/reset-password", // Adding a redirect URL might be good
+				},
+				callbacks,
+			);
+		},
+		"Échec de la demande de réinitialisation",
+	);
+
+	return { forgotPassword: execute, isLoading, error };
 }
 
 // ============================================================================
@@ -197,7 +240,7 @@ export function useSignUp(authClient: AuthClient) {
  */
 export function useSignInForm(callbacks?: AuthActionCallbacks) {
 	const authClient = useAuth();
-	const { signIn, isLoading, error } = useSignIn(authClient);
+	const { signIn, isLoading } = useSignIn(authClient);
 
 	const form = useForm({
 		defaultValues: {
@@ -212,7 +255,7 @@ export function useSignInForm(callbacks?: AuthActionCallbacks) {
 		},
 	});
 
-	return { form, isLoading, error };
+	return { form, isLoading };
 }
 
 /**
@@ -225,14 +268,14 @@ export function useSignInForm(callbacks?: AuthActionCallbacks) {
  *
  * @example
  * ```tsx
- * const { form, isLoading, error } = useSignUpForm({
+ * const { form, isLoading } = useSignUpForm({
  *   onSuccess: () => router.push("/dashboard"),
  *   onError: (error) => toast.error(error),
  * });
  *
  * // In your component:
  * <form.Provider>
- *   <form.Field name="firstName">
+ *   <form.Field name="name">
  *     {(field) => <input {...field} />}
  *   </form.Field>
  * </form.Provider>
@@ -240,17 +283,14 @@ export function useSignInForm(callbacks?: AuthActionCallbacks) {
  */
 export function useSignUpForm(callbacks?: AuthActionCallbacks) {
 	const authClient = useAuth();
-	const { signUp, isLoading, error } = useSignUp(authClient);
+	const { signUp, isLoading } = useSignUp(authClient);
 
 	const form = useForm({
 		defaultValues: {
-			firstName: "",
-			lastName: "",
+			name: "",
 			email: "",
 			password: "",
-			confirmPassword: "",
-			role: "ARTIST" as SignUpInput["role"],
-			acceptTerms: false,
+			passwordConfirmation: "",
 		},
 		validators: {
 			onChange: signUpSchema,
@@ -260,5 +300,24 @@ export function useSignUpForm(callbacks?: AuthActionCallbacks) {
 		},
 	});
 
-	return { form, isLoading, error };
+	return { form, isLoading };
+}
+
+export function useForgotPasswordForm(callbacks?: AuthActionCallbacks) {
+	const authClient = useAuth();
+	const { forgotPassword, isLoading } = useForgotPassword(authClient);
+
+	const form = useForm({
+		defaultValues: {
+			email: "",
+		},
+		validators: {
+			onChange: forgotPasswordSchema,
+		},
+		onSubmit: async ({ value }) => {
+			await forgotPassword(value, callbacks);
+		},
+	});
+
+	return { form, isLoading };
 }
