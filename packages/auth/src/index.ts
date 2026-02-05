@@ -60,7 +60,8 @@ for (const candidate of originCandidates) {
 	}
 }
 
-function getRequestOrigin(request: Request) {
+function getRequestOrigin(request?: Request) {
+	if (!request) return null;
 	const originHeader = request.headers.get("origin");
 	if (originHeader) {
 		try {

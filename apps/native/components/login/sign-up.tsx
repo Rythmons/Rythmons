@@ -1,13 +1,14 @@
 import { useSignUpForm } from "@rythmons/auth/client";
 import {
 	ActivityIndicator,
+	Alert,
 	Text,
 	TextInput,
 	TouchableOpacity,
 	View,
 } from "react-native";
-import { toast } from "sonner";
 import { queryClient } from "@/utils/trpc";
+import { GoogleAuthButton } from "../google-auth-button";
 
 type Props = {
 	onSwitchToSignIn: () => void;
@@ -16,8 +17,8 @@ type Props = {
 export function SignUp({ onSwitchToSignIn }: Props) {
 	const { form, isLoading } = useSignUpForm({
 		onSuccess: async () => {
-			toast.success("Compte créé avec succès");
-			queryClient.refetchQueries();
+			Alert.alert("Succès", "Compte créé avec succès");
+			void queryClient.refetchQueries();
 		},
 	});
 
@@ -26,6 +27,18 @@ export function SignUp({ onSwitchToSignIn }: Props) {
 			<Text className="mb-4 font-semibold text-foreground text-lg">
 				Créer un compte
 			</Text>
+
+			<View className="mb-4">
+				<GoogleAuthButton action="sign-up" />
+			</View>
+
+			<View className="mb-4 flex-row items-center">
+				<View className="h-px flex-1 bg-border" />
+				<Text className="mx-2 text-muted-foreground text-xs uppercase">
+					Ou s'inscrire avec
+				</Text>
+				<View className="h-px flex-1 bg-border" />
+			</View>
 
 			<form.Field name="name">
 				{(field) => (
