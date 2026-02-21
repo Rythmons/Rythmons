@@ -22,7 +22,6 @@ export default function Header() {
 					})}
 				</nav>
 				<div className="flex items-center gap-2">
-					<ModeToggle />
 					<UserMenu />
 				</div>
 			</div>

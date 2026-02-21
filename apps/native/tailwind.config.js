@@ -55,5 +55,11 @@ export const theme = {
 			hairline: hairlineWidth(),
 		},
 	},
+	fontFamily: {
+		sans: ["var(--font-sans)"],
+		"sans-medium": ["var(--font-sans-medium)"],
+		"sans-bold": ["var(--font-sans-bold)"],
+		display: ["var(--font-display)"],
+	},
 };
 export const plugins = [];
