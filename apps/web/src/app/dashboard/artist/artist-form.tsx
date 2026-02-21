@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Euro, FileText, Globe, Mic2, Music, Sparkles } from "lucide-react";
+import { Euro, FileText, Mic2, Music, Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useId, useState as useReactState } from "react";
 import { toast } from "sonner";
@@ -60,6 +60,7 @@ export function ArtistForm({ initialData, mode, onSuccess }: ArtistFormProps) {
 	>({});
 
 	const createMutation = useMutation(trpc.artist.create.mutationOptions());
+	const updateMutation = useMutation(trpc.artist.update.mutationOptions());
 
 	const validateForm = (): boolean => {
 		const newErrors: Partial<Record<keyof ArtistFormData, string>> = {};
@@ -99,20 +100,25 @@ export function ArtistForm({ initialData, mode, onSuccess }: ArtistFormProps) {
 			const { selectedGenres, ...restData } = formData;
 			const submitData = {
 				...restData,
-				feeMin: formData.feeMin || undefined,
-				feeMax: formData.feeMax || undefined,
-				bio: formData.bio || undefined,
-				website: formData.website || undefined,
-				techRequirements: formData.techRequirements || undefined,
-				photoUrl: formData.photoUrl || undefined,
-				genres: selectedGenres,
+				feeMin: formData.feeMin ?? null,
+				feeMax: formData.feeMax ?? null,
+				bio: formData.bio || null,
+				website: formData.website || null,
+				techRequirements: formData.techRequirements || null,
+				photoUrl: formData.photoUrl || null,
+				genreNames: selectedGenres,
 			};
 
 			if (mode === "create") {
 				await createMutation.mutateAsync(submitData);
 				toast.success("Profil artiste créé avec succès !");
 			} else {
-				toast.info("Mise à jour non implémentée pour le moment");
+				if (!initialData?.id) throw new Error("ID manquant");
+				await updateMutation.mutateAsync({
+					id: initialData.id,
+					data: submitData,
+				});
+				toast.success("Profil artiste mis à jour !");
 			}
 
 			router.refresh();

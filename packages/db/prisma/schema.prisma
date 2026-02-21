@@ -78,10 +78,13 @@ model Artist {
   userId           String
   user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   stageName        String
+  photoUrl         String?
+  bannerUrl        String?
   bio              String?
   website          String?
   socialLinks      Json?    @default("{}")
   genres           Genre[]
+  images           String[] @default([])
   
   techRequirements String?
   feeMin           Int?

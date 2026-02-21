@@ -301,7 +301,7 @@ export default function Dashboard({ session }: { session: Session }) {
 								<Building2 className="h-5 w-5 text-primary" />
 							</div>
 							<div>
-								<h2 className="font-semibold text-white text-xl">Mes Lieux</h2>
+								<h2 className="font-semibold text-white text-xl">Lieux</h2>
 								<p className="text-sm text-white/50">
 									{venues?.length || 0} lieu(x) géré(s)
 								</p>
@@ -409,9 +409,7 @@ export default function Dashboard({ session }: { session: Session }) {
 									<Mic2 className="h-5 w-5 text-secondary" />
 								</div>
 								<div>
-									<h2 className="font-semibold text-white text-xl">
-										Mes Projets Artistes
-									</h2>
+									<h2 className="font-semibold text-white text-xl">Artistes</h2>
 									<p className="text-sm text-white/50">
 										{artists?.length || 0} projet(s) géré(s)
 									</p>
@@ -432,14 +430,14 @@ export default function Dashboard({ session }: { session: Session }) {
 								{(artists as any[]).map((artist) => (
 									<Link
 										key={artist.id}
-										href={`/dashboard/artist?id=${artist.id}`}
+										href={`/artist/${artist.id}`}
 										className="group relative overflow-hidden rounded-2xl border border-white/10 bg-black/30 backdrop-blur-sm transition-all duration-300 hover:scale-[1.02] hover:border-secondary/50 hover:shadow-secondary/10 hover:shadow-xl"
 									>
 										{/* Cover/Photo */}
 										<div className="relative aspect-video overflow-hidden">
-											{artist.photoUrl ? (
+											{artist.bannerUrl || artist.photoUrl ? (
 												<img
-													src={artist.photoUrl}
+													src={artist.bannerUrl || artist.photoUrl}
 													alt=""
 													className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
 												/>
@@ -477,7 +475,7 @@ export default function Dashboard({ session }: { session: Session }) {
 										{/* Hover overlay */}
 										<div className="absolute inset-0 flex items-center justify-center bg-secondary/10 opacity-0 transition-opacity group-hover:opacity-100">
 											<span className="rounded-full bg-white/20 px-4 py-2 font-medium text-sm text-white backdrop-blur-sm">
-												Gérer le profil
+												Voir le profil
 											</span>
 										</div>
 									</Link>

@@ -80,7 +80,7 @@ export default function UserMenu() {
 					{(artists as any[])?.map((artist) => (
 						<Link
 							key={artist.id}
-							href={`/dashboard/artist?id=${artist.id}`}
+							href={`/artist/${artist.id}`}
 							className="group relative flex h-14 w-full cursor-pointer items-center overflow-hidden border-white/10 border-b transition-colors hover:bg-white/5"
 						>
 							{/* Tag */}
@@ -90,8 +90,15 @@ export default function UserMenu() {
 							{/* Content */}
 							<div className="ml-3 flex items-center gap-3">
 								<div className="flex h-9 w-9 items-center justify-center rounded-full bg-zinc-800">
-									{/* Placeholder for Artist Image */}
-									<Mic2 className="h-4 w-4 text-zinc-400" />
+									{artist.photoUrl ? (
+										<img
+											src={artist.photoUrl}
+											alt={artist.stageName}
+											className="h-full w-full rounded-full object-cover"
+										/>
+									) : (
+										<Mic2 className="h-4 w-4 text-zinc-400" />
+									)}
 								</div>
 								<span className="font-bold text-sm tracking-wide">
 									{artist.stageName}

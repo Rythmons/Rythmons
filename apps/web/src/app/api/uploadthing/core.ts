@@ -7,7 +7,7 @@ export const ourFileRouter = {
 	// Define as many FileRoutes as you like, each with a unique routeSlug
 	imageUploader: f({ image: { maxFileSize: "8MB" } })
 		// Set permissions and file types for this FileRoute
-		.middleware(async ({ req }) => {
+		.middleware(async () => {
 			// TODO: Re-enable auth once Better Auth conflict is resolved
 			// For now, allow uploads without auth check
 			console.log("Upload middleware executed");

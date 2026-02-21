@@ -87,6 +87,7 @@ export function InlineEditText({
 		return (
 			<div className="relative">
 				<InputComponent
+					// eslint-disable-next-line @typescript-eslint/no-explicit-any
 					ref={inputRef as any}
 					type="text"
 					value={editValue}

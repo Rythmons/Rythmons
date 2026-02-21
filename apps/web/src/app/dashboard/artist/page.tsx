@@ -60,7 +60,8 @@ function ArtistPageContent() {
 	// (The Dashboard handles the list view now).
 
 	const artistToEdit = editId
-		? (artists as any[])?.find((a) => a.id === editId)
+		? // eslint-disable-next-line @typescript-eslint/no-explicit-any
+			(artists as any[])?.find((a) => a.id === editId)
 		: undefined;
 
 	// If ID provided but not found?
@@ -107,6 +108,7 @@ function ArtistPageContent() {
 							? {
 									id: artistToEdit.id,
 									stageName: artistToEdit.stageName,
+									photoUrl: artistToEdit.photoUrl ?? "",
 									bio: artistToEdit.bio ?? "",
 									website: artistToEdit.website ?? "",
 									techRequirements: artistToEdit.techRequirements ?? "",

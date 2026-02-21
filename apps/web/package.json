@@ -20,7 +20,6 @@
 		"@rythmons/api": "workspace:*",
 		"@rythmons/auth": "workspace:*",
 		"@rythmons/db": "workspace:*",
-		"@rythmons/email": "workspace:*",
 		"@rythmons/validation": "workspace:*",
 		"@tanstack/react-form": "^1.24.1",
 		"@tanstack/react-query": "^5.85.5",

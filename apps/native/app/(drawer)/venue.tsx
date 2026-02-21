@@ -14,6 +14,8 @@ import {
 	View,
 } from "react-native";
 import { Container } from "@/components/container";
+import { AddressAutocomplete } from "@/components/ui/address-autocomplete";
+import { ImageUpload } from "@/components/ui/image-upload";
 import { Input } from "@/components/ui/input";
 import { Text, Title } from "@/components/ui/typography";
 import { authClient } from "@/lib/auth-client";
@@ -47,6 +49,7 @@ interface FormData {
 	description: string;
 	photoUrl: string;
 	logoUrl: string;
+	images: string[];
 	selectedGenres: string[];
 }
 
@@ -80,6 +83,7 @@ export default function VenueScreen() {
 		description: "",
 		photoUrl: "",
 		logoUrl: "",
+		images: [],
 		selectedGenres: [],
 	});
 	const [isSaving, setIsSaving] = useState(false);
@@ -104,6 +108,7 @@ export default function VenueScreen() {
 				description: venue.description ?? "",
 				photoUrl: venue.photoUrl ?? "",
 				logoUrl: venue.logoUrl ?? "",
+				images: venue.images ?? [],
 				selectedGenres: venue.genres?.map((g) => g.name) ?? [],
 			});
 		}
@@ -179,6 +184,13 @@ export default function VenueScreen() {
 		} finally {
 			setIsSaving(false);
 		}
+	};
+
+	const removeImage = (url: string) => {
+		updateField(
+			"images",
+			formData.images.filter((img) => img !== url),
+		);
 	};
 
 	if (sessionPending || venueLoading) {
@@ -264,6 +276,23 @@ export default function VenueScreen() {
 						</View>
 					)}
 
+					{venue ? (
+						<TouchableOpacity
+							className="mb-6 flex-row items-center justify-center rounded-xl border border-border bg-background p-4"
+							onPress={() => router.push(`/venue/${venue.id}`)}
+						>
+							<Ionicons
+								name="eye-outline"
+								size={18}
+								color="#9ca3af"
+								style={{ marginRight: 8 }}
+							/>
+							<Text className="text-muted-foreground">
+								Voir la page du lieu
+							</Text>
+						</TouchableOpacity>
+					) : null}
+
 					{/* Form */}
 					<View className="space-y-6">
 						{/* Basic Info Section */}
@@ -327,25 +356,16 @@ export default function VenueScreen() {
 							</View>
 
 							<View className="space-y-4">
-								<View>
-									<Text className="mb-1 font-sans-medium text-foreground text-sm">
-										Adresse complète *
-									</Text>
-									<Input
-										className={`rounded-lg border p-3 text-foreground ${
-											errors.address ? "border-red-500" : "border-border"
-										} bg-background`}
-										value={formData.address}
-										onChangeText={(v) => updateField("address", v)}
-										placeholder="123 Rue de la Musique"
-										placeholderTextColor="#666"
-									/>
-									{errors.address && (
-										<Text className="mt-1 text-red-500 text-xs">
-											{errors.address}
-										</Text>
-									)}
-								</View>
+								<AddressAutocomplete
+									value={formData.address}
+									onChange={(address, city, postalCode) => {
+										updateField("address", address);
+										updateField("city", city);
+										updateField("postalCode", postalCode);
+									}}
+									error={errors.address}
+									disabled={isSaving}
+								/>
 
 								<View className="flex-row gap-3">
 									<View className="flex-1">
@@ -502,32 +522,83 @@ export default function VenueScreen() {
 							<View className="space-y-4">
 								<View>
 									<Text className="mb-1 font-sans-medium text-foreground text-sm">
-										URL de la photo
+										Photo principale (bannière)
 									</Text>
-									<Input
-										className="rounded-lg border border-border bg-background p-3 text-foreground"
-										value={formData.photoUrl}
-										onChangeText={(v) => updateField("photoUrl", v)}
-										placeholder="https://..."
-										placeholderTextColor="#666"
-										autoCapitalize="none"
-										keyboardType="url"
+									<ImageUpload
+										value={formData.photoUrl || undefined}
+										onChange={(url) => updateField("photoUrl", url)}
+										onRemove={() => updateField("photoUrl", "")}
+										label="Choisir une bannière (16:9)"
+										aspectRatio="video"
+										disabled={isSaving}
 									/>
 								</View>
 
 								<View>
 									<Text className="mb-1 font-sans-medium text-foreground text-sm">
-										URL du logo
+										Logo
 									</Text>
-									<Input
-										className="rounded-lg border border-border bg-background p-3 text-foreground"
-										value={formData.logoUrl}
-										onChangeText={(v) => updateField("logoUrl", v)}
-										placeholder="https://..."
-										placeholderTextColor="#666"
-										autoCapitalize="none"
-										keyboardType="url"
+									<View className="max-w-[220px]">
+										<ImageUpload
+											value={formData.logoUrl || undefined}
+											onChange={(url) => updateField("logoUrl", url)}
+											onRemove={() => updateField("logoUrl", "")}
+											label="Choisir un logo (1:1)"
+											aspectRatio="square"
+											disabled={isSaving}
+										/>
+									</View>
+								</View>
+
+								<View className="rounded-lg border border-border bg-background p-3">
+									<Text className="mb-2 font-sans-medium text-foreground text-sm">
+										Galerie
+									</Text>
+									<ImageUpload
+										label="Ajouter une image"
+										onChange={(url) => {
+											if (formData.images.includes(url)) {
+												Alert.alert("Info", "Cette image est déjà ajoutée.");
+												return;
+											}
+											updateField("images", [...formData.images, url]);
+										}}
+										aspectRatio="square"
+										disabled={isSaving}
 									/>
+
+									{formData.images.length > 0 ? (
+										<ScrollView
+											horizontal
+											showsHorizontalScrollIndicator={false}
+											className="mt-3"
+										>
+											<View className="flex-row gap-3">
+												{formData.images.map((url) => (
+													<View
+														key={url}
+														className="overflow-hidden rounded-lg border border-border bg-background"
+													>
+														<Image
+															source={{ uri: url }}
+															className="h-24 w-24"
+															resizeMode="cover"
+														/>
+														<TouchableOpacity
+															className="absolute top-1 right-1 rounded-full bg-black/60 p-1"
+															onPress={() => removeImage(url)}
+														>
+															<Ionicons name="trash" size={14} color="white" />
+														</TouchableOpacity>
+													</View>
+												))}
+											</View>
+										</ScrollView>
+									) : (
+										<Text className="mt-2 text-muted-foreground text-xs">
+											Aucune image ajoutée.
+										</Text>
+									)}
 								</View>
 							</View>
 						</View>

@@ -22,7 +22,7 @@
 		"deploy:prod": "pnpm dlx vercel deploy --prod --cwd apps/web"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "^2.2.0",
+		"@biomejs/biome": "^2.4.4",
 		"cosmiconfig": "^9.0.0",
 		"husky": "^9.1.7",
 		"lint-staged": "^16.1.2",

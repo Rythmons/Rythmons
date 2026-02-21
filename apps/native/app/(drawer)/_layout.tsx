@@ -38,6 +38,16 @@ export default function DrawerLayout() {
 				}}
 			/>
 			<Drawer.Screen
+				name="artist"
+				options={{
+					headerTitle: "Mes Artistes",
+					drawerLabel: "Mes Artistes",
+					drawerIcon: ({ color, size }) => (
+						<Ionicons name="musical-notes-outline" size={size} color={color} />
+					),
+				}}
+			/>
+			<Drawer.Screen
 				name="venue"
 				options={{
 					headerTitle: "Mon Lieu",

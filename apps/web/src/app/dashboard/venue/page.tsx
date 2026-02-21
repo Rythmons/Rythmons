@@ -26,6 +26,7 @@ function VenuePageContent() {
 	// If user wants to edit a specific venue, redirect to the profile page
 	useEffect(() => {
 		if (editId && !isLoading) {
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			router.replace(`/venue/${editId}` as any);
 		}
 	}, [editId, isLoading, router]);
@@ -34,6 +35,7 @@ function VenuePageContent() {
 	const isNewMode = searchParams.get("new") === "true";
 	useEffect(() => {
 		if (!isNewMode && !isLoading && venues && venues.length > 0) {
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			router.replace(`/venue/${(venues as any[])[0].id}` as any);
 		}
 	}, [isNewMode, isLoading, venues, router]);
@@ -97,6 +99,7 @@ function VenuePageContent() {
 					onSuccess={(venueId?: string) => {
 						queryClient.invalidateQueries();
 						if (venueId) {
+							// eslint-disable-next-line @typescript-eslint/no-explicit-any
 							router.push(`/venue/${venueId}` as any);
 						} else {
 							router.push("/dashboard");

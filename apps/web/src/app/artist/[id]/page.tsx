@@ -2,196 +2,117 @@
 
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
-	Building2,
-	Calendar,
 	Camera,
-	Check,
+	Euro,
+	FileText,
 	Image as ImageIcon,
 	Loader2,
-	MapPin,
+	Mic2,
 	Music,
 	Pencil,
-	Play,
 	Plus,
 	Save,
 	Trash2,
-	Users,
 	X,
 } from "lucide-react";
-import dynamic from "next/dynamic";
 import { notFound, useParams } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { toast } from "sonner";
-import { AddressAutocomplete } from "@/components/ui/address-autocomplete";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { authClient } from "@/lib/auth-client";
 import { queryClient, trpc } from "@/utils/trpc";
-import { getVenueTypeLabel } from "@/utils/venue-labels";
-
-const VenueMap = dynamic(() => import("@/components/ui/venue-map"), {
-	ssr: false,
-	loading: () => (
-		<div className="flex aspect-video w-full animate-pulse items-center justify-center rounded-lg bg-white/5 text-white/20">
-			Chargement de la carte...
-		</div>
-	),
-});
-
-// Venue types with French labels
-const VENUE_TYPES = [
-	{ value: "BAR", label: "Bar" },
-	{ value: "CLUB", label: "Club / Discothèque" },
-	{ value: "CONCERT_HALL", label: "Salle de concert" },
-	{ value: "FESTIVAL", label: "Festival" },
-	{ value: "CAFE", label: "Café-concert" },
-	{ value: "RESTAURANT", label: "Restaurant" },
-	{ value: "CULTURAL_CENTER", label: "Centre culturel" },
-	{ value: "THEATER", label: "Théâtre" },
-	{ value: "OPEN_AIR", label: "Plein air" },
-	{ value: "OTHER", label: "Autre" },
-] as const;
-
-// Music genres
-const MUSIC_GENRES = [
-	"Pop",
-	"Rock",
-	"Folk",
-	"Jazz",
-	"Blues",
-	"Electro",
-	"Hip-Hop",
-	"R&B",
-	"Soul",
-	"Funk",
-	"Reggae",
-	"Metal",
-	"Punk",
-	"Indie",
-	"Classique",
-	"World Music",
-	"Chanson française",
-	"Variété",
-	"Acoustique",
-	"DJ Set",
-];
 
 interface EditFormData {
-	name: string;
-	venueType: string;
-	description: string;
-	address: string;
-	city: string;
-	postalCode: string;
-	country: string;
-	capacity: number | null;
+	stageName: string;
+	bio: string;
+	website: string;
+	techRequirements: string;
+	feeMin: number | null;
+	feeMax: number | null;
 	photoUrl: string;
-	logoUrl: string;
+	bannerUrl: string;
 	genreNames: string[];
 	images: string[];
 }
 
-export default function VenueProfilePage() {
+export default function ArtistProfilePage() {
 	const params = useParams();
-	const venueId = params.id as string;
+	const artistId = params.id as string;
 	const { data: session } = authClient.useSession();
 
 	const [isEditMode, setIsEditMode] = useState(false);
 	const [formData, setFormData] = useState<EditFormData | null>(null);
-	const [isEditingLogo, setIsEditingLogo] = useState(false);
+	const [isEditingPhoto, setIsEditingPhoto] = useState(false);
 	const [isEditingBanner, setIsEditingBanner] = useState(false);
 	const [isAddingGalleryImage, setIsAddingGalleryImage] = useState(false);
 
 	const {
-		data: venue,
+		data: artist,
 		isLoading,
 		error,
 	} = useQuery({
-		...trpc.venue.getById.queryOptions({ id: venueId }),
-		enabled: !!venueId,
+		...trpc.artist.getById.queryOptions({ id: artistId }),
+		enabled: !!artistId,
 	});
 
+	const { data: availableGenres = [] } = useQuery(
+		trpc.venue.getAllGenres.queryOptions(),
+	);
+
 	// Get the correct query key
-	const venueQueryOptions = trpc.venue.getById.queryOptions({ id: venueId });
+	const artistQueryOptions = trpc.artist.getById.queryOptions({ id: artistId });
 
 	const updateMutation = useMutation({
-		...trpc.venue.update.mutationOptions(),
-		onSuccess: (updatedVenue) => {
-			queryClient.setQueryData(venueQueryOptions.queryKey, (oldData: any) => {
-				if (!oldData) return updatedVenue;
+		...trpc.artist.update.mutationOptions(),
+		onSuccess: (updatedArtist) => {
+			queryClient.setQueryData(artistQueryOptions.queryKey, (oldData: any) => {
+				if (!oldData) return updatedArtist;
 				return {
 					...oldData,
-					...updatedVenue,
-					owner: oldData.owner,
+					...updatedArtist,
+					user: oldData.user,
 				};
 			});
-			queryClient.invalidateQueries({ queryKey: venueQueryOptions.queryKey });
+			queryClient.invalidateQueries({ queryKey: artistQueryOptions.queryKey });
 			toast.success("Modifications enregistrées !");
 			setIsEditMode(false);
 		},
-		onError: (error) => {
-			toast.error(error.message || "Erreur lors de la sauvegarde");
+		onError: (err) => {
+			toast.error(err.message || "Erreur lors de la sauvegarde");
 		},
 	});
 
 	// Check if current user is the owner
-	const isOwner = session?.user?.id === venue?.owner?.id;
+	const isOwner = session?.user?.id === artist?.user?.id;
 
 	// Initialize form data when entering edit mode
 	const enterEditMode = useCallback(() => {
-		if (!venue) return;
+		if (!artist) return;
 		setFormData({
-			name: venue.name,
-			venueType: venue.venueType as any,
-			description: venue.description || "",
-			address: venue.address,
-			city: venue.city,
-			postalCode: venue.postalCode,
-			country: venue.country,
-			capacity: venue.capacity,
-			photoUrl: venue.photoUrl || "",
-			logoUrl: venue.logoUrl || "",
-			genreNames: venue.genres?.map((g: any) => g.name) || [],
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			images: (venue as any).images || [],
+			stageName: artist.stageName,
+			bio: artist.bio || "",
+			website: artist.website || "",
+			techRequirements: artist.techRequirements || "",
+			feeMin: artist.feeMin ?? null,
+			feeMax: artist.feeMax ?? null,
+			photoUrl: artist.photoUrl || "",
+			bannerUrl: artist.bannerUrl || "",
+			genreNames: artist.genres?.map((g: any) => g.name) || [],
+			images: artist.images || [],
 		});
 		setIsEditMode(true);
-	}, [venue]);
+	}, [artist]);
 
 	const cancelEditMode = useCallback(() => {
 		setFormData(null);
 		setIsEditMode(false);
 	}, []);
-
-	const saveChanges = useCallback(async () => {
-		if (!venue || !formData) return;
-		// eslint-disable-next-line @typescript-eslint/no-unused-vars
-		const { venueType, ...rest } = formData;
-		await updateMutation.mutateAsync({
-			id: venue.id,
-			data: {
-				...rest,
-				capacity: formData.capacity || null,
-				description: formData.description || null,
-				photoUrl: formData.photoUrl || null,
-				logoUrl: formData.logoUrl || null,
-				venueType: formData.venueType as any,
-				images: formData.images,
-			},
-		});
-	}, [venue, formData, updateMutation]);
 
 	const updateFormField = useCallback(
 		<K extends keyof EditFormData>(field: K, value: EditFormData[K]) => {
@@ -200,13 +121,30 @@ export default function VenueProfilePage() {
 		[],
 	);
 
-	// Handle image changes (these save immediately, not on form submit)
-	// Handle image changes (updates local state, saves on form submit)
+	const saveChanges = useCallback(async () => {
+		if (!artist || !formData) return;
+		await updateMutation.mutateAsync({
+			id: artist.id,
+			data: {
+				stageName: formData.stageName,
+				bio: formData.bio || null,
+				website: formData.website || null,
+				techRequirements: formData.techRequirements || null,
+				feeMin: formData.feeMin,
+				feeMax: formData.feeMax,
+				photoUrl: formData.photoUrl || null,
+				bannerUrl: formData.bannerUrl || null,
+				genreNames: formData.genreNames,
+				images: formData.images,
+			},
+		});
+	}, [artist, formData, updateMutation]);
+
 	const handleImageChange = useCallback(
-		(field: "logoUrl" | "photoUrl", url: string | null) => {
+		(field: "photoUrl" | "bannerUrl", url: string | null) => {
 			updateFormField(field, url || "");
-			if (field === "logoUrl") setIsEditingLogo(false);
-			if (field === "photoUrl") setIsEditingBanner(false);
+			if (field === "photoUrl") setIsEditingPhoto(false);
+			if (field === "bannerUrl") setIsEditingBanner(false);
 		},
 		[updateFormField],
 	);
@@ -248,28 +186,25 @@ export default function VenueProfilePage() {
 		);
 	}
 
-	if (error || !venue) {
+	if (error || !artist) {
 		notFound();
 	}
 
-	// Use form data in edit mode, otherwise use venue data
+	// Use form data in edit mode, otherwise use artist data
 	const displayData =
 		isEditMode && formData
 			? formData
 			: {
-					name: venue.name,
-					venueType: venue.venueType,
-					description: venue.description || "",
-					address: venue.address,
-					city: venue.city,
-					postalCode: venue.postalCode,
-					country: venue.country,
-					capacity: venue.capacity,
-					photoUrl: venue.photoUrl || "",
-					logoUrl: venue.logoUrl || "",
-					genreNames: venue.genres?.map((g: any) => g.name) || [],
-					// eslint-disable-next-line @typescript-eslint/no-explicit-any
-					images: (venue as any).images || [],
+					stageName: artist.stageName,
+					bio: artist.bio || "",
+					website: artist.website || "",
+					techRequirements: artist.techRequirements || "",
+					feeMin: artist.feeMin ?? null,
+					feeMax: artist.feeMax ?? null,
+					photoUrl: artist.photoUrl || "",
+					bannerUrl: artist.bannerUrl || "",
+					genreNames: artist.genres?.map((g: any) => g.name) || [],
+					images: artist.images || [],
 				};
 
 	return (
@@ -281,23 +216,23 @@ export default function VenueProfilePage() {
 						<div className="flex items-center gap-3">
 							{isEditMode ? (
 								<>
-									<div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/20">
-										<Pencil className="h-5 w-5 text-primary" />
+									<div className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary/20">
+										<Pencil className="h-5 w-5 text-secondary" />
 									</div>
 									<div>
 										<p className="font-semibold text-white">Mode édition</p>
 										<p className="text-sm text-white/50">
-											Modifiez les informations de votre lieu
+											Modifiez les informations de votre projet
 										</p>
 									</div>
 								</>
 							) : (
 								<>
 									<div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10">
-										<Building2 className="h-5 w-5 text-white/70" />
+										<Mic2 className="h-5 w-5 text-white/70" />
 									</div>
 									<div>
-										<p className="font-semibold text-white">Votre lieu</p>
+										<p className="font-semibold text-white">Votre projet</p>
 										<p className="text-sm text-white/50">
 											Cliquez sur Modifier pour éditer
 										</p>
@@ -345,16 +280,14 @@ export default function VenueProfilePage() {
 						<div className="relative flex flex-col items-center overflow-hidden rounded-2xl bg-black/20 pb-6">
 							{/* Cover Image (Banner) */}
 							<div className="group relative aspect-video w-full bg-zinc-900/50">
-								{displayData.photoUrl ? (
+								{displayData.bannerUrl ? (
 									<img
-										src={displayData.photoUrl}
+										src={displayData.bannerUrl}
 										alt="Couverture"
 										className="h-full w-full object-cover"
 									/>
 								) : (
-									<div className="flex h-full w-full items-center justify-center">
-										<ImageIcon className="h-10 w-10 text-white/10" />
-									</div>
+									<div className="h-full w-full bg-gradient-to-br from-secondary/20 to-accent/20" />
 								)}
 
 								{/* Edit overlay for owner */}
@@ -369,18 +302,18 @@ export default function VenueProfilePage() {
 								)}
 							</div>
 
-							{/* Logo */}
+							{/* Avatar */}
 							<div className="relative -mt-12 mb-3">
 								<div className="group relative h-24 w-24 overflow-hidden rounded-full border-4 border-black bg-zinc-900 shadow-xl">
-									{displayData.logoUrl ? (
+									{displayData.photoUrl ? (
 										<img
-											src={displayData.logoUrl}
-											alt={displayData.name}
+											src={displayData.photoUrl}
+											alt={displayData.stageName}
 											className="h-full w-full object-cover"
 										/>
 									) : (
 										<div className="flex h-full w-full items-center justify-center">
-											<Building2 className="h-10 w-10 text-white/30" />
+											<Mic2 className="h-10 w-10 text-white/30" />
 										</div>
 									)}
 
@@ -388,7 +321,7 @@ export default function VenueProfilePage() {
 									{isOwner && isEditMode && (
 										<button
 											type="button"
-											onClick={() => setIsEditingLogo(true)}
+											onClick={() => setIsEditingPhoto(true)}
 											className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100"
 										>
 											<Camera className="h-6 w-6 text-white" />
@@ -402,56 +335,29 @@ export default function VenueProfilePage() {
 								{isEditMode ? (
 									<div className="space-y-3">
 										<Input
-											value={formData?.name || ""}
-											onChange={(e) => updateFormField("name", e.target.value)}
-											className="text-center font-bold text-lg"
-											placeholder="Nom du lieu"
-										/>
-										<Select
-											value={formData?.venueType}
-											onValueChange={(value) =>
-												updateFormField("venueType", value)
+											value={formData?.stageName || ""}
+											onChange={(e) =>
+												updateFormField("stageName", e.target.value)
 											}
-										>
-											<SelectTrigger className="w-full">
-												<SelectValue placeholder="Type de lieu" />
-											</SelectTrigger>
-											<SelectContent>
-												{VENUE_TYPES.map((type) => (
-													<SelectItem key={type.value} value={type.value}>
-														{type.label}
-													</SelectItem>
-												))}
-											</SelectContent>
-										</Select>
+											className="text-center font-bold text-lg"
+											placeholder="Nom de scène"
+										/>
 									</div>
 								) : (
 									<>
 										<h1 className="font-bold text-white text-xl">
-											{displayData.name}
+											{displayData.stageName}
 										</h1>
-										<span className="mt-1 inline-block rounded-full bg-primary/10 px-3 py-1 font-medium text-primary text-xs">
-											{getVenueTypeLabel(displayData.venueType)}
+										<span className="mt-1 inline-block rounded-full bg-secondary/10 px-3 py-1 font-medium text-secondary text-xs">
+											Artiste
 										</span>
 									</>
 								)}
 
-								<p className="mt-3 flex items-center justify-center gap-1 text-sm text-white/50">
-									<MapPin className="h-3 w-3" />
-									{displayData.city}
-									{displayData.capacity && (
-										<>
-											<span className="mx-1">•</span>
-											<Users className="h-3 w-3" />
-											{displayData.capacity}
-										</>
-									)}
-								</p>
-
 								{/* Action Buttons */}
 								{!isOwner && (
 									<div className="mt-6 flex justify-center gap-3">
-										<Button className="rounded-full bg-primary px-6 hover:bg-primary/90">
+										<Button className="rounded-full bg-secondary px-6 hover:bg-secondary/90">
 											<Plus className="mr-2 h-4 w-4" />
 											Suivre
 										</Button>
@@ -469,7 +375,7 @@ export default function VenueProfilePage() {
 
 							{isEditMode ? (
 								<div className="max-h-48 space-y-2 overflow-y-auto">
-									{MUSIC_GENRES.map((genre) => {
+									{availableGenres.map((genre) => {
 										const isSelected = formData?.genreNames.includes(genre);
 										return (
 											<div key={genre} className="flex items-center space-x-2">
@@ -502,7 +408,7 @@ export default function VenueProfilePage() {
 											<Badge
 												key={genre}
 												variant="outline"
-												className="border-primary/30 bg-primary/10 text-white/80"
+												className="border-secondary/30 bg-secondary/10 text-white/80"
 											>
 												{genre}
 											</Badge>
@@ -516,40 +422,47 @@ export default function VenueProfilePage() {
 							)}
 						</div>
 
-						{/* Capacity (in edit mode) */}
+						{/* Fees (in edit mode) */}
 						{isEditMode && (
 							<div className="rounded-xl bg-black/20 p-4">
-								<Label className="text-sm text-white/50">
-									Capacité (personnes)
-								</Label>
-								<Input
-									type="number"
-									value={formData?.capacity || ""}
-									onChange={(e) =>
-										updateFormField(
-											"capacity",
-											e.target.value
-												? Number.parseInt(e.target.value, 10)
-												: null,
-										)
-									}
-									placeholder="Ex: 200"
-									className="mt-2"
-								/>
-							</div>
-						)}
-
-						{/* Stats */}
-						{!isEditMode && (
-							<div className="rounded-xl bg-black/20 p-4">
-								<div className="grid grid-cols-2 gap-4 text-center">
+								<div className="mb-3 flex items-center gap-2 text-sm text-white/50">
+									<Euro className="h-4 w-4" />
+									Tarifs
+								</div>
+								<div className="grid grid-cols-2 gap-3">
 									<div>
-										<p className="font-bold text-2xl text-primary">0</p>
-										<p className="text-white/50 text-xs">Événements</p>
+										<Label className="text-sm text-white/50">Min (€)</Label>
+										<Input
+											type="number"
+											value={formData?.feeMin ?? ""}
+											onChange={(e) =>
+												updateFormField(
+													"feeMin",
+													e.target.value
+														? Number.parseInt(e.target.value, 10)
+														: null,
+												)
+											}
+											className="mt-1"
+										/>
 									</div>
 									<div>
-										<p className="font-bold text-2xl text-primary">0</p>
-										<p className="text-white/50 text-xs">Abonnés</p>
+										<Label className="text-sm text-white/50">
+											Souhaité (€)
+										</Label>
+										<Input
+											type="number"
+											value={formData?.feeMax ?? ""}
+											onChange={(e) =>
+												updateFormField(
+													"feeMax",
+													e.target.value
+														? Number.parseInt(e.target.value, 10)
+														: null,
+												)
+											}
+											className="mt-1"
+										/>
 									</div>
 								</div>
 							</div>
@@ -578,18 +491,14 @@ export default function VenueProfilePage() {
 							</div>
 
 							<div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
-								{(
-									(isEditMode
-										? formData?.images
-										: (displayData as any).images) || []
-								).map((img: string, i: number) => (
+								{displayData.images.map((img, i) => (
 									<div
 										key={img}
 										className="group relative aspect-square overflow-hidden rounded-lg border border-white/10 bg-black/50"
 									>
 										<img
 											src={img}
-											alt={`Gallery ${i}`}
+											alt={`Galerie ${i + 1}`}
 											className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
 										/>
 										{isOwner && isEditMode && (
@@ -603,11 +512,8 @@ export default function VenueProfilePage() {
 										)}
 									</div>
 								))}
-								{(
-									(isEditMode
-										? formData?.images
-										: (displayData as any).images) || []
-								).length === 0 && (
+
+								{displayData.images.length === 0 && (
 									<div className="col-span-full flex h-32 flex-col items-center justify-center rounded-lg border border-white/10 border-dashed bg-white/5 text-white/30">
 										<ImageIcon className="mb-2 h-8 w-8 opacity-50" />
 										<p className="text-sm">Aucune photo dans la galerie</p>
@@ -616,24 +522,22 @@ export default function VenueProfilePage() {
 							</div>
 						</div>
 
-						{/* A propos Section */}
+						{/* About Section */}
 						<div className="rounded-xl bg-black/20 p-6">
-							<h2 className="mb-4 font-semibold text-white text-xl">
-								A propos
+							<h2 className="mb-4 flex items-center gap-2 font-semibold text-white text-xl">
+								<FileText className="h-5 w-5" /> A propos
 							</h2>
 							{isEditMode ? (
 								<Textarea
-									value={formData?.description || ""}
-									onChange={(e) =>
-										updateFormField("description", e.target.value)
-									}
-									placeholder="Décrivez votre lieu, son ambiance, son histoire..."
+									value={formData?.bio || ""}
+									onChange={(e) => updateFormField("bio", e.target.value)}
+									placeholder="Décrivez votre projet, votre univers..."
 									rows={5}
 									className="w-full"
 								/>
 							) : (
 								<p className="whitespace-pre-wrap text-white/70 leading-relaxed">
-									{displayData.description || (
+									{displayData.bio || (
 										<span className="text-white/30 italic">
 											Aucune description disponible.
 										</span>
@@ -642,152 +546,90 @@ export default function VenueProfilePage() {
 							)}
 						</div>
 
-						{/* Address Section */}
-						<div className="rounded-xl bg-black/20 p-6">
-							<h2 className="mb-4 flex items-center gap-2 font-semibold text-white text-xl">
-								<MapPin className="h-5 w-5" />
-								Localisation
-							</h2>
-
-							{isEditMode ? (
-								<div className="space-y-4">
-									<AddressAutocomplete
-										value={formData?.address || ""}
-										onChange={(address, city, postalCode) => {
-											updateFormField("address", address);
-											updateFormField("city", city);
-											updateFormField("postalCode", postalCode);
-										}}
-									/>
-									<div className="grid gap-4 md:grid-cols-3">
-										<div>
-											<Label className="text-white/50">Ville</Label>
-											<Input
-												value={formData?.city || ""}
-												onChange={(e) =>
-													updateFormField("city", e.target.value)
-												}
-												className="mt-1"
-											/>
-										</div>
-										<div>
-											<Label className="text-white/50">Code postal</Label>
-											<Input
-												value={formData?.postalCode || ""}
-												onChange={(e) =>
-													updateFormField("postalCode", e.target.value)
-												}
-												className="mt-1"
-											/>
-										</div>
-										<div>
-											<Label className="text-white/50">Pays</Label>
-											<Input
-												value={formData?.country || ""}
-												onChange={(e) =>
-													updateFormField("country", e.target.value)
-												}
-												className="mt-1"
-											/>
-										</div>
-									</div>
-								</div>
-							) : (
-								<div className="space-y-4">
-									<div>
-										<p className="text-white/70">{displayData.address}</p>
-										<p className="text-white/50">
-											{displayData.postalCode} {displayData.city},{" "}
-											{displayData.country}
-										</p>
-									</div>
-
-									{/* Map */}
-									<div className="relative aspect-video w-full overflow-hidden rounded-xl border border-white/5 bg-zinc-900">
-										<VenueMap
-											address={displayData.address}
-											city={displayData.city}
-											name={displayData.name}
-										/>
-										<div className="absolute top-4 right-4 z-[400]">
-											<Button
-												size="sm"
-												className="bg-white/90 text-black shadow-lg backdrop-blur-sm hover:bg-white"
-												asChild
-											>
-												<a
-													href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(`${displayData.address}, ${displayData.postalCode} ${displayData.city}`)}`}
-													target="_blank"
-													rel="noopener noreferrer"
-												>
-													<MapPin className="mr-2 h-4 w-4" />
-													S'y rendre
-												</a>
-											</Button>
-										</div>
-									</div>
-								</div>
-							)}
-						</div>
-
-						{/* Prochains événements Section */}
-						{!isEditMode && (
+						{/* Links & Tech */}
+						<div className="grid gap-6 lg:grid-cols-2">
 							<div className="rounded-xl bg-black/20 p-6">
-								<h2 className="mb-4 flex items-center gap-2 font-semibold text-white text-xl">
-									Prochains événements
-								</h2>
-
-								<div className="grid gap-4 md:grid-cols-2">
-									<div className="flex gap-4 rounded-lg bg-black/30 p-4">
-										<div className="flex-1">
-											<p className="text-sm text-white/50 italic">
-												Aucun événement programmé pour le moment.
-											</p>
-											<Button
-												variant="outline"
-												size="sm"
-												className="mt-3 border-white/20 text-white/70"
-												disabled
-											>
-												<Calendar className="mr-2 h-4 w-4" />
-												Créer un événement
-											</Button>
-										</div>
+								<h2 className="mb-4 font-semibold text-white text-xl">Liens</h2>
+								{isEditMode ? (
+									<div className="space-y-2">
+										<Label className="text-white/50">Site web</Label>
+										<Input
+											value={formData?.website || ""}
+											onChange={(e) =>
+												updateFormField("website", e.target.value)
+											}
+											placeholder="https://..."
+										/>
 									</div>
-
-									<div className="flex min-h-[120px] items-center justify-center rounded-lg bg-black/30 p-4">
-										<div className="text-center text-white/30">
-											<ImageIcon className="mx-auto h-8 w-8" />
-											<p className="mt-2 text-xs">Image promo</p>
-										</div>
-									</div>
-								</div>
+								) : displayData.website ? (
+									<Button
+										asChild
+										variant="secondary"
+										className="bg-white/10 text-white hover:bg-white/15"
+									>
+										<a
+											href={displayData.website}
+											target="_blank"
+											rel="noopener noreferrer"
+										>
+											Ouvrir le site
+										</a>
+									</Button>
+								) : (
+									<p className="text-sm text-white/30 italic">Aucun lien</p>
+								)}
 							</div>
-						)}
+
+							<div className="rounded-xl bg-black/20 p-6">
+								<h2 className="mb-4 font-semibold text-white text-xl">
+									Technique
+								</h2>
+								{isEditMode ? (
+									<Textarea
+										value={formData?.techRequirements || ""}
+										onChange={(e) =>
+											updateFormField("techRequirements", e.target.value)
+										}
+										placeholder="Ex: 2 micros, DI, retours..."
+										rows={5}
+										className="w-full"
+									/>
+								) : (
+									<p className="whitespace-pre-wrap text-white/70 leading-relaxed">
+										{displayData.techRequirements || (
+											<span className="text-white/30 italic">
+												Aucune fiche technique.
+											</span>
+										)}
+									</p>
+								)}
+							</div>
+						</div>
 					</main>
 				</div>
 			</div>
 
-			{/* Logo Edit Modal */}
-			{isEditingLogo && (
+			{/* Photo Edit Modal */}
+			{isEditingPhoto && (
 				<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
 					<div className="mx-4 w-full max-w-md rounded-2xl bg-zinc-900 p-6">
 						<h3 className="mb-4 font-semibold text-lg text-white">
-							Modifier le logo
+							Modifier la photo
 						</h3>
 						<ImageUpload
-							value={displayData.logoUrl || ""}
-							onChange={(url) => handleImageChange("logoUrl", url || null)}
-							onRemove={() => handleImageChange("logoUrl", null)}
+							value={displayData.photoUrl || ""}
+							onChange={(url) => handleImageChange("photoUrl", url || null)}
+							onRemove={() => handleImageChange("photoUrl", null)}
 							aspectRatio="square"
 							cropAspectRatio={1}
-							label="Déposez votre logo ici"
+							circularCrop
+							label="Déposez votre photo ici"
 						/>
 						<Button
 							type="button"
 							variant="ghost"
 							className="mt-4 w-full"
-							onClick={() => setIsEditingLogo(false)}
+							onClick={() => setIsEditingPhoto(false)}
 						>
 							Annuler
 						</Button>
@@ -812,9 +654,9 @@ export default function VenueProfilePage() {
 							</Button>
 						</div>
 						<ImageUpload
-							value={displayData.photoUrl || ""}
-							onChange={(url) => handleImageChange("photoUrl", url || null)}
-							onRemove={() => handleImageChange("photoUrl", null)}
+							value={displayData.bannerUrl || ""}
+							onChange={(url) => handleImageChange("bannerUrl", url || null)}
+							onRemove={() => handleImageChange("bannerUrl", null)}
 							aspectRatio="video"
 							cropAspectRatio={16 / 9}
 							label="Déposez votre bannière ici"

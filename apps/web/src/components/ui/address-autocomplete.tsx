@@ -57,7 +57,8 @@ export function AddressAutocomplete({
 		if (value !== query) {
 			setQuery(value);
 		}
-	}, [value]);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [value, query]);
 
 	useEffect(() => {
 		const handleClickOutside = (event: MouseEvent) => {
@@ -103,6 +104,7 @@ export function AddressAutocomplete({
 		}, 200);
 
 		return () => clearTimeout(timer);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [query, value]);
 
 	const handleSelect = (feature: AddressFeature) => {
