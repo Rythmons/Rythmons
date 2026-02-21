@@ -1,0 +1,24 @@
+# Ignore native app - not needed for Vercel web deployment
+apps/native
+
+# Development files
+.turbo
+.alchemy
+.env
+docs/
+repomix-output.txt
+repomix-output.xml
+
+# Build artifacts
+*.tsbuildinfo
+**/*.tsbuildinfo
+
+# IDE
+.idea
+.vscode
+
+# Test files
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx

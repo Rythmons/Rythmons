@@ -12,7 +12,6 @@ import {
 	signUpSchema,
 } from "@rythmons/validation";
 import { useForm } from "@tanstack/react-form";
-import type { BetterAuthClientPlugin } from "better-auth/client";
 import { createAuthClient } from "better-auth/react";
 import { createContext, type ReactNode, useContext, useState } from "react";
 import type { ZodSchema } from "zod";
@@ -42,19 +41,27 @@ export type AuthClient = Omit<BaseAuthClient, "forgetPassword"> & {
 		input: ForgotPasswordInput & { redirectTo?: string },
 		callbacks?: BetterAuthCallbacks,
 	) => Promise<unknown>;
+
+	/**
+	 * Optional helper exposed by the Expo client plugin to retrieve the stored
+	 * auth cookies and forward them to custom fetch calls (e.g., tRPC).
+	 */
+	getCookie?: () => string;
 };
 export type { Session };
 
 export interface AuthClientConfig {
 	baseURL: string;
 	fetchOptions?: RequestInit;
-	plugins?: BetterAuthClientPlugin[];
+	plugins?: unknown[];
 }
 
 const AuthContext = createContext<AuthClient | null>(null);
 
 export function createClient(config: AuthClientConfig): AuthClient {
-	return createAuthClient(config) as AuthClient;
+	return createAuthClient(
+		config as unknown as Parameters<typeof createAuthClient>[0],
+	) as AuthClient;
 }
 
 export interface AuthProviderProps {

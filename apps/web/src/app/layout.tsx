@@ -1,16 +1,18 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Fugaz_One, Montserrat } from "next/font/google";
 import "../index.css";
+import "@uploadthing/react/styles.css";
 import Header from "@/components/header";
 import Providers from "@/components/providers";
 
-const geistSans = Geist({
-	variable: "--font-geist-sans",
+const montserrat = Montserrat({
+	variable: "--font-montserrat",
 	subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-	variable: "--font-geist-mono",
+const fugazOne = Fugaz_One({
+	variable: "--font-fugaz-one",
+	weight: "400",
 	subsets: ["latin"],
 });
 
@@ -18,6 +20,9 @@ export const metadata: Metadata = {
 	title: "Rythmons",
 	description: "Plateforme Rythmons",
 };
+
+import { extractRouterConfig } from "uploadthing/server";
+import { ourFileRouter } from "@/app/api/uploadthing/core";
 
 export default function RootLayout({
 	children,
@@ -27,9 +32,9 @@ export default function RootLayout({
 	return (
 		<html lang="fr" suppressHydrationWarning>
 			<body
-				className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+				className={`${montserrat.className} ${montserrat.variable} ${fugazOne.variable} antialiased`}
 			>
-				<Providers>
+				<Providers routerConfig={extractRouterConfig(ourFileRouter)}>
 					<div className="grid h-svh grid-rows-[auto_1fr]">
 						<Header />
 						{children}

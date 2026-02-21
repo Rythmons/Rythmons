@@ -23,6 +23,9 @@ export default function TabLayout() {
 						? "hsl(217.2 32.6% 17.5%)"
 						: "hsl(214.3 31.8% 91.4%)",
 				},
+				tabBarLabelStyle: {
+					fontFamily: "Montserrat-Regular",
+				},
 			}}
 		>
 			<Tabs.Screen
@@ -30,15 +33,6 @@ export default function TabLayout() {
 				options={{
 					title: "Accueil",
 					tabBarIcon: ({ color }) => <TabBarIcon name="home" color={color} />,
-				}}
-			/>
-			<Tabs.Screen
-				name="two"
-				options={{
-					title: "Explorer",
-					tabBarIcon: ({ color }) => (
-						<TabBarIcon name="compass" color={color} />
-					),
 				}}
 			/>
 		</Tabs>

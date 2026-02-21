@@ -7,6 +7,12 @@ export default function DrawerLayout() {
 			screenOptions={{
 				headerShown: true, // shows header on top
 				drawerType: "front", // standard drawer
+				headerTitleStyle: {
+					fontFamily: "FugazOne-Regular",
+				},
+				drawerLabelStyle: {
+					fontFamily: "Montserrat-Regular",
+				},
 			}}
 		>
 			{/* Accueil */}
@@ -21,6 +27,37 @@ export default function DrawerLayout() {
 				}}
 			/>
 
+			<Drawer.Screen
+				name="profile"
+				options={{
+					headerTitle: "Mon Profil",
+					drawerLabel: "Mon Profil",
+					drawerIcon: ({ color, size }) => (
+						<Ionicons name="person-circle-outline" size={size} color={color} />
+					),
+				}}
+			/>
+			<Drawer.Screen
+				name="artist"
+				options={{
+					headerTitle: "Mes Artistes",
+					drawerLabel: "Mes Artistes",
+					drawerIcon: ({ color, size }) => (
+						<Ionicons name="musical-notes-outline" size={size} color={color} />
+					),
+				}}
+			/>
+			<Drawer.Screen
+				name="venue"
+				options={{
+					headerTitle: "Mon Lieu",
+					drawerLabel: "Mon Lieu",
+					drawerIcon: ({ color, size }) => (
+						<Ionicons name="business-outline" size={size} color={color} />
+					),
+				}}
+			/>
+
 			{/* Login */}
 			<Drawer.Screen
 				name="login"
@@ -30,6 +67,13 @@ export default function DrawerLayout() {
 					drawerIcon: ({ color, size }) => (
 						<MaterialIcons name="login" size={size} color={color} />
 					),
+				}}
+			/>
+
+			<Drawer.Screen
+				name="(tabs)"
+				options={{
+					drawerItemStyle: { display: "none" },
 				}}
 			/>
 		</Drawer>

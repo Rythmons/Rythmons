@@ -5,6 +5,7 @@ export type Session = {
 		email: string;
 		emailVerified: boolean;
 		image?: string | null;
+		role?: "ARTIST" | "ORGANIZER" | "MEDIA" | "TECH_SERVICE" | "BOTH" | null;
 		createdAt: Date;
 		updatedAt: Date;
 	};
