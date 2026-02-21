@@ -16,7 +16,7 @@ import {
 	Trash2,
 	X,
 } from "lucide-react";
-import { notFound, useParams } from "next/navigation";
+import { notFound, useParams, useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -46,6 +46,15 @@ export default function ArtistProfilePage() {
 	const params = useParams();
 	const artistId = params.id as string;
 	const { data: session } = authClient.useSession();
+	const router = useRouter();
+
+	const handleFollow = useCallback(() => {
+		if (!session?.user) {
+			router.push("/login");
+			return;
+		}
+		toast.info("Fonctionnalité 'Suivre' à venir !");
+	}, [session, router]);
 
 	const [isEditMode, setIsEditMode] = useState(false);
 	const [formData, setFormData] = useState<EditFormData | null>(null);
@@ -358,7 +367,10 @@ export default function ArtistProfilePage() {
 								{/* Action Buttons */}
 								{!isOwner && (
 									<div className="mt-6 flex justify-center gap-3">
-										<Button className="rounded-full bg-secondary px-6 hover:bg-secondary/90">
+										<Button
+											className="rounded-full bg-secondary px-6 hover:bg-secondary/90"
+											onClick={handleFollow}
+										>
 											<Plus className="mr-2 h-4 w-4" />
 											Suivre
 										</Button>
