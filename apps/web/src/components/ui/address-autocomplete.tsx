@@ -54,11 +54,11 @@ export function AddressAutocomplete({
 
 	// Sync query with value prop if it changes externally
 	useEffect(() => {
-		if (value !== query) {
+		if (value !== undefined && value !== query) {
 			setQuery(value);
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [value, query]);
+	}, [value]);
 
 	useEffect(() => {
 		const handleClickOutside = (event: MouseEvent) => {
