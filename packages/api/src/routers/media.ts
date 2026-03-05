@@ -85,11 +85,18 @@ export const mediaRouter = router({
 		}),
 
 	// Mettre à jour un média
+	/////
 	update: protectedProcedure
 		.input(
 			z.object({
 				id: z.string(),
-				data: mediaSchema.partial(),
+				data: z.object({
+					name: z.string(),
+					description: z.string().nullable().optional(),
+					website: z.string().nullable().optional(),
+					country: z.string().nullable().optional(),
+					logoUrl: z.string().nullable().optional(),
+				}),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
@@ -97,34 +104,13 @@ export const mediaRouter = router({
 				where: { id: input.id },
 			});
 
-			if (!media) {
+			if (!media || media.ownerId !== ctx.session.user.id) {
 				throw new Error("Média non trouvé");
 			}
 
-			if (media.ownerId !== ctx.session.user.id) {
-				throw new Error("Vous n'êtes pas autorisé à modifier ce média");
-			}
-
-			const { artistIds, ...mediaData } = input.data;
-
-			let artistsUpdate = {};
-			if (artistIds !== undefined) {
-				artistsUpdate = {
-					artists: {
-						set: artistIds.map((id) => ({ id })),
-					},
-				};
-			}
-
-			return db.media.update({
+			return ctx.db.media.update({
 				where: { id: input.id },
-				data: {
-					...mediaData,
-					...artistsUpdate,
-				},
-				include: {
-					artists: true,
-				},
+				data: input.data,
 			});
 		}),
 

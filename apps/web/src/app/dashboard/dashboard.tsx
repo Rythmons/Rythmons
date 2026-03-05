@@ -3,6 +3,7 @@
 import type { Session } from "@rythmons/auth/types";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, BoomBox, Building2, Mic2, Plus } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -89,7 +90,7 @@ export default function Dashboard({ session }: { session: Session }) {
 					</CardContent>
 					<CardFooter>
 						<Button asChild size="lg" className="w-full sm:w-auto">
-							<Link href="/dashboard/venue">
+							<Link href={"/dashboard/venue" as any}>
 								Commencer la configuration{" "}
 								<ArrowRight className="ml-2 h-4 w-4" />
 							</Link>
@@ -136,7 +137,7 @@ export default function Dashboard({ session }: { session: Session }) {
 					</CardContent>
 					<CardFooter>
 						<Button asChild size="lg" className="w-full sm:w-auto">
-							<Link href="/dashboard/artist">
+							<Link href={"/dashboard/artist" as any}>
 								Créer mon profil artiste <ArrowRight className="ml-2 h-4 w-4" />
 							</Link>
 						</Button>
@@ -148,27 +149,79 @@ export default function Dashboard({ session }: { session: Session }) {
 
 	// Case 3: Explicit Media
 	if (userRole === "MEDIA" && !hasMedia) {
-		return (
-			<div className="mx-auto max-w-3xl py-12">
-				<div className="mb-8 text-center">
-					<h1 className="mb-2 font-bold text-3xl">
-						Bienvenue, {session.user.name} !
-					</h1>
-					<p className="text-lg text-muted-foreground">
-						Votre compte Média est prêt. Explorez les artistes et les lieux pour
-						vos prochaines programmations ou articles.
-					</p>
+		<section className="rounded-2xl bg-black/20 p-6">
+			<div className="mb-6 flex items-center justify-between">
+				<div className="flex items-center gap-3">
+					<div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/20">
+						<BoomBox className="h-5 w-5 text-primary" />
+					</div>
+					<div>
+						<h2 className="font-semibold text-white text-xl">Médias</h2>
+						<p className="text-sm text-white/50">
+							{medias?.length || 0} média(s) géré(s)
+						</p>
+					</div>
 				</div>
-				<div className="rounded-xl border border-dashed p-12 text-center">
-					<p className="text-muted-foreground">
-						L'espace Média dédié est en cours d'amélioration.
-					</p>
-					<Button asChild className="mt-4" variant="outline">
-						<Link href="/dashboard">Accéder au tableau de bord</Link>
+				<Button
+					asChild
+					variant="outline"
+					className="border-white/20 text-white hover:bg-white/10"
+				>
+					<Link href={"/dashboard/media" as any}>
+						<Plus className="mr-2 h-4 w-4" /> Nouveau média
+					</Link>
+				</Button>
+			</div>
+
+			{medias && medias.length > 0 ? (
+				<div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+					{medias.map((media: any) => (
+						<Link
+							key={media.id}
+							href={`/media/${media.id}` as any}
+							className="group relative overflow-hidden rounded-2xl border border-white/10 bg-black/30 backdrop-blur-sm transition-all duration-300 hover:scale-[1.02]"
+						>
+							<div className="relative aspect-video overflow-hidden">
+								{media.logoUrl ? (
+									<Image
+										src={media.logoUrl}
+										alt="media.name"
+										className="h-full w-full object-cover"
+									/>
+								) : (
+									<div className="h-full w-full bg-gradient-to-br from-primary/20 to-secondary/20" />
+								)}
+								<div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
+							</div>
+
+							<div className="p-4">
+								<h3 className="truncate font-semibold text-white">
+									{media.name}
+								</h3>
+								<p className="text-sm text-white/50">{media.country}</p>
+							</div>
+						</Link>
+					))}
+					<Link
+						href={"/dashboard/media" as any}
+						className="flex min-h-[200px] flex-col items-center justify-center rounded-2xl border-2 border-white/20 border-dashed bg-white/5 p-8 text-white/50"
+					>
+						<Plus className="mb-2 h-10 w-10" />
+						<span className="font-medium text-sm">Ajouter un média</span>
+					</Link>
+				</div>
+			) : (
+				<div className="rounded-2xl border border-white/20 border-dashed bg-white/5 p-12 text-center">
+					<BoomBox className="mx-auto mb-4 h-12 w-12 text-white/30" />
+					<p className="mb-4 text-white/50">Vous n'avez pas encore de média</p>
+					<Button asChild>
+						<Link href={"/dashboard/media" as any}>
+							<Plus className="mr-2 h-4 w-4" /> Créer mon premier média
+						</Link>
 					</Button>
 				</div>
-			</div>
-		);
+			)}
+		</section>;
 	}
 
 	// Case 4: Explicit Tech/Service
@@ -197,7 +250,7 @@ export default function Dashboard({ session }: { session: Session }) {
 	}
 
 	// Case 5: No specific role defined OR no profiles created yet (catch-all onboarding)
-	if (!hasVenues && !hasArtists) {
+	if (!hasVenues && !hasArtists && !hasMedia) {
 		return (
 			<div className="mx-auto max-w-4xl py-12">
 				<div className="mb-8 text-center">
@@ -222,7 +275,7 @@ export default function Dashboard({ session }: { session: Session }) {
 						</CardContent>
 						<CardFooter>
 							<Button asChild size="sm" className="w-full">
-								<Link href="/dashboard/venue">
+								<Link href={"/dashboard/venue" as any}>
 									Créer <ArrowRight className="ml-2 h-3 w-3" />
 								</Link>
 							</Button>
@@ -243,7 +296,7 @@ export default function Dashboard({ session }: { session: Session }) {
 						</CardContent>
 						<CardFooter>
 							<Button asChild size="sm" className="w-full">
-								<Link href="/dashboard/artist">
+								<Link href={"/dashboard/artist" as any}>
 									Créer <ArrowRight className="ml-2 h-3 w-3" />
 								</Link>
 							</Button>
@@ -263,7 +316,7 @@ export default function Dashboard({ session }: { session: Session }) {
 						</CardContent>
 						<CardFooter>
 							<Button asChild size="sm" className="w-full">
-								<Link href="/dashboard/media">
+								<Link href={"/dashboard/media" as any}>
 									Créer <ArrowRight className="ml-2 h-3 w-3" />
 								</Link>
 							</Button>
@@ -305,7 +358,7 @@ export default function Dashboard({ session }: { session: Session }) {
 					userRole === "BOTH" ||
 					!userRole ||
 					hasVenues) && (
-					<section className="rounded-2xl bg-black/20 p-6">
+					<section className="mb-10 rounded-2xl bg-black/20 p-6">
 						<div className="mb-6 flex items-center gap-3">
 							<div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/20">
 								<Building2 className="h-5 w-5 text-primary" />
@@ -384,7 +437,7 @@ export default function Dashboard({ session }: { session: Session }) {
 
 								{/* Add new venue card */}
 								<Link
-									href="/dashboard/venue?new=true"
+									href={"/dashboard/venue?new=true" as any}
 									className="flex min-h-[200px] flex-col items-center justify-center rounded-2xl border-2 border-white/20 border-dashed bg-white/5 p-8 text-white/50 transition-all duration-300 hover:border-primary/50 hover:bg-primary/5 hover:text-white"
 								>
 									<Plus className="mb-2 h-10 w-10" />
@@ -398,7 +451,7 @@ export default function Dashboard({ session }: { session: Session }) {
 									Vous n'avez pas encore de lieu
 								</p>
 								<Button asChild>
-									<Link href="/dashboard/venue?new=true">
+									<Link href={"/dashboard/venue?new=true" as any}>
 										<Plus className="mr-2 h-4 w-4" /> Créer mon premier lieu
 									</Link>
 								</Button>
@@ -412,11 +465,11 @@ export default function Dashboard({ session }: { session: Session }) {
 					userRole === "BOTH" ||
 					!userRole ||
 					hasArtists) && (
-					<section className="mb-10">
+					<section className="mb-10 rounded-2xl bg-black/20 p-6">
 						<div className="mb-6 flex items-center justify-between">
 							<div className="flex items-center gap-3">
-								<div className="flex h-10 w-10 items-center justify-center rounded-xl bg-secondary/20">
-									<Mic2 className="h-5 w-5 text-secondary" />
+								<div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/20">
+									<Mic2 className="h-5 w-5 text-primary" />
 								</div>
 								<div>
 									<h2 className="font-semibold text-white text-xl">Artistes</h2>
@@ -430,24 +483,24 @@ export default function Dashboard({ session }: { session: Session }) {
 								variant="outline"
 								className="border-white/20 text-white hover:bg-white/10"
 							>
-								<Link href="/dashboard/artist">
+								<Link href={"/dashboard/artist" as any}>
 									<Plus className="mr-2 h-4 w-4" /> Nouveau projet
 								</Link>
 							</Button>
 						</div>
 						{artists && artists.length > 0 ? (
 							<div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-								{(artists as any[]).map((artist) => (
+								{artists?.map((artist: any) => (
 									<Link
 										key={artist.id}
-										href={`/artist/${artist.id}`}
+										href={`/artist/${artist.id}` as any}
 										className="group relative overflow-hidden rounded-2xl border border-white/10 bg-black/30 backdrop-blur-sm transition-all duration-300 hover:scale-[1.02] hover:border-secondary/50 hover:shadow-secondary/10 hover:shadow-xl"
 									>
 										{/* Cover/Photo */}
 										<div className="relative aspect-video overflow-hidden">
 											{artist.bannerUrl || artist.photoUrl ? (
 												<img
-													src={artist.bannerUrl || artist.photoUrl}
+													src={artist.bannerUrl ?? artist.photoUrl ?? undefined}
 													alt=""
 													className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
 												/>
@@ -493,7 +546,7 @@ export default function Dashboard({ session }: { session: Session }) {
 
 								{/* Add new artist card */}
 								<Link
-									href="/dashboard/artist"
+									href={"/dashboard/artist" as any}
 									className="flex min-h-[200px] flex-col items-center justify-center rounded-2xl border-2 border-white/20 border-dashed bg-white/5 p-8 text-white/50 transition-all duration-300 hover:border-secondary/50 hover:bg-secondary/5 hover:text-white"
 								>
 									<Plus className="mb-2 h-10 w-10" />
@@ -507,8 +560,117 @@ export default function Dashboard({ session }: { session: Session }) {
 									Aucun profil artiste pour le moment
 								</p>
 								<Button asChild>
-									<Link href="/dashboard/artist">
+									<Link href={"/dashboard/artist" as any}>
 										<Plus className="mr-2 h-4 w-4" /> Créer mon premier projet
+									</Link>
+								</Button>
+							</div>
+						)}
+					</section>
+				)}
+
+				{/* Media Section*/}
+				{(userRole === "MEDIA" ||
+					userRole === "BOTH" ||
+					!userRole ||
+					hasMedia) && (
+					<section className="mb-10 rounded-2xl bg-black/20 p-6">
+						<div className="mb-6 flex items-center justify-between">
+							<div className="flex items-center gap-3">
+								<div className="flex h-10 w-10 items-center justify-center rounded-xl bg-secondary/20">
+									<Mic2 className="h-5 w-5 text-secondary" />
+								</div>
+								<div>
+									<h2 className="font-semibold text-white text-xl">Médias</h2>
+									<p className="text-sm text-white/50">
+										{medias?.length || 0} média(s) géré(s)
+									</p>
+								</div>
+							</div>
+							<Button
+								asChild
+								variant="outline"
+								className="border-white/20 text-white hover:bg-white/10"
+							>
+								<Link href={"/dashboard/media" as any}>
+									<Plus className="mr-2 h-4 w-4" /> Nouveau média
+								</Link>
+							</Button>
+						</div>
+						{medias && medias.length > 0 ? (
+							<div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+								{(medias as any[]).map((media) => (
+									<Link
+										key={media.id}
+										href={`/media/${media.id}` as any}
+										className="group relative overflow-hidden rounded-2xl border border-white/10 bg-black/30 backdrop-blur-sm transition-all duration-300 hover:scale-[1.02] hover:border-secondary/50 hover:shadow-secondary/10 hover:shadow-xl"
+									>
+										{/* Cover/Photo */}
+										<div className="relative aspect-video overflow-hidden">
+											{media.bannerUrl || media.photoUrl ? (
+												<img
+													src={media.bannerUrl || media.photoUrl}
+													alt=""
+													className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
+												/>
+											) : (
+												<div className="h-full w-full bg-gradient-to-br from-secondary/20 to-accent/20" />
+											)}
+											<div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
+										</div>
+
+										{/* Content */}
+										<div className="p-4">
+											<div className="flex items-center gap-3">
+												<div className="h-12 w-12 overflow-hidden rounded-full border-2 border-white/20 bg-black/50">
+													{media.photoUrl ? (
+														<img
+															src={media.photoUrl}
+															alt=""
+															className="h-full w-full object-cover"
+														/>
+													) : (
+														<div className="flex h-full w-full items-center justify-center">
+															<Mic2 className="h-5 w-5 text-white/50" />
+														</div>
+													)}
+												</div>
+												<div>
+													<h3 className="truncate font-semibold text-white">
+														{media.stageName}
+													</h3>
+													<p className="text-sm text-white/50">Média</p>
+												</div>
+											</div>
+										</div>
+
+										{/* Hover overlay */}
+										<div className="absolute inset-0 flex items-center justify-center bg-secondary/10 opacity-0 transition-opacity group-hover:opacity-100">
+											<span className="rounded-full bg-white/20 px-4 py-2 font-medium text-sm text-white backdrop-blur-sm">
+												Voir le profil
+											</span>
+										</div>
+									</Link>
+								))}
+
+								{/* Add new media card */}
+								<Link
+									href={"/dashboard/media" as any}
+									className="flex min-h-[200px] flex-col items-center justify-center rounded-2xl border-2 border-white/20 border-dashed bg-white/5 p-8 text-white/50 transition-all duration-300 hover:border-secondary/50 hover:bg-secondary/5 hover:text-white"
+								>
+									<Plus className="mb-2 h-10 w-10" />
+									<span className="font-medium text-sm">Nouveau média</span>
+								</Link>
+							</div>
+						) : (
+							<div className="rounded-2xl border border-white/20 border-dashed bg-white/5 p-12 text-center">
+								<Mic2 className="mx-auto mb-4 h-12 w-12 text-white/30" />
+								<p className="mb-4 text-white/50">
+									Aucun profil média pour le moment
+								</p>
+								<Button asChild>
+									<Link href={"/dashboard/media" as any}>
+										<Plus className="mr-2 h-4 w-4" /> Créer mon premier média
 									</Link>
 								</Button>
 							</div>

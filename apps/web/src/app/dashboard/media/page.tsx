@@ -22,7 +22,7 @@ function MediaPageContent() {
 		isLoading,
 		error,
 	} = useQuery({
-		...trpc.media.myMedias.queryOptions(),
+		...trpc.media.getMyMedias.queryOptions(),
 		enabled: !!session?.user,
 	});
 
@@ -107,14 +107,12 @@ function MediaPageContent() {
 						mediaToEdit
 							? {
 									id: mediaToEdit.id,
-									stageName: mediaToEdit.stageName,
-									photoUrl: mediaToEdit.photoUrl ?? "",
-									bio: mediaToEdit.bio ?? "",
+									name: mediaToEdit.name,
+									description: mediaToEdit.description ?? "",
 									website: mediaToEdit.website ?? "",
-									techRequirements: mediaToEdit.techRequirements ?? "",
-									feeMin: mediaToEdit.feeMin ?? undefined,
-									feeMax: mediaToEdit.feeMax ?? undefined,
-									genres: mediaToEdit.genres,
+									logoUrl: mediaToEdit.logoUrl ?? "",
+									country: mediaToEdit.country ?? "France",
+									artists: mediaToEdit.artists ?? [],
 								}
 							: undefined
 					}
