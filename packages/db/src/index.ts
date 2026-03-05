@@ -16,6 +16,7 @@ export type {
 	Account,
 	Artist,
 	Genre,
+	Media,
 	Session,
 	User,
 	Venue,

@@ -22,6 +22,7 @@ model User {
   role          UserRole?
   artists       Artist[]
   venues        Venue[]
+  medias        Media[]
 
   @@unique([email])
   @@map("user")
@@ -69,29 +70,30 @@ model Verification {
   createdAt  DateTime?
   updatedAt  DateTime?
 
-
   @@map("verification")
 }
 
 model Artist {
-  id               String   @id @default(cuid()) @map("_id")
-  userId           String
-  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  stageName        String
-  photoUrl         String?
-  bannerUrl        String?
-  bio              String?
-  website          String?
-  socialLinks      Json?    @default("{}")
-  genres           Genre[]
-  images           String[] @default([])
-  
+  id          String   @id @default(cuid()) @map("_id")
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stageName   String
+  photoUrl    String?
+  bannerUrl   String?
+  bio         String?
+  website     String?
+  socialLinks Json?    @default("{}")
+  genres      Genre[]
+  images      String[] @default([])
+
   techRequirements String?
   feeMin           Int?
   feeMax           Int?
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  medias Media[] // ← ajout
 
   @@map("artist")
 }
@@ -135,18 +137,37 @@ model Venue {
   ownerId       String
   owner         User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   genres        Genre[]
-  
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("venue")
 }
 
 model Genre {
-  id        String   @id @default(cuid()) @map("_id")
-  name      String   @unique
-  venues    Venue[]
-  artists   Artist[]
-  
+  id      String   @id @default(cuid()) @map("_id")
+  name    String   @unique
+  venues  Venue[]
+  artists Artist[]
+
   @@map("genre")
+}
+
+model Media {
+  id          String  @id @default(cuid()) @map("_id")
+  name        String
+  description String? @db.Text
+  website     String?
+  logoUrl     String?
+  country     String? @default("France")
+
+  artists Artist[]
+
+  ownerId String
+  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("media")
 }

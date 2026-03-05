@@ -2,7 +2,7 @@
 
 import type { Session } from "@rythmons/auth/types";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, Building2, Mic2, Plus } from "lucide-react";
+import { ArrowRight, BoomBox, Building2, Mic2, Plus } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -34,7 +34,13 @@ export default function Dashboard({ session }: { session: Session }) {
 		enabled: !!session.user,
 	});
 
-	const isLoading = venuesLoading || artistsLoading;
+	// Fetch Media (Always fetch if we don't know the role yet, or if media)
+	const { data: medias, isLoading: mediasLoading } = useQuery({
+		...trpc.media.getMyMedias.queryOptions(),
+		enabled: !!session.user,
+	});
+
+	const isLoading = venuesLoading || artistsLoading || mediasLoading;
 
 	if (isLoading) {
 		return (
@@ -46,6 +52,7 @@ export default function Dashboard({ session }: { session: Session }) {
 
 	const hasVenues = venues && venues.length > 0;
 	const hasArtists = artists && artists.length > 0;
+	const hasMedia = medias && medias.length > 0;
 
 	// --- ONBOARDING LOGIC ---
 
@@ -140,7 +147,7 @@ export default function Dashboard({ session }: { session: Session }) {
 	}
 
 	// Case 3: Explicit Media
-	if (userRole === "MEDIA") {
+	if (userRole === "MEDIA" && !hasMedia) {
 		return (
 			<div className="mx-auto max-w-3xl py-12">
 				<div className="mb-8 text-center">
@@ -242,23 +249,26 @@ export default function Dashboard({ session }: { session: Session }) {
 							</Button>
 						</CardFooter>
 					</Card>
-
-					<Card className="flex flex-col border-muted bg-card/50 opacity-80">
+					<Card className="flex flex-col border-primary/20 bg-gradient-to-b from-primary/5 to-transparent transition-colors hover:border-primary/50">
 						<CardHeader>
-							<div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-lg bg-muted">
-								<ArrowRight className="h-6 w-6 text-muted-foreground" />
+							<div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-lg bg-primary/20">
+								<BoomBox className="h-6 w-6 text-primary" />
 							</div>
-							<CardTitle className="text-muted-foreground text-sm">
-								Média / Radio
-							</CardTitle>
+							<CardTitle className="text-sm">Média / Radio</CardTitle>
 						</CardHeader>
 						<CardContent className="flex-1">
-							<p className="text-muted-foreground text-xs italic">
-								Arrive bientôt...
+							<p className="text-muted-foreground text-xs">
+								Radio, Webzine, Blog...
 							</p>
 						</CardContent>
+						<CardFooter>
+							<Button asChild size="sm" className="w-full">
+								<Link href="/dashboard/media">
+									Créer <ArrowRight className="ml-2 h-3 w-3" />
+								</Link>
+							</Button>
+						</CardFooter>
 					</Card>
-
 					<Card className="flex flex-col border-muted bg-card/50 opacity-80">
 						<CardHeader>
 							<div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-lg bg-muted">

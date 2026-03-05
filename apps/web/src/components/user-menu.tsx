@@ -30,6 +30,11 @@ export default function UserMenu() {
 		...trpc.venue.getMyVenues.queryOptions(),
 		enabled: !!session?.user,
 	});
+	// Fetch Media (Always fetch if we don't know the role yet, or if media)
+	const { data: medias } = useQuery({
+		...trpc.media.getMyMedias.queryOptions(),
+		enabled: !!session?.user,
+	});
 
 	if (isPending) {
 		return <Skeleton className="h-9 w-24" />;
@@ -133,6 +138,37 @@ export default function UserMenu() {
 								</div>
 								<span className="font-bold text-sm tracking-wide">
 									{venue.name}
+								</span>
+							</div>
+						</Link>
+					))}
+
+					{/* Medias */}
+					{(medias as any[])?.map((media) => (
+						<Link
+							key={media.id}
+							href={`/media/${media.id}` as any}
+							className="group relative flex h-14 w-full cursor-pointer items-center overflow-hidden border-white/10 border-b transition-colors hover:bg-white/5"
+						>
+							{/* Tag */}
+							<div className="flex h-full w-12 items-center justify-center bg-gradient-to-br from-red-600 to-orange-600 font-bold text-[10px] text-white">
+								PRO
+							</div>
+							{/* Content */}
+							<div className="ml-3 flex items-center gap-3">
+								<div className="flex h-9 w-9 items-center justify-center rounded-lg bg-zinc-800">
+									{media.logoUrl ? (
+										<img
+											src={media.logoUrl}
+											alt={media.name}
+											className="h-full w-full rounded-lg object-cover"
+										/>
+									) : (
+										<Building2 className="h-4 w-4 text-zinc-400" />
+									)}
+								</div>
+								<span className="font-bold text-sm tracking-wide">
+									{media.name}
 								</span>
 							</div>
 						</Link>
