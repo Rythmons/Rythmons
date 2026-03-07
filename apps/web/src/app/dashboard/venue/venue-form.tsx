@@ -1,6 +1,7 @@
 "use client";
 
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { MUSIC_GENRES } from "@rythmons/validation";
+import { useMutation } from "@tanstack/react-query";
 import { Building2, FileText, Image, MapPin, Music, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useId, useState as useReactState } from "react";
@@ -48,6 +49,8 @@ interface VenueFormData {
 	description: string;
 	photoUrl: string;
 	logoUrl: string;
+	paymentPolicy: string;
+	techInfo: string;
 	selectedGenres: string[];
 }
 
@@ -64,11 +67,6 @@ export function VenueForm({ initialData, mode, onSuccess }: VenueFormProps) {
 	const router = useRouter();
 	const id = useId();
 
-	// Fetch available genres
-	const { data: availableGenres = [] } = useQuery(
-		trpc.venue.getAllGenres.queryOptions(),
-	);
-
 	const [formData, setFormData] = useReactState<VenueFormData>({
 		name: initialData?.name ?? "",
 		address: initialData?.address ?? "",
@@ -80,6 +78,8 @@ export function VenueForm({ initialData, mode, onSuccess }: VenueFormProps) {
 		description: initialData?.description ?? "",
 		photoUrl: initialData?.photoUrl ?? "",
 		logoUrl: initialData?.logoUrl ?? "",
+		paymentPolicy: initialData?.paymentPolicy ?? "",
+		techInfo: initialData?.techInfo ?? "",
 		selectedGenres: initialData?.genres?.map((g) => g.name) ?? [],
 	});
 
@@ -144,6 +144,8 @@ export function VenueForm({ initialData, mode, onSuccess }: VenueFormProps) {
 				description: formData.description || null,
 				photoUrl: formData.photoUrl || null,
 				logoUrl: formData.logoUrl || null,
+				paymentPolicy: formData.paymentPolicy || null,
+				techInfo: formData.techInfo || null,
 				genreNames: selectedGenres,
 			};
 
@@ -346,7 +348,7 @@ export function VenueForm({ initialData, mode, onSuccess }: VenueFormProps) {
 						Sélectionnez les genres musicaux que vous programmez habituellement
 					</p>
 					<div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-						{availableGenres.map((genre) => (
+						{MUSIC_GENRES.map((genre) => (
 							<div key={genre} className="flex items-center space-x-2">
 								<Checkbox
 									id={`${id}-genre-${genre}`}
@@ -408,6 +410,32 @@ export function VenueForm({ initialData, mode, onSuccess }: VenueFormProps) {
 					<p className="text-muted-foreground text-sm">
 						Cette description sera visible sur votre profil public
 					</p>
+				</div>
+
+				<div className="grid gap-6 md:grid-cols-2">
+					<div className="space-y-2">
+						<Label htmlFor={`${id}-paymentPolicy`}>Accueil & conditions</Label>
+						<Textarea
+							id={`${id}-paymentPolicy`}
+							value={formData.paymentPolicy}
+							onChange={(e) => updateField("paymentPolicy", e.target.value)}
+							placeholder="Ex: repas pris en charge, horaires d'accueil, hébergement..."
+							rows={5}
+						/>
+					</div>
+
+					<div className="space-y-2">
+						<Label htmlFor={`${id}-techInfo`}>
+							Technique & matériel sur place
+						</Label>
+						<Textarea
+							id={`${id}-techInfo`}
+							value={formData.techInfo}
+							onChange={(e) => updateField("techInfo", e.target.value)}
+							placeholder="Ex: sono sur place, micros disponibles, régie façade..."
+							rows={5}
+						/>
+					</div>
 				</div>
 			</div>
 

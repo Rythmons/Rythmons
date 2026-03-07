@@ -60,8 +60,7 @@ function ArtistPageContent() {
 	// (The Dashboard handles the list view now).
 
 	const artistToEdit = editId
-		? // eslint-disable-next-line @typescript-eslint/no-explicit-any
-			(artists as any[])?.find((a) => a.id === editId)
+		? artists?.find((artist) => artist.id === editId)
 		: undefined;
 
 	// If ID provided but not found?
@@ -109,20 +108,26 @@ function ArtistPageContent() {
 									id: artistToEdit.id,
 									stageName: artistToEdit.stageName,
 									photoUrl: artistToEdit.photoUrl ?? "",
+									bannerUrl: artistToEdit.bannerUrl ?? "",
 									bio: artistToEdit.bio ?? "",
 									website: artistToEdit.website ?? "",
+									socialLinks: artistToEdit.socialLinks as Record<
+										string,
+										string
+									> | null,
 									techRequirements: artistToEdit.techRequirements ?? "",
 									feeMin: artistToEdit.feeMin ?? undefined,
 									feeMax: artistToEdit.feeMax ?? undefined,
 									genres: artistToEdit.genres,
+									images: artistToEdit.images ?? [],
 								}
 							: undefined
 					}
-					onSuccess={() => {
+					onSuccess={(artistId) => {
 						queryClient.invalidateQueries();
-						if (!editId) {
-							// If created, go back to dashboard to see it in list?
-							// Or stay here?
+						if (!editId && artistId) {
+							router.push(`/artist/${artistId}`);
+						} else if (!editId) {
 							router.push("/dashboard");
 						}
 					}}
