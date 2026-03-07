@@ -61,6 +61,32 @@ export const MUSIC_GENRES = [
 	"DJ Set",
 ] as const;
 
+export const userRoleValues = [
+	"ARTIST",
+	"ORGANIZER",
+	"MEDIA",
+	"TECH_SERVICE",
+	"BOTH",
+] as const;
+
+export const userRoleSchema = z.enum(userRoleValues);
+
+export type UserRole = z.infer<typeof userRoleSchema>;
+
+export const userRoleLabels: Record<UserRole, string> = {
+	ARTIST: "Artiste",
+	ORGANIZER: "Organisateur / Lieu",
+	MEDIA: "Media / Radio",
+	TECH_SERVICE: "Prestataire technique",
+	BOTH: "Artiste + Organisateur",
+};
+
+export const updateUserRoleSchema = z.object({
+	role: userRoleSchema.nullable(),
+});
+
+export type UpdateUserRoleInput = z.infer<typeof updateUserRoleSchema>;
+
 export const artistSocialLinksSchema = z.object({
 	spotify: optionalUrlSchema,
 	youtube: optionalUrlSchema,
