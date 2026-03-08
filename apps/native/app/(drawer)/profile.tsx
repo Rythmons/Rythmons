@@ -22,10 +22,10 @@ import { queryClient, trpc } from "@/utils/trpc";
 
 export default function ProfileScreen() {
 	const { data: session, isPending } = authClient.useSession();
+	const sessionRole = (session?.user as { role?: UserRole | null } | undefined)
+		?.role;
 	const [name, setName] = useState(session?.user?.name || "");
-	const [role, setRole] = useState<UserRole | null>(
-		session?.user?.role ?? null,
-	);
+	const [role, setRole] = useState<UserRole | null>(sessionRole ?? null);
 	const [isSaving, setIsSaving] = useState(false);
 	const updateRoleMutation = useMutation(
 		trpc.account.updateRole.mutationOptions(),
@@ -34,14 +34,14 @@ export default function ProfileScreen() {
 	useEffect(() => {
 		if (!session?.user) return;
 		setName(session.user.name || "");
-		setRole(session.user.role ?? null);
-	}, [session?.user]);
+		setRole(sessionRole ?? null);
+	}, [session?.user, sessionRole]);
 
 	const handleSave = async () => {
 		if (!session?.user) return;
 		const trimmedName = name.trim();
 		const nameChanged = trimmedName !== session.user.name;
-		const roleChanged = role !== (session.user.role ?? null);
+		const roleChanged = role !== (sessionRole ?? null);
 
 		if (!nameChanged && !roleChanged) {
 			Alert.alert("Info", "Aucune modification à enregistrer.");
