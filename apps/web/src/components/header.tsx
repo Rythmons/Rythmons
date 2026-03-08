@@ -1,18 +1,24 @@
 "use client";
+import type { Route } from "next";
 import Link from "next/link";
 import { authClient } from "@/lib/auth-client";
 import UserMenu from "./user-menu";
+
+type HeaderLink = {
+	to: Route;
+	label: string;
+};
 
 export default function Header() {
 	const { data: session } = authClient.useSession();
 	const sessionRole = (session?.user as { role?: string | null } | undefined)
 		?.role;
 	const canSearchVenues = sessionRole === "ARTIST" || sessionRole === "BOTH";
-	const links = [
-		{ to: "/", label: "Accueil" },
-		{ to: "/dashboard", label: "Tableau de bord" },
+	const links: HeaderLink[] = [
+		{ to: "/" as Route, label: "Accueil" },
+		{ to: "/dashboard" as Route, label: "Tableau de bord" },
 		...(canSearchVenues
-			? [{ to: "/dashboard/search", label: "Rechercher des lieux" }]
+			? [{ to: "/dashboard/search" as Route, label: "Rechercher des lieux" }]
 			: []),
 	];
 
