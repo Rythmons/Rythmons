@@ -1,13 +1,20 @@
 "use client";
 import Link from "next/link";
-import { ModeToggle } from "./mode-toggle";
+import { authClient } from "@/lib/auth-client";
 import UserMenu from "./user-menu";
 
 export default function Header() {
+	const { data: session } = authClient.useSession();
+	const sessionRole = (session?.user as { role?: string | null } | undefined)
+		?.role;
+	const canSearchVenues = sessionRole === "ARTIST" || sessionRole === "BOTH";
 	const links = [
 		{ to: "/", label: "Accueil" },
 		{ to: "/dashboard", label: "Tableau de bord" },
-	] as const;
+		...(canSearchVenues
+			? [{ to: "/dashboard/search", label: "Rechercher des lieux" }]
+			: []),
+	];
 
 	return (
 		<div>
