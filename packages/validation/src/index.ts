@@ -38,6 +38,13 @@ export const venueTypeValues = [
 	"OTHER",
 ] as const;
 
+export const paymentTypeValues = [
+	"FIXED_FEE",
+	"PERCENTAGE",
+	"HAT",
+	"NEGOTIABLE",
+] as const;
+
 export const MUSIC_GENRES = [
 	"Pop",
 	"Rock",
@@ -102,6 +109,13 @@ export const artistSchema = z.object({
 	stageName: z
 		.string()
 		.min(2, "Le nom de scène doit contenir au moins 2 caractères"),
+	city: z.string().optional().nullable(),
+	postalCode: z
+		.string()
+		.regex(/^\d{5}$/, "Code postal invalide (5 chiffres)")
+		.optional()
+		.nullable()
+		.or(z.literal("")),
 	photoUrl: z.string().url("URL invalide").optional().nullable(),
 	bannerUrl: z.string().url("URL invalide").optional().nullable(),
 	bio: z.string().optional().nullable(),
@@ -110,6 +124,7 @@ export const artistSchema = z.object({
 	techRequirements: z.string().optional().nullable(),
 	feeMin: z.number().int().nonnegative().optional().nullable(),
 	feeMax: z.number().int().nonnegative().optional().nullable(),
+	isNegotiable: z.boolean().optional().default(false),
 	genreNames: z.array(z.string().min(1)).optional(),
 	images: z.array(z.string().url("URL invalide")).optional().default([]),
 });
@@ -128,6 +143,9 @@ export const venueSchema = z.object({
 	photoUrl: z.string().url("URL invalide").optional().nullable(),
 	logoUrl: z.string().url("URL invalide").optional().nullable(),
 	paymentPolicy: z.string().optional().nullable(),
+	paymentTypes: z.array(z.enum(paymentTypeValues)).optional().default([]),
+	budgetMin: z.number().int().nonnegative().optional().nullable(),
+	budgetMax: z.number().int().nonnegative().optional().nullable(),
 	techInfo: z.string().optional().nullable(),
 	genreNames: z.array(z.string().min(1)).optional(),
 	images: z.array(z.string().url("URL invalide")).optional().default([]),
@@ -144,16 +162,23 @@ export const signInSchema = z.object({
 export type SignInInput = z.infer<typeof signInSchema>;
 
 // Sign-up validation schema
-export const signUpSchema = z
-	.object({
-		name: nameSchema,
-		email: emailSchema,
-		password: passwordSchema,
-		passwordConfirmation: z.string(),
-	})
+export const signUpBaseSchema = z.object({
+	name: nameSchema,
+	email: emailSchema,
+	password: passwordSchema,
+	passwordConfirmation: z.string(),
+	acceptedTerms: z.boolean(),
+});
+
+export const signUpSchema = signUpBaseSchema
 	.refine((data) => data.password === data.passwordConfirmation, {
 		message: "Les mots de passe ne correspondent pas",
 		path: ["passwordConfirmation"],
+	})
+	.refine((data) => data.acceptedTerms === true, {
+		message:
+			"Vous devez accepter les conditions g\u00e9n\u00e9rales d'utilisation",
+		path: ["acceptedTerms"],
 	});
 
 export type SignUpInput = z.infer<typeof signUpSchema>;

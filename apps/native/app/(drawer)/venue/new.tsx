@@ -22,7 +22,6 @@ import { Text, Title } from "@/components/ui/typography";
 import { authClient } from "@/lib/auth-client";
 import { queryClient, trpc } from "@/utils/trpc";
 
-// Venue types with French labels
 const VENUE_TYPES = [
 	{ value: "BAR", label: "Bar" },
 	{ value: "CLUB", label: "Club / Discothèque" },
@@ -37,6 +36,15 @@ const VENUE_TYPES = [
 ] as const;
 
 type VenueType = (typeof VENUE_TYPES)[number]["value"];
+
+const PAYMENT_TYPES = [
+	{ value: "FIXED_FEE", label: "Cachet fixe" },
+	{ value: "PERCENTAGE", label: "% Entrées" },
+	{ value: "HAT", label: "Au chapeau" },
+	{ value: "NEGOTIABLE", label: "Négociable" },
+] as const;
+
+type PaymentType = (typeof PAYMENT_TYPES)[number]["value"];
 
 interface FormData {
 	name: string;
@@ -53,6 +61,9 @@ interface FormData {
 	techInfo: string;
 	images: string[];
 	selectedGenres: string[];
+	paymentTypes: PaymentType[];
+	budgetMin: string;
+	budgetMax: string;
 }
 
 export default function NewVenueScreen() {
@@ -73,6 +84,9 @@ export default function NewVenueScreen() {
 		techInfo: "",
 		images: [],
 		selectedGenres: [],
+		paymentTypes: [],
+		budgetMin: "",
+		budgetMax: "",
 	});
 	const [isSaving, setIsSaving] = useState(false);
 	const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>(
@@ -131,6 +145,13 @@ export default function NewVenueScreen() {
 				paymentPolicy: formData.paymentPolicy || null,
 				techInfo: formData.techInfo || null,
 				genreNames: selectedGenres,
+				paymentTypes: formData.paymentTypes,
+				budgetMin: formData.budgetMin
+					? Number.parseInt(formData.budgetMin, 10)
+					: null,
+				budgetMax: formData.budgetMax
+					? Number.parseInt(formData.budgetMax, 10)
+					: null,
 			};
 
 			const createdVenue = await createMutation.mutateAsync(submitData);
@@ -435,11 +456,88 @@ export default function NewVenueScreen() {
 							<View className="mb-4 flex-row items-center gap-2">
 								<Ionicons name="checkmark-done" size={20} color="#7c3aed" />
 								<Text className="font-sans-bold text-foreground">
-									Accueil & technique
+									Rémunération & Accueil
 								</Text>
 							</View>
 
 							<View className="space-y-4">
+								<View>
+									<Text className="mb-2 font-sans-medium text-foreground text-sm">
+										Types de rémunération
+									</Text>
+									<View className="flex-row flex-wrap gap-2">
+										{PAYMENT_TYPES.map((type) => {
+											const isSelected = formData.paymentTypes.includes(
+												type.value as PaymentType,
+											);
+											return (
+												<TouchableOpacity
+													key={type.value}
+													onPress={() => {
+														if (isSelected) {
+															updateField(
+																"paymentTypes",
+																formData.paymentTypes.filter(
+																	(t) => t !== type.value,
+																),
+															);
+														} else {
+															updateField("paymentTypes", [
+																...formData.paymentTypes,
+																type.value as PaymentType,
+															]);
+														}
+													}}
+													className={`rounded-full px-3 py-2 ${
+														isSelected
+															? "bg-primary"
+															: "border border-border bg-background"
+													}`}
+												>
+													<Text
+														className={`text-sm ${
+															isSelected
+																? "font-sans-medium text-primary-foreground"
+																: "text-foreground"
+														}`}
+													>
+														{type.label}
+													</Text>
+												</TouchableOpacity>
+											);
+										})}
+									</View>
+								</View>
+
+								<View className="flex-row gap-3">
+									<View className="flex-1">
+										<Text className="mb-1 font-sans-medium text-foreground text-sm">
+											Budget min (€)
+										</Text>
+										<Input
+											className="rounded-lg border border-border bg-background p-3 text-foreground"
+											value={formData.budgetMin}
+											onChangeText={(v) => updateField("budgetMin", v)}
+											placeholder="Ex: 50"
+											placeholderTextColor="#666"
+											keyboardType="numeric"
+										/>
+									</View>
+									<View className="flex-1">
+										<Text className="mb-1 font-sans-medium text-foreground text-sm">
+											Budget max (€)
+										</Text>
+										<Input
+											className="rounded-lg border border-border bg-background p-3 text-foreground"
+											value={formData.budgetMax}
+											onChangeText={(v) => updateField("budgetMax", v)}
+											placeholder="Ex: 500"
+											placeholderTextColor="#666"
+											keyboardType="numeric"
+										/>
+									</View>
+								</View>
+
 								<View>
 									<Text className="mb-1 font-sans-medium text-foreground text-sm">
 										Accueil & conditions

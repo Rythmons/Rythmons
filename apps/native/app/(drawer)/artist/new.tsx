@@ -31,6 +31,8 @@ interface SocialLinks {
 
 interface FormData {
 	stageName: string;
+	city: string;
+	postalCode: string;
 	photoUrl: string;
 	bannerUrl: string;
 	bio: string;
@@ -39,6 +41,7 @@ interface FormData {
 	techRequirements: string;
 	feeMin: string;
 	feeMax: string;
+	isNegotiable: boolean;
 	selectedGenres: string[];
 	images: string[];
 }
@@ -71,6 +74,8 @@ export default function NewArtistScreen() {
 
 	const [formData, setFormData] = useState<FormData>({
 		stageName: "",
+		city: "",
+		postalCode: "",
 		photoUrl: "",
 		bannerUrl: "",
 		bio: "",
@@ -86,6 +91,7 @@ export default function NewArtistScreen() {
 		techRequirements: "",
 		feeMin: "",
 		feeMax: "",
+		isNegotiable: false,
 		selectedGenres: [],
 		images: [],
 	});
@@ -114,6 +120,12 @@ export default function NewArtistScreen() {
 		if (formData.stageName.trim().length < 2) {
 			newErrors.stageName =
 				"Le nom de scène doit contenir au moins 2 caractères";
+		}
+		if (
+			formData.postalCode.trim() &&
+			!/^\d{5}$/.test(formData.postalCode.trim())
+		) {
+			newErrors.postalCode = "Code postal invalide (5 chiffres)";
 		}
 		if (formData.website && !isValidUrl(formData.website)) {
 			newErrors.website = "URL invalide";
@@ -162,6 +174,8 @@ export default function NewArtistScreen() {
 			) as SocialLinks;
 			const created = await createMutation.mutateAsync({
 				stageName: formData.stageName.trim(),
+				city: normalizeOptionalString(formData.city),
+				postalCode: normalizeOptionalString(formData.postalCode),
 				photoUrl: normalizeOptionalString(formData.photoUrl),
 				bannerUrl: normalizeOptionalString(formData.bannerUrl),
 				bio: normalizeOptionalString(formData.bio),
@@ -170,6 +184,7 @@ export default function NewArtistScreen() {
 				techRequirements: normalizeOptionalString(formData.techRequirements),
 				feeMin: parseOptionalInt(formData.feeMin),
 				feeMax: parseOptionalInt(formData.feeMax),
+				isNegotiable: formData.isNegotiable,
 				genreNames: formData.selectedGenres,
 				images: formData.images,
 			});
@@ -257,6 +272,40 @@ export default function NewArtistScreen() {
 											{errors.stageName}
 										</Text>
 									) : null}
+								</View>
+
+								<View className="flex-row gap-3">
+									<View className="flex-1">
+										<Text className="mb-1 font-sans-medium text-foreground text-sm">
+											Ville
+										</Text>
+										<Input
+											className="rounded-lg border border-border bg-background p-3 text-foreground"
+											value={formData.city}
+											onChangeText={(v) => updateField("city", v)}
+											placeholder="Ex: Paris"
+											placeholderTextColor="#666"
+										/>
+									</View>
+									<View className="flex-1">
+										<Text className="mb-1 font-sans-medium text-foreground text-sm">
+											Code postal
+										</Text>
+										<Input
+											className={`rounded-lg border p-3 text-foreground ${
+												errors.postalCode ? "border-red-500" : "border-border"
+											} bg-background`}
+											value={formData.postalCode}
+											onChangeText={(v) => updateField("postalCode", v)}
+											placeholder="Ex: 75000"
+											placeholderTextColor="#666"
+										/>
+										{errors.postalCode ? (
+											<Text className="mt-1 text-red-500 text-xs">
+												{errors.postalCode}
+											</Text>
+										) : null}
+									</View>
 								</View>
 
 								<View>
@@ -445,6 +494,28 @@ export default function NewArtistScreen() {
 										</Text>
 									) : null}
 								</View>
+							</View>
+
+							<View className="mt-4 flex-row items-center space-x-2">
+								<TouchableOpacity
+									className={`h-6 w-11 rounded-full ${
+										formData.isNegotiable
+											? "bg-primary"
+											: "bg-zinc-200 dark:bg-zinc-700"
+									} justify-center px-1`}
+									onPress={() =>
+										updateField("isNegotiable", !formData.isNegotiable)
+									}
+								>
+									<View
+										className={`h-4 w-4 rounded-full bg-white transition-transform ${
+											formData.isNegotiable ? "translate-x-5" : "translate-x-0"
+										}`}
+									/>
+								</TouchableOpacity>
+								<Text className="ml-2 font-sans-medium text-foreground text-sm">
+									Cachet négociable
+								</Text>
 							</View>
 						</View>
 

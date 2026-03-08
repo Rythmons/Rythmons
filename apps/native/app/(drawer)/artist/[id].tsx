@@ -32,6 +32,8 @@ interface SocialLinks {
 
 interface FormData {
 	stageName: string;
+	city: string;
+	postalCode: string;
 	photoUrl: string;
 	bannerUrl: string;
 	bio: string;
@@ -40,6 +42,7 @@ interface FormData {
 	techRequirements: string;
 	feeMin: string;
 	feeMax: string;
+	isNegotiable: boolean;
 	selectedGenres: string[];
 	images: string[];
 }
@@ -96,6 +99,8 @@ export default function ArtistProfileScreen() {
 	const [isSaving, setIsSaving] = useState(false);
 	const [formData, setFormData] = useState<FormData>({
 		stageName: "",
+		city: "",
+		postalCode: "",
 		photoUrl: "",
 		bannerUrl: "",
 		bio: "",
@@ -111,6 +116,7 @@ export default function ArtistProfileScreen() {
 		techRequirements: "",
 		feeMin: "",
 		feeMax: "",
+		isNegotiable: false,
 		selectedGenres: [],
 		images: [],
 	});
@@ -123,6 +129,8 @@ export default function ArtistProfileScreen() {
 		const sl = (artist.socialLinks as Record<string, string>) || {};
 		setFormData({
 			stageName: artist.stageName ?? "",
+			city: (artist as any).city ?? "",
+			postalCode: (artist as any).postalCode ?? "",
 			photoUrl: artist.photoUrl ?? "",
 			bannerUrl: artist.bannerUrl ?? "",
 			bio: artist.bio ?? "",
@@ -138,6 +146,7 @@ export default function ArtistProfileScreen() {
 			techRequirements: artist.techRequirements ?? "",
 			feeMin: artist.feeMin != null ? String(artist.feeMin) : "",
 			feeMax: artist.feeMax != null ? String(artist.feeMax) : "",
+			isNegotiable: artist.isNegotiable ?? false,
 			selectedGenres: artist.genres?.map((g) => g.name) ?? [],
 			images: artist.images ?? [],
 		});
@@ -157,6 +166,12 @@ export default function ArtistProfileScreen() {
 		if (formData.stageName.trim().length < 2) {
 			newErrors.stageName =
 				"Le nom de scène doit contenir au moins 2 caractères";
+		}
+		if (
+			formData.postalCode.trim() &&
+			!/^\d{5}$/.test(formData.postalCode.trim())
+		) {
+			newErrors.postalCode = "Code postal invalide (5 chiffres)";
 		}
 		if (formData.website && !isValidUrl(formData.website)) {
 			newErrors.website = "URL invalide";
@@ -208,6 +223,8 @@ export default function ArtistProfileScreen() {
 				id: artistId,
 				data: {
 					stageName: formData.stageName.trim(),
+					city: normalizeOptionalString(formData.city),
+					postalCode: normalizeOptionalString(formData.postalCode),
 					photoUrl: normalizeOptionalString(formData.photoUrl),
 					bannerUrl: normalizeOptionalString(formData.bannerUrl),
 					bio: normalizeOptionalString(formData.bio),
@@ -216,6 +233,7 @@ export default function ArtistProfileScreen() {
 					techRequirements: normalizeOptionalString(formData.techRequirements),
 					feeMin: parseOptionalInt(formData.feeMin),
 					feeMax: parseOptionalInt(formData.feeMax),
+					isNegotiable: formData.isNegotiable,
 					genreNames: formData.selectedGenres,
 					images: formData.images,
 				},
@@ -450,7 +468,7 @@ export default function ArtistProfileScreen() {
 														key={link.key}
 														className="flex-row items-center rounded-full bg-primary/10 px-3 py-2"
 														onPress={() =>
-															Linking.openURL(link.url).catch(() => {})
+															Linking.openURL(link.url || "").catch(() => {})
 														}
 													>
 														<Ionicons
@@ -498,6 +516,42 @@ export default function ArtistProfileScreen() {
 														{errors.stageName}
 													</Text>
 												) : null}
+											</View>
+
+											<View className="flex-row gap-3">
+												<View className="flex-1">
+													<Text className="mb-1 font-sans-medium text-foreground text-sm">
+														Ville
+													</Text>
+													<Input
+														className="rounded-lg border border-border bg-background p-3 text-foreground"
+														value={formData.city}
+														onChangeText={(v) => updateField("city", v)}
+														placeholder="Ex: Paris"
+														placeholderTextColor="#666"
+													/>
+												</View>
+												<View className="flex-1">
+													<Text className="mb-1 font-sans-medium text-foreground text-sm">
+														Code postal
+													</Text>
+													<Input
+														className={`rounded-lg border p-3 text-foreground ${
+															errors.postalCode
+																? "border-red-500"
+																: "border-border"
+														} bg-background`}
+														value={formData.postalCode}
+														onChangeText={(v) => updateField("postalCode", v)}
+														placeholder="Ex: 75000"
+														placeholderTextColor="#666"
+													/>
+													{errors.postalCode ? (
+														<Text className="mt-1 text-red-500 text-xs">
+															{errors.postalCode}
+														</Text>
+													) : null}
+												</View>
 											</View>
 
 											<View>
@@ -627,6 +681,30 @@ export default function ArtistProfileScreen() {
 														</Text>
 													) : null}
 												</View>
+											</View>
+
+											<View className="mt-4 flex-row items-center space-x-2">
+												<TouchableOpacity
+													className={`h-6 w-11 rounded-full ${
+														formData.isNegotiable
+															? "bg-primary"
+															: "bg-zinc-200 dark:bg-zinc-700"
+													} justify-center px-1`}
+													onPress={() =>
+														updateField("isNegotiable", !formData.isNegotiable)
+													}
+												>
+													<View
+														className={`h-4 w-4 rounded-full bg-white transition-transform ${
+															formData.isNegotiable
+																? "translate-x-5"
+																: "translate-x-0"
+														}`}
+													/>
+												</TouchableOpacity>
+												<Text className="ml-2 font-sans-medium text-foreground text-sm">
+													Cachet négociable
+												</Text>
 											</View>
 
 											<View>
@@ -819,6 +897,8 @@ export default function ArtistProfileScreen() {
 														{};
 													setFormData({
 														stageName: artist.stageName ?? "",
+														city: (artist as any).city ?? "",
+														postalCode: (artist as any).postalCode ?? "",
 														photoUrl: artist.photoUrl ?? "",
 														bannerUrl: artist.bannerUrl ?? "",
 														bio: artist.bio ?? "",
@@ -840,6 +920,7 @@ export default function ArtistProfileScreen() {
 															artist.feeMax != null
 																? String(artist.feeMax)
 																: "",
+														isNegotiable: artist.isNegotiable ?? false,
 														selectedGenres:
 															artist.genres?.map((g) => g.name) ?? [],
 														images: artist.images ?? [],
@@ -886,7 +967,9 @@ export default function ArtistProfileScreen() {
 										</View>
 									) : null}
 
-									{artist.feeMin != null || artist.feeMax != null ? (
+									{artist.feeMin != null ||
+									artist.feeMax != null ||
+									artist.isNegotiable ? (
 										<View className="rounded-xl border border-border bg-card p-4">
 											<Text className="font-sans-bold text-foreground">
 												Cachet
@@ -894,6 +977,7 @@ export default function ArtistProfileScreen() {
 											<Text className="mt-2 text-muted-foreground">
 												{artist.feeMin != null ? `${artist.feeMin}€` : "—"}{" "}
 												{artist.feeMax != null ? `→ ${artist.feeMax}€` : ""}
+												{artist.isNegotiable ? " (Négociable)" : ""}
 											</Text>
 										</View>
 									) : null}

@@ -63,3 +63,69 @@ export function resetPasswordTemplate({
 </html>
 `;
 }
+
+export function verifyEmailTemplate({
+	name,
+	verifyUrl,
+}: {
+	name?: string | null;
+	verifyUrl: string;
+}) {
+	return `
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8" />
+	<title>Vérifiez votre adresse e-mail</title>
+</head>
+<body style="margin:0;padding:0;background:#f5f7fb;font-family:Arial,sans-serif;">
+	<table width="100%" cellpadding="0" cellspacing="0">
+		<tr>
+			<td align="center" style="padding:40px 0;">
+				<table width="600" style="background:#ffffff;border-radius:8px;padding:40px;">
+					<tr>
+						<td>
+							<h2 style="margin-top:0;">Vérifiez votre adresse e-mail</h2>
+							<p>Bonjour ${name ?? ""},</p>
+							<p>
+                Merci de vous être inscrit sur Rythmons !
+                Cliquez sur le bouton ci-dessous pour vérifier votre adresse e-mail et activer votre compte.
+							</p>
+
+							<p style="text-align:center;margin:32px 0;">
+								<a
+									href="${verifyUrl}"
+									style="
+										background:#2563eb;
+										color:#ffffff;
+										text-decoration:none;
+										padding:12px 24px;
+										border-radius:6px;
+										display:inline-block;
+										font-weight:bold;
+									"
+								>
+									Vérifier mon adresse e-mail
+								</a>
+							</p>
+
+							<p style="font-size:14px;color:#555;">
+								Ce lien expirera bientôt. Si vous n'avez pas créé de compte
+								sur Rythmons, vous pouvez ignorer cet e-mail.
+							</p>
+
+							<hr style="margin:32px 0;border:none;border-top:1px solid #e5e7eb;" />
+
+							<p style="font-size:12px;color:#888;">
+								Rythmons – Connecter artistes et organisateurs
+							</p>
+						</td>
+					</tr>
+				</table>
+			</td>
+		</tr>
+	</table>
+</body>
+</html>
+`;
+}

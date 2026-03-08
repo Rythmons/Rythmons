@@ -64,9 +64,20 @@ const VENUE_TYPES = [
 	{ value: "OTHER", label: "Autre" },
 ] as const;
 
+type VenueType = (typeof VENUE_TYPES)[number]["value"];
+
+const PAYMENT_TYPES = [
+	{ value: "FIXED_FEE", label: "Cachet fixe" },
+	{ value: "PERCENTAGE", label: "% Entrées" },
+	{ value: "HAT", label: "Au chapeau" },
+	{ value: "NEGOTIABLE", label: "Négociable" },
+] as const;
+
+type PaymentType = (typeof PAYMENT_TYPES)[number]["value"];
+
 interface EditFormData {
 	name: string;
-	venueType: string;
+	venueType: VenueType;
 	description: string;
 	paymentPolicy: string;
 	techInfo: string;
@@ -79,6 +90,9 @@ interface EditFormData {
 	logoUrl: string;
 	genreNames: string[];
 	images: string[];
+	paymentTypes: PaymentType[];
+	budgetMin: number | null;
+	budgetMax: number | null;
 }
 
 export default function VenueProfilePage() {
@@ -109,7 +123,7 @@ export default function VenueProfilePage() {
 		...trpc.venue.update.mutationOptions(),
 		onSuccess: (updatedVenue) => {
 			queryClient.setQueryData(venueQueryOptions.queryKey, (oldData) => {
-				if (!oldData) return updatedVenue;
+				if (!oldData) return undefined;
 				return {
 					...oldData,
 					...updatedVenue,
@@ -147,6 +161,9 @@ export default function VenueProfilePage() {
 			logoUrl: venue.logoUrl || "",
 			genreNames: venue.genres?.map((g) => g.name) || [],
 			images: venue.images || [],
+			paymentTypes: (venue.paymentTypes as PaymentType[]) || [],
+			budgetMin: venue.budgetMin || null,
+			budgetMax: venue.budgetMax || null,
 		});
 		setIsEditMode(true);
 	}, [venue]);
@@ -172,6 +189,9 @@ export default function VenueProfilePage() {
 				logoUrl: formData.logoUrl || null,
 				venueType: formData.venueType,
 				images: formData.images,
+				paymentTypes: formData.paymentTypes,
+				budgetMin: formData.budgetMin || null,
+				budgetMax: formData.budgetMax || null,
 			},
 		});
 	}, [venue, formData, updateMutation]);
@@ -275,6 +295,9 @@ export default function VenueProfilePage() {
 					logoUrl: venue.logoUrl || "",
 					genreNames: venue.genres?.map((g) => g.name) || [],
 					images: venue.images || [],
+					paymentTypes: (venue.paymentTypes as PaymentType[]) || [],
+					budgetMin: venue.budgetMin || null,
+					budgetMax: venue.budgetMax || null,
 				};
 
 	return (
@@ -425,7 +448,7 @@ export default function VenueProfilePage() {
 										<Select
 											value={formData?.venueType}
 											onValueChange={(value) =>
-												updateFormField("venueType", value)
+												updateFormField("venueType", value as VenueType)
 											}
 										>
 											<SelectTrigger className="w-full">
@@ -652,68 +675,193 @@ export default function VenueProfilePage() {
 
 						{(isEditMode ||
 							displayData.paymentPolicy ||
-							displayData.techInfo) && (
+							displayData.techInfo ||
+							displayData.paymentTypes?.length > 0) && (
 							<div className="rounded-xl bg-black/20 p-6">
 								<h2 className="mb-4 flex items-center gap-2 font-semibold text-white text-xl">
 									<Check className="h-5 w-5" />
-									Accueil & technique
+									Rémunération, Accueil & technique
 								</h2>
 								{isEditMode ? (
-									<div className="grid gap-4 md:grid-cols-2">
-										<div>
-											<Label className="text-white/50">
-												Accueil & conditions
-											</Label>
-											<Textarea
-												value={formData?.paymentPolicy || ""}
-												onChange={(e) =>
-													updateFormField("paymentPolicy", e.target.value)
-												}
-												placeholder="Ex: repas, horaires, hébergement, balance..."
-												rows={5}
-												className="mt-2 w-full"
-											/>
+									<div className="space-y-6">
+										<div className="grid gap-4 md:grid-cols-2">
+											<div>
+												<Label className="text-white/50">
+													Types de rémunération
+												</Label>
+												<div className="mt-2 grid grid-cols-2 gap-2">
+													{PAYMENT_TYPES.map((type) => (
+														<div
+															key={type.value}
+															className="flex items-center space-x-2"
+														>
+															<Checkbox
+																id={`payment-${type.value}`}
+																checked={formData?.paymentTypes.includes(
+																	type.value as PaymentType,
+																)}
+																onCheckedChange={(checked) => {
+																	const newTypes = checked
+																		? [
+																				...(formData?.paymentTypes || []),
+																				type.value as PaymentType,
+																			]
+																		: (formData?.paymentTypes || []).filter(
+																				(t) => t !== type.value,
+																			);
+																	updateFormField("paymentTypes", newTypes);
+																}}
+															/>
+															<Label
+																htmlFor={`payment-${type.value}`}
+																className="cursor-pointer text-sm text-white/70"
+															>
+																{type.label}
+															</Label>
+														</div>
+													))}
+												</div>
+											</div>
+											<div className="grid grid-cols-2 gap-2">
+												<div>
+													<Label className="text-white/50">
+														Budget min (€)
+													</Label>
+													<Input
+														type="number"
+														value={formData?.budgetMin || ""}
+														onChange={(e) =>
+															updateFormField(
+																"budgetMin",
+																e.target.value
+																	? Number.parseInt(e.target.value, 10)
+																	: null,
+															)
+														}
+														placeholder="Ex: 50"
+														className="mt-2"
+													/>
+												</div>
+												<div>
+													<Label className="text-white/50">
+														Budget max (€)
+													</Label>
+													<Input
+														type="number"
+														value={formData?.budgetMax || ""}
+														onChange={(e) =>
+															updateFormField(
+																"budgetMax",
+																e.target.value
+																	? Number.parseInt(e.target.value, 10)
+																	: null,
+															)
+														}
+														placeholder="Ex: 500"
+														className="mt-2"
+													/>
+												</div>
+											</div>
 										</div>
-										<div>
-											<Label className="text-white/50">
-												Technique & matériel
-											</Label>
-											<Textarea
-												value={formData?.techInfo || ""}
-												onChange={(e) =>
-													updateFormField("techInfo", e.target.value)
-												}
-												placeholder="Ex: façade, console, micros, backline..."
-												rows={5}
-												className="mt-2 w-full"
-											/>
+
+										<div className="grid gap-4 md:grid-cols-2">
+											<div>
+												<Label className="text-white/50">
+													Accueil & conditions
+												</Label>
+												<Textarea
+													value={formData?.paymentPolicy || ""}
+													onChange={(e) =>
+														updateFormField("paymentPolicy", e.target.value)
+													}
+													placeholder="Ex: repas, horaires, hébergement, balance..."
+													rows={5}
+													className="mt-2 w-full"
+												/>
+											</div>
+											<div>
+												<Label className="text-white/50">
+													Technique & matériel
+												</Label>
+												<Textarea
+													value={formData?.techInfo || ""}
+													onChange={(e) =>
+														updateFormField("techInfo", e.target.value)
+													}
+													placeholder="Ex: façade, console, micros, backline..."
+													rows={5}
+													className="mt-2 w-full"
+												/>
+											</div>
 										</div>
 									</div>
 								) : (
-									<div className="grid gap-4 md:grid-cols-2">
-										<div>
-											<p className="mb-2 text-sm text-white/50">
-												Accueil & conditions
-											</p>
-											<p className="whitespace-pre-wrap text-white/70 leading-relaxed">
-												{displayData.paymentPolicy || (
-													<span className="text-white/30 italic">
-														Aucune information renseignée.
-													</span>
+									<div className="space-y-6">
+										{(displayData.paymentTypes?.length > 0 ||
+											displayData.budgetMin ||
+											displayData.budgetMax) && (
+											<div className="grid gap-4 md:grid-cols-2">
+												{displayData.paymentTypes?.length > 0 && (
+													<div>
+														<p className="mb-2 text-sm text-white/50">
+															Rémunération proposée
+														</p>
+														<div className="flex flex-wrap gap-2">
+															{displayData.paymentTypes.map((pt: string) => (
+																<Badge
+																	key={pt}
+																	variant="outline"
+																	className="border-primary/30 bg-primary/10 text-white/80"
+																>
+																	{PAYMENT_TYPES.find((t) => t.value === pt)
+																		?.label || pt}
+																</Badge>
+															))}
+														</div>
+													</div>
 												)}
-											</p>
-										</div>
-										<div>
-											<p className="mb-2 text-sm text-white/50">
-												Technique & matériel
-											</p>
-											<p className="whitespace-pre-wrap text-white/70 leading-relaxed">
-												{displayData.techInfo || (
-													<span className="text-white/30 italic">
-														Aucune information renseignée.
-													</span>
+												{(displayData.budgetMin || displayData.budgetMax) && (
+													<div>
+														<p className="mb-2 text-sm text-white/50">
+															Budget indicatif
+														</p>
+														<p className="text-white/70">
+															{displayData.budgetMin
+																? `${displayData.budgetMin} €`
+																: "0 €"}
+															{displayData.budgetMax
+																? ` - ${displayData.budgetMax} €`
+																: ""}
+														</p>
+													</div>
 												)}
-											</p>
+											</div>
+										)}
+										<div className="grid gap-4 md:grid-cols-2">
+											<div>
+												<p className="mb-2 text-sm text-white/50">
+													Accueil & conditions
+												</p>
+												<p className="whitespace-pre-wrap text-white/70 leading-relaxed">
+													{displayData.paymentPolicy || (
+														<span className="text-white/30 italic">
+															Aucune information renseignée.
+														</span>
+													)}
+												</p>
+											</div>
+											<div>
+												<p className="mb-2 text-sm text-white/50">
+													Technique & matériel
+												</p>
+												<p className="whitespace-pre-wrap text-white/70 leading-relaxed">
+													{displayData.techInfo || (
+														<span className="text-white/30 italic">
+															Aucune information renseignée.
+														</span>
+													)}
+												</p>
+											</div>
 										</div>
 									</div>
 								)}
@@ -733,8 +881,12 @@ export default function VenueProfilePage() {
 										value={formData?.address || ""}
 										onChange={(address, city, postalCode) => {
 											updateFormField("address", address);
-											updateFormField("city", city);
-											updateFormField("postalCode", postalCode);
+											if (city) {
+												updateFormField("city", city);
+											}
+											if (postalCode) {
+												updateFormField("postalCode", postalCode);
+											}
 										}}
 									/>
 									<div className="grid gap-4 md:grid-cols-3">
