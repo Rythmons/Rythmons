@@ -28,7 +28,7 @@ export default function SignUpForm({
 			const verifyEmailHref = emailValue
 				? `/verify-email?email=${encodeURIComponent(emailValue)}`
 				: "/verify-email";
-			router.push(verifyEmailHref);
+			router.push(verifyEmailHref as never);
 		},
 		onError: (error) => {
 			toast.error(error);

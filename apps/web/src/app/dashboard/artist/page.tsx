@@ -9,6 +9,21 @@ import { authClient } from "@/lib/auth-client";
 import { queryClient, trpc } from "@/utils/trpc";
 import { ArtistForm } from "./artist-form";
 
+type ArtistPageItem = {
+	id: string;
+	stageName: string;
+	photoUrl?: string | null;
+	bannerUrl?: string | null;
+	bio?: string | null;
+	website?: string | null;
+	socialLinks?: Record<string, string> | null;
+	techRequirements?: string | null;
+	feeMin?: number | null;
+	feeMax?: number | null;
+	genres: { id: string; name: string }[];
+	images?: string[] | null;
+};
+
 function ArtistPageContent() {
 	const searchParams = useSearchParams();
 	const editId = searchParams.get("id");
@@ -17,14 +32,12 @@ function ArtistPageContent() {
 	const { data: session, isPending: sessionPending } = authClient.useSession();
 
 	// Fetch all artists for this user
-	const {
-		data: artists,
-		isLoading,
-		error,
-	} = useQuery({
+	const artistsQuery = useQuery({
 		...trpc.artist.myArtists.queryOptions(),
 		enabled: !!session?.user,
 	});
+	const artists = artistsQuery.data as ArtistPageItem[] | undefined;
+	const { isLoading, error } = artistsQuery;
 
 	if (sessionPending || isLoading) {
 		return (
@@ -58,9 +71,10 @@ function ArtistPageContent() {
 	// 1. If editId is provided, find that artist to edit.
 	// 2. If no editId, we show "Create New" form.
 	// (The Dashboard handles the list view now).
+	const artistItems = artists ?? [];
 
 	const artistToEdit = editId
-		? artists?.find((artist) => artist.id === editId)
+		? artistItems.find((artist) => artist.id === editId)
 		: undefined;
 
 	// If ID provided but not found?
