@@ -9,6 +9,7 @@ import type {
 import {
 	forgotPasswordSchema,
 	signInSchema,
+	signUpBaseSchema,
 	signUpSchema,
 } from "@rythmons/validation";
 import { useForm } from "@tanstack/react-form";
@@ -170,7 +171,32 @@ export function useSignIn(authClient: AuthClient) {
 					email: input.email,
 					password: input.password,
 				},
-				callbacks,
+				{
+					...callbacks,
+					onError: (err) => {
+						let errorMessage = err.error?.message;
+						if (errorMessage) {
+							const lowerMsg = errorMessage.toLowerCase();
+							if (
+								lowerMsg.includes("invalid") ||
+								lowerMsg.includes("credential") ||
+								lowerMsg.includes("password")
+							) {
+								errorMessage = "Email ou mot de passe incorrect";
+							} else if (lowerMsg.includes("verif")) {
+								errorMessage =
+									"Veuillez valider votre adresse email avant de vous connecter.";
+							}
+						}
+						callbacks.onError({
+							...err,
+							error: {
+								...err.error,
+								message: errorMessage,
+							},
+						});
+					},
+				},
 			);
 		},
 		"Échec de la connexion",
@@ -190,7 +216,25 @@ export function useSignUp(authClient: AuthClient) {
 					email: input.email,
 					password: input.password,
 				},
-				callbacks,
+				{
+					...callbacks,
+					onError: (err) => {
+						let errorMessage = err.error?.message;
+						if (errorMessage) {
+							const lowerMsg = errorMessage.toLowerCase();
+							if (lowerMsg.includes("exist") || lowerMsg.includes("already")) {
+								errorMessage = "Cet email est déjà utilisé.";
+							}
+						}
+						callbacks.onError({
+							...err,
+							error: {
+								...err.error,
+								message: errorMessage,
+							},
+						});
+					},
+				},
 			);
 		},
 		"Échec de l'inscription",
@@ -298,9 +342,11 @@ export function useSignUpForm(callbacks?: AuthActionCallbacks) {
 			email: "",
 			password: "",
 			passwordConfirmation: "",
+			acceptedTerms: false,
 		},
 		validators: {
-			onChange: signUpSchema,
+			onChange: signUpBaseSchema,
+			onSubmit: signUpSchema,
 		},
 		onSubmit: async ({ value }) => {
 			await signUp(value, callbacks);

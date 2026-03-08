@@ -1,3 +1,4 @@
+import { accountRouter } from "./routers/account";
 import { artistRouter } from "./routers/artist";
 import { venueRouter } from "./routers/venue";
 import { protectedProcedure, publicProcedure, router } from "./trpc";
@@ -12,6 +13,7 @@ export const appRouter = router({
 			user: ctx.session.user,
 		};
 	}),
+	account: accountRouter,
 	venue: venueRouter,
 	artist: artistRouter,
 });

@@ -1,60 +1,7 @@
 import { db, type VenueType } from "@rythmons/db";
+import { MUSIC_GENRES, venueSchema } from "@rythmons/validation";
 import { z } from "zod";
 import { protectedProcedure, publicProcedure, router } from "../trpc";
-
-// Venue type values for validation
-const venueTypeValues = [
-	"BAR",
-	"CLUB",
-	"CONCERT_HALL",
-	"FESTIVAL",
-	"CAFE",
-	"RESTAURANT",
-	"CULTURAL_CENTER",
-	"THEATER",
-	"OPEN_AIR",
-	"OTHER",
-] as const;
-
-// Predefined music genres
-export const MUSIC_GENRES = [
-	"Pop",
-	"Rock",
-	"Folk",
-	"Jazz",
-	"Blues",
-	"Electro",
-	"Hip-Hop",
-	"R&B",
-	"Soul",
-	"Funk",
-	"Reggae",
-	"Metal",
-	"Punk",
-	"Indie",
-	"Classique",
-	"World Music",
-	"Chanson française",
-	"Variété",
-	"Acoustique",
-	"DJ Set",
-] as const;
-
-// Schema for creating/updating a venue
-const venueSchema = z.object({
-	name: z.string().min(2, "Le nom doit contenir au moins 2 caractères"),
-	address: z.string().min(5, "L'adresse est requise"),
-	city: z.string().min(2, "La ville est requise"),
-	postalCode: z.string().regex(/^\d{5}$/, "Code postal invalide (5 chiffres)"),
-	country: z.string().default("France"),
-	venueType: z.enum(venueTypeValues),
-	capacity: z.number().int().positive().optional().nullable(),
-	description: z.string().optional().nullable(),
-	photoUrl: z.string().url().optional().nullable(),
-	logoUrl: z.string().url().optional().nullable(),
-	genreNames: z.array(z.string()).optional(),
-	images: z.array(z.string()).default([]),
-});
 
 export const venueRouter = router({
 	// Get the current user's venues

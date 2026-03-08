@@ -1,21 +1,6 @@
+import { artistSchema } from "@rythmons/validation";
 import { z } from "zod";
 import { protectedProcedure, publicProcedure, router } from "../trpc";
-
-const artistSchema = z.object({
-	stageName: z
-		.string()
-		.min(2, "Le nom de scène doit contenir au moins 2 caractères"),
-	photoUrl: z.string().url().optional().nullable(),
-	bannerUrl: z.string().url().optional().nullable(),
-	bio: z.string().optional().nullable(),
-	website: z.string().url().optional().nullable(),
-	socialLinks: z.any().optional(),
-	techRequirements: z.string().optional().nullable(),
-	feeMin: z.number().int().nonnegative().optional().nullable(),
-	feeMax: z.number().int().nonnegative().optional().nullable(),
-	genreNames: z.array(z.string()).optional(),
-	images: z.array(z.string().url()).optional(),
-});
 
 export const artistRouter = router({
 	myArtists: protectedProcedure.query(async ({ ctx }) => {

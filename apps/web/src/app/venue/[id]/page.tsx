@@ -1,5 +1,6 @@
 "use client";
 
+import { MUSIC_GENRES } from "@rythmons/validation";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
 	Building2,
@@ -11,7 +12,6 @@ import {
 	MapPin,
 	Music,
 	Pencil,
-	Play,
 	Plus,
 	Save,
 	Trash2,
@@ -19,8 +19,8 @@ import {
 	X,
 } from "lucide-react";
 import dynamic from "next/dynamic";
-import { notFound, useParams } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { notFound, useParams, useRouter } from "next/navigation";
+import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import { AddressAutocomplete } from "@/components/ui/address-autocomplete";
 import { Badge } from "@/components/ui/badge";
@@ -64,34 +64,23 @@ const VENUE_TYPES = [
 	{ value: "OTHER", label: "Autre" },
 ] as const;
 
-// Music genres
-const MUSIC_GENRES = [
-	"Pop",
-	"Rock",
-	"Folk",
-	"Jazz",
-	"Blues",
-	"Electro",
-	"Hip-Hop",
-	"R&B",
-	"Soul",
-	"Funk",
-	"Reggae",
-	"Metal",
-	"Punk",
-	"Indie",
-	"Classique",
-	"World Music",
-	"Chanson française",
-	"Variété",
-	"Acoustique",
-	"DJ Set",
-];
+type VenueType = (typeof VENUE_TYPES)[number]["value"];
+
+const PAYMENT_TYPES = [
+	{ value: "FIXED_FEE", label: "Cachet fixe" },
+	{ value: "PERCENTAGE", label: "% Entrées" },
+	{ value: "HAT", label: "Au chapeau" },
+	{ value: "NEGOTIABLE", label: "Négociable" },
+] as const;
+
+type PaymentType = (typeof PAYMENT_TYPES)[number]["value"];
 
 interface EditFormData {
 	name: string;
-	venueType: string;
+	venueType: VenueType;
 	description: string;
+	paymentPolicy: string;
+	techInfo: string;
 	address: string;
 	city: string;
 	postalCode: string;
@@ -101,12 +90,16 @@ interface EditFormData {
 	logoUrl: string;
 	genreNames: string[];
 	images: string[];
+	paymentTypes: PaymentType[];
+	budgetMin: number | null;
+	budgetMax: number | null;
 }
 
 export default function VenueProfilePage() {
 	const params = useParams();
 	const venueId = params.id as string;
 	const { data: session } = authClient.useSession();
+	const router = useRouter();
 
 	const [isEditMode, setIsEditMode] = useState(false);
 	const [formData, setFormData] = useState<EditFormData | null>(null);
@@ -129,8 +122,8 @@ export default function VenueProfilePage() {
 	const updateMutation = useMutation({
 		...trpc.venue.update.mutationOptions(),
 		onSuccess: (updatedVenue) => {
-			queryClient.setQueryData(venueQueryOptions.queryKey, (oldData: any) => {
-				if (!oldData) return updatedVenue;
+			queryClient.setQueryData(venueQueryOptions.queryKey, (oldData) => {
+				if (!oldData) return undefined;
 				return {
 					...oldData,
 					...updatedVenue,
@@ -145,6 +138,7 @@ export default function VenueProfilePage() {
 			toast.error(error.message || "Erreur lors de la sauvegarde");
 		},
 	});
+	const deleteMutation = useMutation(trpc.venue.delete.mutationOptions());
 
 	// Check if current user is the owner
 	const isOwner = session?.user?.id === venue?.owner?.id;
@@ -154,8 +148,10 @@ export default function VenueProfilePage() {
 		if (!venue) return;
 		setFormData({
 			name: venue.name,
-			venueType: venue.venueType as any,
+			venueType: venue.venueType,
 			description: venue.description || "",
+			paymentPolicy: venue.paymentPolicy || "",
+			techInfo: venue.techInfo || "",
 			address: venue.address,
 			city: venue.city,
 			postalCode: venue.postalCode,
@@ -163,9 +159,11 @@ export default function VenueProfilePage() {
 			capacity: venue.capacity,
 			photoUrl: venue.photoUrl || "",
 			logoUrl: venue.logoUrl || "",
-			genreNames: venue.genres?.map((g: any) => g.name) || [],
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			images: (venue as any).images || [],
+			genreNames: venue.genres?.map((g) => g.name) || [],
+			images: venue.images || [],
+			paymentTypes: (venue.paymentTypes as PaymentType[]) || [],
+			budgetMin: venue.budgetMin || null,
+			budgetMax: venue.budgetMax || null,
 		});
 		setIsEditMode(true);
 	}, [venue]);
@@ -185,10 +183,15 @@ export default function VenueProfilePage() {
 				...rest,
 				capacity: formData.capacity || null,
 				description: formData.description || null,
+				paymentPolicy: formData.paymentPolicy || null,
+				techInfo: formData.techInfo || null,
 				photoUrl: formData.photoUrl || null,
 				logoUrl: formData.logoUrl || null,
-				venueType: formData.venueType as any,
+				venueType: formData.venueType,
 				images: formData.images,
+				paymentTypes: formData.paymentTypes,
+				budgetMin: formData.budgetMin || null,
+				budgetMax: formData.budgetMax || null,
 			},
 		});
 	}, [venue, formData, updateMutation]);
@@ -232,6 +235,27 @@ export default function VenueProfilePage() {
 		[formData, updateFormField],
 	);
 
+	const handleDelete = useCallback(async () => {
+		if (!venue) return;
+		const confirmed = window.confirm(
+			"Cette action est irréversible. Supprimer ce lieu ?",
+		);
+		if (!confirmed) return;
+
+		try {
+			await deleteMutation.mutateAsync({ id: venue.id });
+			toast.success("Lieu supprimé.");
+			await queryClient.invalidateQueries();
+			router.push("/dashboard");
+		} catch (error) {
+			const message =
+				error instanceof Error
+					? error.message
+					: "Erreur lors de la suppression";
+			toast.error(message);
+		}
+	}, [deleteMutation, router, venue]);
+
 	if (isLoading) {
 		return (
 			<div className="min-h-screen p-8">
@@ -260,6 +284,8 @@ export default function VenueProfilePage() {
 					name: venue.name,
 					venueType: venue.venueType,
 					description: venue.description || "",
+					paymentPolicy: venue.paymentPolicy || "",
+					techInfo: venue.techInfo || "",
 					address: venue.address,
 					city: venue.city,
 					postalCode: venue.postalCode,
@@ -267,9 +293,11 @@ export default function VenueProfilePage() {
 					capacity: venue.capacity,
 					photoUrl: venue.photoUrl || "",
 					logoUrl: venue.logoUrl || "",
-					genreNames: venue.genres?.map((g: any) => g.name) || [],
-					// eslint-disable-next-line @typescript-eslint/no-explicit-any
-					images: (venue as any).images || [],
+					genreNames: venue.genres?.map((g) => g.name) || [],
+					images: venue.images || [],
+					paymentTypes: (venue.paymentTypes as PaymentType[]) || [],
+					budgetMin: venue.budgetMin || null,
+					budgetMax: venue.budgetMax || null,
 				};
 
 	return (
@@ -309,6 +337,14 @@ export default function VenueProfilePage() {
 							{isEditMode ? (
 								<>
 									<Button
+										variant="destructive"
+										onClick={handleDelete}
+										disabled={deleteMutation.isPending}
+									>
+										<Trash2 className="mr-2 h-4 w-4" />
+										{deleteMutation.isPending ? "Suppression..." : "Supprimer"}
+									</Button>
+									<Button
 										variant="ghost"
 										onClick={cancelEditMode}
 										disabled={updateMutation.isPending}
@@ -346,6 +382,7 @@ export default function VenueProfilePage() {
 							{/* Cover Image (Banner) */}
 							<div className="group relative aspect-video w-full bg-zinc-900/50">
 								{displayData.photoUrl ? (
+									/* biome-ignore lint/performance/noImgElement: profile media uses remote upload URLs */
 									<img
 										src={displayData.photoUrl}
 										alt="Couverture"
@@ -373,6 +410,7 @@ export default function VenueProfilePage() {
 							<div className="relative -mt-12 mb-3">
 								<div className="group relative h-24 w-24 overflow-hidden rounded-full border-4 border-black bg-zinc-900 shadow-xl">
 									{displayData.logoUrl ? (
+										/* biome-ignore lint/performance/noImgElement: profile media uses remote upload URLs */
 										<img
 											src={displayData.logoUrl}
 											alt={displayData.name}
@@ -410,7 +448,7 @@ export default function VenueProfilePage() {
 										<Select
 											value={formData?.venueType}
 											onValueChange={(value) =>
-												updateFormField("venueType", value)
+												updateFormField("venueType", value as VenueType)
 											}
 										>
 											<SelectTrigger className="w-full">
@@ -578,15 +616,12 @@ export default function VenueProfilePage() {
 							</div>
 
 							<div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
-								{(
-									(isEditMode
-										? formData?.images
-										: (displayData as any).images) || []
-								).map((img: string, i: number) => (
+								{(displayData.images || []).map((img: string, i: number) => (
 									<div
 										key={img}
 										className="group relative aspect-square overflow-hidden rounded-lg border border-white/10 bg-black/50"
 									>
+										{/* biome-ignore lint/performance/noImgElement: profile media uses remote upload URLs */}
 										<img
 											src={img}
 											alt={`Gallery ${i}`}
@@ -603,11 +638,7 @@ export default function VenueProfilePage() {
 										)}
 									</div>
 								))}
-								{(
-									(isEditMode
-										? formData?.images
-										: (displayData as any).images) || []
-								).length === 0 && (
+								{(displayData.images || []).length === 0 && (
 									<div className="col-span-full flex h-32 flex-col items-center justify-center rounded-lg border border-white/10 border-dashed bg-white/5 text-white/30">
 										<ImageIcon className="mb-2 h-8 w-8 opacity-50" />
 										<p className="text-sm">Aucune photo dans la galerie</p>
@@ -642,6 +673,201 @@ export default function VenueProfilePage() {
 							)}
 						</div>
 
+						{(isEditMode ||
+							displayData.paymentPolicy ||
+							displayData.techInfo ||
+							displayData.paymentTypes?.length > 0) && (
+							<div className="rounded-xl bg-black/20 p-6">
+								<h2 className="mb-4 flex items-center gap-2 font-semibold text-white text-xl">
+									<Check className="h-5 w-5" />
+									Rémunération, Accueil & technique
+								</h2>
+								{isEditMode ? (
+									<div className="space-y-6">
+										<div className="grid gap-4 md:grid-cols-2">
+											<div>
+												<Label className="text-white/50">
+													Types de rémunération
+												</Label>
+												<div className="mt-2 grid grid-cols-2 gap-2">
+													{PAYMENT_TYPES.map((type) => (
+														<div
+															key={type.value}
+															className="flex items-center space-x-2"
+														>
+															<Checkbox
+																id={`payment-${type.value}`}
+																checked={formData?.paymentTypes.includes(
+																	type.value as PaymentType,
+																)}
+																onCheckedChange={(checked) => {
+																	const newTypes = checked
+																		? [
+																				...(formData?.paymentTypes || []),
+																				type.value as PaymentType,
+																			]
+																		: (formData?.paymentTypes || []).filter(
+																				(t) => t !== type.value,
+																			);
+																	updateFormField("paymentTypes", newTypes);
+																}}
+															/>
+															<Label
+																htmlFor={`payment-${type.value}`}
+																className="cursor-pointer text-sm text-white/70"
+															>
+																{type.label}
+															</Label>
+														</div>
+													))}
+												</div>
+											</div>
+											<div className="grid grid-cols-2 gap-2">
+												<div>
+													<Label className="text-white/50">
+														Budget min (€)
+													</Label>
+													<Input
+														type="number"
+														value={formData?.budgetMin || ""}
+														onChange={(e) =>
+															updateFormField(
+																"budgetMin",
+																e.target.value
+																	? Number.parseInt(e.target.value, 10)
+																	: null,
+															)
+														}
+														placeholder="Ex: 50"
+														className="mt-2"
+													/>
+												</div>
+												<div>
+													<Label className="text-white/50">
+														Budget max (€)
+													</Label>
+													<Input
+														type="number"
+														value={formData?.budgetMax || ""}
+														onChange={(e) =>
+															updateFormField(
+																"budgetMax",
+																e.target.value
+																	? Number.parseInt(e.target.value, 10)
+																	: null,
+															)
+														}
+														placeholder="Ex: 500"
+														className="mt-2"
+													/>
+												</div>
+											</div>
+										</div>
+
+										<div className="grid gap-4 md:grid-cols-2">
+											<div>
+												<Label className="text-white/50">
+													Accueil & conditions
+												</Label>
+												<Textarea
+													value={formData?.paymentPolicy || ""}
+													onChange={(e) =>
+														updateFormField("paymentPolicy", e.target.value)
+													}
+													placeholder="Ex: repas, horaires, hébergement, balance..."
+													rows={5}
+													className="mt-2 w-full"
+												/>
+											</div>
+											<div>
+												<Label className="text-white/50">
+													Technique & matériel
+												</Label>
+												<Textarea
+													value={formData?.techInfo || ""}
+													onChange={(e) =>
+														updateFormField("techInfo", e.target.value)
+													}
+													placeholder="Ex: façade, console, micros, backline..."
+													rows={5}
+													className="mt-2 w-full"
+												/>
+											</div>
+										</div>
+									</div>
+								) : (
+									<div className="space-y-6">
+										{(displayData.paymentTypes?.length > 0 ||
+											displayData.budgetMin ||
+											displayData.budgetMax) && (
+											<div className="grid gap-4 md:grid-cols-2">
+												{displayData.paymentTypes?.length > 0 && (
+													<div>
+														<p className="mb-2 text-sm text-white/50">
+															Rémunération proposée
+														</p>
+														<div className="flex flex-wrap gap-2">
+															{displayData.paymentTypes.map((pt: string) => (
+																<Badge
+																	key={pt}
+																	variant="outline"
+																	className="border-primary/30 bg-primary/10 text-white/80"
+																>
+																	{PAYMENT_TYPES.find((t) => t.value === pt)
+																		?.label || pt}
+																</Badge>
+															))}
+														</div>
+													</div>
+												)}
+												{(displayData.budgetMin || displayData.budgetMax) && (
+													<div>
+														<p className="mb-2 text-sm text-white/50">
+															Budget indicatif
+														</p>
+														<p className="text-white/70">
+															{displayData.budgetMin
+																? `${displayData.budgetMin} €`
+																: "0 €"}
+															{displayData.budgetMax
+																? ` - ${displayData.budgetMax} €`
+																: ""}
+														</p>
+													</div>
+												)}
+											</div>
+										)}
+										<div className="grid gap-4 md:grid-cols-2">
+											<div>
+												<p className="mb-2 text-sm text-white/50">
+													Accueil & conditions
+												</p>
+												<p className="whitespace-pre-wrap text-white/70 leading-relaxed">
+													{displayData.paymentPolicy || (
+														<span className="text-white/30 italic">
+															Aucune information renseignée.
+														</span>
+													)}
+												</p>
+											</div>
+											<div>
+												<p className="mb-2 text-sm text-white/50">
+													Technique & matériel
+												</p>
+												<p className="whitespace-pre-wrap text-white/70 leading-relaxed">
+													{displayData.techInfo || (
+														<span className="text-white/30 italic">
+															Aucune information renseignée.
+														</span>
+													)}
+												</p>
+											</div>
+										</div>
+									</div>
+								)}
+							</div>
+						)}
+
 						{/* Address Section */}
 						<div className="rounded-xl bg-black/20 p-6">
 							<h2 className="mb-4 flex items-center gap-2 font-semibold text-white text-xl">
@@ -655,8 +881,12 @@ export default function VenueProfilePage() {
 										value={formData?.address || ""}
 										onChange={(address, city, postalCode) => {
 											updateFormField("address", address);
-											updateFormField("city", city);
-											updateFormField("postalCode", postalCode);
+											if (city) {
+												updateFormField("city", city);
+											}
+											if (postalCode) {
+												updateFormField("postalCode", postalCode);
+											}
 										}}
 									/>
 									<div className="grid gap-4 md:grid-cols-3">

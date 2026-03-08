@@ -1,6 +1,12 @@
 import { Ionicons } from "@expo/vector-icons";
+import {
+	type UserRole,
+	userRoleLabels,
+	userRoleValues,
+} from "@rythmons/validation";
+import { useMutation } from "@tanstack/react-query";
 import { router } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
 	ActivityIndicator,
 	Alert,
@@ -12,33 +18,56 @@ import { Container } from "@/components/container";
 import { Input } from "@/components/ui/input";
 import { Text, Title } from "@/components/ui/typography";
 import { authClient } from "@/lib/auth-client";
-import { queryClient } from "@/utils/trpc";
+import { queryClient, trpc } from "@/utils/trpc";
 
 export default function ProfileScreen() {
 	const { data: session, isPending } = authClient.useSession();
 	const [name, setName] = useState(session?.user?.name || "");
+	const [role, setRole] = useState<UserRole | null>(
+		session?.user?.role ?? null,
+	);
 	const [isSaving, setIsSaving] = useState(false);
+	const updateRoleMutation = useMutation(
+		trpc.account.updateRole.mutationOptions(),
+	);
 
-	// Update local state when session loads
-	if (session?.user?.name && name === "" && name !== session.user.name) {
-		setName(session.user.name);
-	}
+	useEffect(() => {
+		if (!session?.user) return;
+		setName(session.user.name || "");
+		setRole(session.user.role ?? null);
+	}, [session?.user]);
 
 	const handleSave = async () => {
+		if (!session?.user) return;
+		const trimmedName = name.trim();
+		const nameChanged = trimmedName !== session.user.name;
+		const roleChanged = role !== (session.user.role ?? null);
+
+		if (!nameChanged && !roleChanged) {
+			Alert.alert("Info", "Aucune modification à enregistrer.");
+			return;
+		}
+
+		if (trimmedName.length < 2) {
+			Alert.alert("Erreur", "Le nom doit contenir au moins 2 caractères.");
+			return;
+		}
+
 		setIsSaving(true);
 		try {
-			await authClient.updateUser({
-				name,
-			});
-			// We don't have a direct "refresh" for the session hook in this simple client
-			// forcing a session refetch or relying on potential internal revalidation
-			// For now, we rely on the fact that if the update succeeds, the session
-			// *should* eventually reflect it or we can manually refetch if the hook exposes it.
-			// Better-auth's useSession usually dedupes, but let's assume update success means success.
+			if (nameChanged) {
+				await authClient.updateUser({
+					name: trimmedName,
+				});
+			}
 
-			// Optional: Manually trigger a query invalidation if trpc was used for user data
-			// await queryClient.invalidateQueries();
+			if (roleChanged) {
+				await updateRoleMutation.mutateAsync({
+					role,
+				});
+			}
 
+			await queryClient.invalidateQueries();
 			Alert.alert("Succès", "Profil mis à jour !");
 		} catch (_) {
 			Alert.alert("Erreur", "Erreur lors de la mise à jour");
@@ -114,6 +143,60 @@ export default function ProfileScreen() {
 							placeholder="Votre nom"
 							placeholderTextColor="#666"
 						/>
+					</View>
+
+					<View>
+						<Text className="mb-2 font-sans-medium text-foreground text-sm">
+							Type de compte
+						</Text>
+						<View className="flex-row flex-wrap gap-2">
+							<TouchableOpacity
+								className={`rounded-full px-3 py-2 ${
+									role === null
+										? "bg-primary"
+										: "border border-border bg-background"
+								}`}
+								onPress={() => setRole(null)}
+							>
+								<Text
+									className={`text-sm ${
+										role === null
+											? "font-sans-medium text-primary-foreground"
+											: "text-foreground"
+									}`}
+								>
+									Plus tard
+								</Text>
+							</TouchableOpacity>
+							{userRoleValues.map((userRole) => {
+								const isSelected = role === userRole;
+								return (
+									<TouchableOpacity
+										key={userRole}
+										className={`rounded-full px-3 py-2 ${
+											isSelected
+												? "bg-primary"
+												: "border border-border bg-background"
+										}`}
+										onPress={() => setRole(userRole)}
+									>
+										<Text
+											className={`text-sm ${
+												isSelected
+													? "font-sans-medium text-primary-foreground"
+													: "text-foreground"
+											}`}
+										>
+											{userRoleLabels[userRole]}
+										</Text>
+									</TouchableOpacity>
+								);
+							})}
+						</View>
+						<Text className="mt-2 text-muted-foreground text-xs">
+							Les espaces Media / Radio et Prestataire restent en cours
+							d'amélioration.
+						</Text>
 					</View>
 
 					<TouchableOpacity

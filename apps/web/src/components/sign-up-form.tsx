@@ -1,9 +1,12 @@
 import { useAuth, useSignUpForm } from "@rythmons/auth/client";
+import { signUpSchema } from "@rythmons/validation";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { toast } from "sonner";
 import Loader from "./loader";
 import { GoogleAuthButton } from "./social-auth-button";
 import { Button } from "./ui/button";
+import { Checkbox } from "./ui/checkbox";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 
@@ -15,11 +18,17 @@ export default function SignUpForm({
 	const router = useRouter();
 	const authClient = useAuth();
 	const { isPending } = authClient.useSession();
+	const [emailValue, setEmailValue] = useState("");
+	const [passwordValue, setPasswordValue] = useState("");
+	const [passwordConfirmationValue, setPasswordConfirmationValue] =
+		useState("");
 
 	const { form, isLoading: isSigningUp } = useSignUpForm({
 		onSuccess: () => {
-			router.push("/dashboard");
-			toast.success("Inscription réussie");
+			const verifyEmailHref = emailValue
+				? `/verify-email?email=${encodeURIComponent(emailValue)}`
+				: "/verify-email";
+			router.push(verifyEmailHref as never);
 		},
 		onError: (error) => {
 			toast.error(error);
@@ -41,7 +50,7 @@ export default function SignUpForm({
 					<span className="w-full border-border border-t" />
 				</div>
 				<div className="relative flex justify-center text-muted-foreground text-xs uppercase">
-					<span className="bg-background px-2">Ou continuer avec l’e-mail</span>
+					<span className="bg-background px-2">Ou continuer avec l'e-mail</span>
 				</div>
 			</div>
 
@@ -89,7 +98,11 @@ export default function SignUpForm({
 									type="email"
 									value={field.state.value}
 									onBlur={field.handleBlur}
-									onChange={(e) => field.handleChange(e.target.value)}
+									onChange={(e) => {
+										const nextValue = e.target.value;
+										setEmailValue(nextValue);
+										field.handleChange(nextValue);
+									}}
 								/>
 								{field.state.meta.errors.length > 0 && (
 									<p className="text-destructive text-sm">
@@ -115,7 +128,11 @@ export default function SignUpForm({
 									type="password"
 									value={field.state.value}
 									onBlur={field.handleBlur}
-									onChange={(e) => field.handleChange(e.target.value)}
+									onChange={(e) => {
+										const nextValue = e.target.value;
+										setPasswordValue(nextValue);
+										field.handleChange(nextValue);
+									}}
 								/>
 								{field.state.meta.errors.length > 0 && (
 									<div className="space-y-1">
@@ -151,8 +168,66 @@ export default function SignUpForm({
 									type="password"
 									value={field.state.value}
 									onBlur={field.handleBlur}
-									onChange={(e) => field.handleChange(e.target.value)}
+									onChange={(e) => {
+										const nextValue = e.target.value;
+										setPasswordConfirmationValue(nextValue);
+										field.handleChange(nextValue);
+									}}
 								/>
+								{(() => {
+									const mismatchError =
+										passwordConfirmationValue.length > 0 &&
+										passwordValue !== passwordConfirmationValue
+											? "Les mots de passe ne correspondent pas"
+											: null;
+									const fieldError =
+										mismatchError ||
+										(field.state.meta.errors.length > 0
+											? typeof field.state.meta.errors[0] === "object"
+												? (
+														field.state.meta.errors[0] as {
+															message: string;
+														}
+													).message
+												: String(field.state.meta.errors[0])
+											: null);
+
+									return fieldError ? (
+										<p className="text-destructive text-sm">{fieldError}</p>
+									) : null;
+								})()}
+							</div>
+						)}
+					</form.Field>
+				</div>
+
+				<div>
+					<form.Field name="acceptedTerms">
+						{(field) => (
+							<div className="space-y-2">
+								<div className="flex items-start gap-2">
+									<Checkbox
+										id="acceptedTerms"
+										checked={field.state.value}
+										onCheckedChange={(checked) =>
+											field.handleChange(checked === true)
+										}
+									/>
+									<Label
+										htmlFor="acceptedTerms"
+										className="cursor-pointer font-normal text-sm leading-tight"
+									>
+										J'accepte les{" "}
+										<a
+											href="/cgu"
+											target="_blank"
+											rel="noopener noreferrer"
+											className="text-indigo-600 underline hover:text-indigo-800"
+										>
+											conditions générales d'utilisation
+										</a>
+									</Label>
+								</div>
 								{field.state.meta.errors.length > 0 && (
 									<p className="text-destructive text-sm">
 										{typeof field.state.meta.errors[0] === "object"
@@ -166,9 +241,21 @@ export default function SignUpForm({
 					</form.Field>
 				</div>
 
-				<Button type="submit" className="w-full" disabled={isSigningUp}>
-					{isSigningUp ? "Envoi…" : "Inscription"}
-				</Button>
+				<form.Subscribe>
+					{(state) => {
+						const canSubmit = signUpSchema.safeParse(state.values).success;
+
+						return (
+							<Button
+								type="submit"
+								className="w-full"
+								disabled={!canSubmit || isSigningUp || state.isSubmitting}
+							>
+								{isSigningUp || state.isSubmitting ? "Envoi…" : "Inscription"}
+							</Button>
+						);
+					}}
+				</form.Subscribe>
 			</form>
 
 			<div className="mt-4 text-center">

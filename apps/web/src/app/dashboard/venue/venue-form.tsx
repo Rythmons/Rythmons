@@ -1,6 +1,7 @@
 "use client";
 
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { MUSIC_GENRES } from "@rythmons/validation";
+import { useMutation } from "@tanstack/react-query";
 import { Building2, FileText, Image, MapPin, Music, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useId, useState as useReactState } from "react";
@@ -21,7 +22,6 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/utils/trpc";
 
-// Venue types with French labels
 const VENUE_TYPES = [
 	{ value: "BAR", label: "Bar" },
 	{ value: "CLUB", label: "Club / Discothèque" },
@@ -37,6 +37,15 @@ const VENUE_TYPES = [
 
 type VenueType = (typeof VENUE_TYPES)[number]["value"];
 
+const PAYMENT_TYPES = [
+	{ value: "FIXED_FEE", label: "Cachet fixe" },
+	{ value: "PERCENTAGE", label: "% Entrées" },
+	{ value: "HAT", label: "Au chapeau" },
+	{ value: "NEGOTIABLE", label: "Négociable" },
+] as const;
+
+type PaymentType = (typeof PAYMENT_TYPES)[number]["value"];
+
 interface VenueFormData {
 	name: string;
 	address: string;
@@ -48,7 +57,12 @@ interface VenueFormData {
 	description: string;
 	photoUrl: string;
 	logoUrl: string;
+	paymentPolicy: string;
+	techInfo: string;
 	selectedGenres: string[];
+	paymentTypes: PaymentType[];
+	budgetMin: number | null;
+	budgetMax: number | null;
 }
 
 interface VenueFormProps {
@@ -64,11 +78,6 @@ export function VenueForm({ initialData, mode, onSuccess }: VenueFormProps) {
 	const router = useRouter();
 	const id = useId();
 
-	// Fetch available genres
-	const { data: availableGenres = [] } = useQuery(
-		trpc.venue.getAllGenres.queryOptions(),
-	);
-
 	const [formData, setFormData] = useReactState<VenueFormData>({
 		name: initialData?.name ?? "",
 		address: initialData?.address ?? "",
@@ -80,7 +89,12 @@ export function VenueForm({ initialData, mode, onSuccess }: VenueFormProps) {
 		description: initialData?.description ?? "",
 		photoUrl: initialData?.photoUrl ?? "",
 		logoUrl: initialData?.logoUrl ?? "",
+		paymentPolicy: initialData?.paymentPolicy ?? "",
+		techInfo: initialData?.techInfo ?? "",
 		selectedGenres: initialData?.genres?.map((g) => g.name) ?? [],
+		paymentTypes: (initialData?.paymentTypes as PaymentType[]) ?? [],
+		budgetMin: initialData?.budgetMin ?? null,
+		budgetMax: initialData?.budgetMax ?? null,
 	});
 
 	const [isLoading, setIsLoading] = useReactState(false);
@@ -144,7 +158,12 @@ export function VenueForm({ initialData, mode, onSuccess }: VenueFormProps) {
 				description: formData.description || null,
 				photoUrl: formData.photoUrl || null,
 				logoUrl: formData.logoUrl || null,
+				paymentPolicy: formData.paymentPolicy || null,
+				techInfo: formData.techInfo || null,
 				genreNames: selectedGenres,
+				paymentTypes: formData.paymentTypes,
+				budgetMin: formData.budgetMin,
+				budgetMax: formData.budgetMax,
 			};
 
 			console.log("Submitting Venue Data:", submitData); // DEBUG LOG
@@ -250,8 +269,12 @@ export function VenueForm({ initialData, mode, onSuccess }: VenueFormProps) {
 							value={formData.address}
 							onChange={(address, city, postalCode) => {
 								updateField("address", address);
-								updateField("city", city);
-								updateField("postalCode", postalCode);
+								if (city) {
+									updateField("city", city);
+								}
+								if (postalCode) {
+									updateField("postalCode", postalCode);
+								}
 							}}
 							error={errors.address}
 						/>
@@ -346,7 +369,7 @@ export function VenueForm({ initialData, mode, onSuccess }: VenueFormProps) {
 						Sélectionnez les genres musicaux que vous programmez habituellement
 					</p>
 					<div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-						{availableGenres.map((genre) => (
+						{MUSIC_GENRES.map((genre) => (
 							<div key={genre} className="flex items-center space-x-2">
 								<Checkbox
 									id={`${id}-genre-${genre}`}
@@ -408,6 +431,112 @@ export function VenueForm({ initialData, mode, onSuccess }: VenueFormProps) {
 					<p className="text-muted-foreground text-sm">
 						Cette description sera visible sur votre profil public
 					</p>
+				</div>
+
+				<div className="grid gap-6 md:grid-cols-2">
+					<div className="space-y-4">
+						<div className="space-y-2">
+							<Label>Types de rémunération</Label>
+							<div className="grid grid-cols-2 gap-3">
+								{PAYMENT_TYPES.map((type) => (
+									<div key={type.value} className="flex items-center space-x-2">
+										<Checkbox
+											id={`${id}-paymentType-${type.value}`}
+											checked={formData.paymentTypes.includes(
+												type.value as PaymentType,
+											)}
+											onCheckedChange={(checked) => {
+												if (checked) {
+													updateField("paymentTypes", [
+														...formData.paymentTypes,
+														type.value as PaymentType,
+													]);
+												} else {
+													updateField(
+														"paymentTypes",
+														formData.paymentTypes.filter(
+															(t) => t !== type.value,
+														),
+													);
+												}
+											}}
+										/>
+										<Label
+											htmlFor={`${id}-paymentType-${type.value}`}
+											className="cursor-pointer font-normal text-sm"
+										>
+											{type.label}
+										</Label>
+									</div>
+								))}
+							</div>
+						</div>
+
+						<div className="grid grid-cols-2 gap-4">
+							<div className="space-y-2">
+								<Label htmlFor={`${id}-budgetMin`}>Budget min (€)</Label>
+								<Input
+									id={`${id}-budgetMin`}
+									type="number"
+									min={0}
+									value={formData.budgetMin ?? ""}
+									onChange={(e) =>
+										updateField(
+											"budgetMin",
+											e.target.value
+												? Number.parseInt(e.target.value, 10)
+												: null,
+										)
+									}
+									placeholder="Ex: 50"
+								/>
+							</div>
+							<div className="space-y-2">
+								<Label htmlFor={`${id}-budgetMax`}>Budget max (€)</Label>
+								<Input
+									id={`${id}-budgetMax`}
+									type="number"
+									min={0}
+									value={formData.budgetMax ?? ""}
+									onChange={(e) =>
+										updateField(
+											"budgetMax",
+											e.target.value
+												? Number.parseInt(e.target.value, 10)
+												: null,
+										)
+									}
+									placeholder="Ex: 500"
+								/>
+							</div>
+						</div>
+
+						<div className="space-y-2 pt-2">
+							<Label htmlFor={`${id}-paymentPolicy`}>
+								Accueil & conditions
+							</Label>
+							<Textarea
+								id={`${id}-paymentPolicy`}
+								value={formData.paymentPolicy}
+								onChange={(e) => updateField("paymentPolicy", e.target.value)}
+								placeholder="Ex: repas pris en charge, horaires d'accueil, hébergement..."
+								rows={5}
+							/>
+						</div>
+					</div>
+
+					<div className="space-y-2 pt-6">
+						<Label htmlFor={`${id}-techInfo`}>
+							Technique & matériel sur place
+						</Label>
+						<Textarea
+							id={`${id}-techInfo`}
+							value={formData.techInfo}
+							onChange={(e) => updateField("techInfo", e.target.value)}
+							placeholder="Ex: sono sur place, micros disponibles, régie façade..."
+							rows={11}
+						/>
+					</div>
 				</div>
 			</div>
 
