@@ -1,81 +1,123 @@
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
-import { Drawer } from "expo-router/drawer";
+import { Tabs } from "expo-router";
+import { authClient } from "@/lib/auth-client";
 
-export default function DrawerLayout() {
+export default function TabLayout() {
+	const { data: session } = authClient.useSession();
+
 	return (
-		<Drawer
+		<Tabs
 			screenOptions={{
 				headerShown: true, // shows header on top
-				drawerType: "front", // standard drawer
 				headerTitleStyle: {
 					fontFamily: "FugazOne-Regular",
 				},
-				drawerLabelStyle: {
-					fontFamily: "Montserrat-Regular",
+				tabBarLabelStyle: {
+					fontFamily: "Montserrat-Medium",
+					fontSize: 10,
 				},
+				tabBarActiveTintColor: "#7c3aed", // matching primary color
 			}}
 		>
 			{/* Accueil */}
-			<Drawer.Screen
+			<Tabs.Screen
 				name="index"
 				options={{
 					headerTitle: "Accueil",
-					drawerLabel: "Accueil",
-					drawerIcon: ({ color, size }) => (
+					tabBarLabel: "Accueil",
+					tabBarIcon: ({ color, size }) => (
 						<Ionicons name="home-outline" size={size} color={color} />
 					),
 				}}
 			/>
 
-			<Drawer.Screen
+			<Tabs.Screen
 				name="profile"
 				options={{
 					headerTitle: "Mon Profil",
-					drawerLabel: "Mon Profil",
-					drawerIcon: ({ color, size }) => (
+					tabBarLabel: "Profil",
+					tabBarIcon: ({ color, size }) => (
 						<Ionicons name="person-circle-outline" size={size} color={color} />
 					),
 				}}
 			/>
-			<Drawer.Screen
+			<Tabs.Screen
 				name="artist"
 				options={{
 					headerTitle: "Mes Artistes",
-					drawerLabel: "Mes Artistes",
-					drawerIcon: ({ color, size }) => (
+					tabBarLabel: "Artistes",
+					tabBarIcon: ({ color, size }) => (
 						<Ionicons name="musical-notes-outline" size={size} color={color} />
 					),
 				}}
 			/>
-			<Drawer.Screen
+			<Tabs.Screen
 				name="venue"
 				options={{
 					headerTitle: "Mon Lieu",
-					drawerLabel: "Mon Lieu",
-					drawerIcon: ({ color, size }) => (
+					tabBarLabel: "Lieu",
+					tabBarIcon: ({ color, size }) => (
 						<Ionicons name="business-outline" size={size} color={color} />
 					),
 				}}
 			/>
 
 			{/* Login */}
-			<Drawer.Screen
+			<Tabs.Screen
 				name="login"
 				options={{
-					headerTitle: "Login",
-					drawerLabel: "Login",
-					drawerIcon: ({ color, size }) => (
+					headerTitle: "Se connecter",
+					tabBarLabel: "Connexion",
+					href: session?.user ? null : undefined, // Cache l'onglet si l'utilisateur est connecté
+					tabBarIcon: ({ color, size }) => (
 						<MaterialIcons name="login" size={size} color={color} />
 					),
 				}}
 			/>
 
-			<Drawer.Screen
+			<Tabs.Screen
 				name="(tabs)"
 				options={{
-					drawerItemStyle: { display: "none" },
+					href: null,
 				}}
 			/>
-		</Drawer>
+
+			{/* Routes masquées du menu bas */}
+			<Tabs.Screen
+				name="artist/new"
+				options={{
+					headerTitle: "Nouvel Artiste",
+					href: null,
+				}}
+			/>
+			<Tabs.Screen
+				name="artist/[id]"
+				options={{
+					headerTitle: "Fiche Artiste",
+					href: null,
+				}}
+			/>
+			<Tabs.Screen
+				name="venue/[id]"
+				options={{
+					headerTitle: "Fiche Lieu",
+					href: null,
+				}}
+			/>
+			<Tabs.Screen
+				name="venue/new"
+				options={{
+					headerTitle: "Nouveau Lieu",
+					href: null,
+				}}
+			/>
+			<Tabs.Screen
+				name="venue/edit/[id]"
+				options={{
+					headerTitle: "Modification Lieu",
+					href: null,
+				}}
+			/>
+		</Tabs>
 	);
 }

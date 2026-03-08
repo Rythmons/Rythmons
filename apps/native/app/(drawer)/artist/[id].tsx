@@ -1,7 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
+import { MUSIC_GENRES } from "@rythmons/validation";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { router, useLocalSearchParams } from "expo-router";
-import { useEffect, useMemo, useState } from "react";
+import { type ComponentProps, useEffect, useMemo, useState } from "react";
 import {
 	ActivityIndicator,
 	Alert,
@@ -20,18 +21,33 @@ import { Text, Title } from "@/components/ui/typography";
 import { authClient } from "@/lib/auth-client";
 import { queryClient, trpc } from "@/utils/trpc";
 
+interface SocialLinks {
+	spotify: string;
+	youtube: string;
+	soundcloud: string;
+	bandcamp: string;
+	deezer: string;
+	appleMusic: string;
+}
+
 interface FormData {
 	stageName: string;
+	city: string;
+	postalCode: string;
 	photoUrl: string;
 	bannerUrl: string;
 	bio: string;
 	website: string;
+	socialLinks: SocialLinks;
 	techRequirements: string;
 	feeMin: string;
 	feeMax: string;
+	isNegotiable: boolean;
 	selectedGenres: string[];
 	images: string[];
 }
+
+type IoniconName = ComponentProps<typeof Ionicons>["name"];
 
 function normalizeOptionalString(value: string) {
 	const trimmed = value.trim();
@@ -45,6 +61,15 @@ function parseOptionalInt(value: string) {
 	return Number.isFinite(parsed) ? parsed : null;
 }
 
+function isValidUrl(value: string) {
+	try {
+		new URL(value);
+		return true;
+	} catch {
+		return false;
+	}
+}
+
 export default function ArtistProfileScreen() {
 	const params = useLocalSearchParams<{ id: string }>();
 	const artistId = Array.isArray(params.id) ? params.id[0] : params.id;
@@ -52,7 +77,7 @@ export default function ArtistProfileScreen() {
 	const { data: session } = authClient.useSession();
 
 	const {
-		data: artist,
+		data: artistData,
 		isLoading,
 		refetch,
 	} = useQuery({
@@ -60,9 +85,7 @@ export default function ArtistProfileScreen() {
 		enabled: Boolean(artistId),
 	});
 
-	const { data: availableGenres = [] } = useQuery({
-		...trpc.venue.getAllGenres.queryOptions(),
-	});
+	const artist = artistData;
 
 	const updateMutation = useMutation(trpc.artist.update.mutationOptions());
 	const deleteMutation = useMutation(trpc.artist.delete.mutationOptions());
@@ -76,13 +99,24 @@ export default function ArtistProfileScreen() {
 	const [isSaving, setIsSaving] = useState(false);
 	const [formData, setFormData] = useState<FormData>({
 		stageName: "",
+		city: "",
+		postalCode: "",
 		photoUrl: "",
 		bannerUrl: "",
 		bio: "",
 		website: "",
+		socialLinks: {
+			spotify: "",
+			youtube: "",
+			soundcloud: "",
+			bandcamp: "",
+			deezer: "",
+			appleMusic: "",
+		},
 		techRequirements: "",
 		feeMin: "",
 		feeMax: "",
+		isNegotiable: false,
 		selectedGenres: [],
 		images: [],
 	});
@@ -92,15 +126,27 @@ export default function ArtistProfileScreen() {
 
 	useEffect(() => {
 		if (!artist) return;
+		const sl = (artist.socialLinks as Record<string, string>) || {};
 		setFormData({
 			stageName: artist.stageName ?? "",
+			city: (artist as any).city ?? "",
+			postalCode: (artist as any).postalCode ?? "",
 			photoUrl: artist.photoUrl ?? "",
 			bannerUrl: artist.bannerUrl ?? "",
 			bio: artist.bio ?? "",
 			website: artist.website ?? "",
+			socialLinks: {
+				spotify: sl.spotify || "",
+				youtube: sl.youtube || "",
+				soundcloud: sl.soundcloud || "",
+				bandcamp: sl.bandcamp || "",
+				deezer: sl.deezer || "",
+				appleMusic: sl.appleMusic || "",
+			},
 			techRequirements: artist.techRequirements ?? "",
 			feeMin: artist.feeMin != null ? String(artist.feeMin) : "",
 			feeMax: artist.feeMax != null ? String(artist.feeMax) : "",
+			isNegotiable: artist.isNegotiable ?? false,
 			selectedGenres: artist.genres?.map((g) => g.name) ?? [],
 			images: artist.images ?? [],
 		});
@@ -120,6 +166,22 @@ export default function ArtistProfileScreen() {
 		if (formData.stageName.trim().length < 2) {
 			newErrors.stageName =
 				"Le nom de scène doit contenir au moins 2 caractères";
+		}
+		if (
+			formData.postalCode.trim() &&
+			!/^\d{5}$/.test(formData.postalCode.trim())
+		) {
+			newErrors.postalCode = "Code postal invalide (5 chiffres)";
+		}
+		if (formData.website && !isValidUrl(formData.website)) {
+			newErrors.website = "URL invalide";
+		}
+		for (const value of Object.values(formData.socialLinks)) {
+			if (value && !isValidUrl(value)) {
+				newErrors.socialLinks =
+					"Tous les liens musique doivent être des URLs valides";
+				break;
+			}
 		}
 
 		const feeMin = parseOptionalInt(formData.feeMin);
@@ -151,17 +213,27 @@ export default function ArtistProfileScreen() {
 
 		setIsSaving(true);
 		try {
+			const normalizedSocialLinks = Object.fromEntries(
+				Object.entries(formData.socialLinks).map(([key, value]) => [
+					key,
+					value.trim(),
+				]),
+			) as SocialLinks;
 			await updateMutation.mutateAsync({
 				id: artistId,
 				data: {
 					stageName: formData.stageName.trim(),
+					city: normalizeOptionalString(formData.city),
+					postalCode: normalizeOptionalString(formData.postalCode),
 					photoUrl: normalizeOptionalString(formData.photoUrl),
 					bannerUrl: normalizeOptionalString(formData.bannerUrl),
 					bio: normalizeOptionalString(formData.bio),
 					website: normalizeOptionalString(formData.website),
+					socialLinks: normalizedSocialLinks,
 					techRequirements: normalizeOptionalString(formData.techRequirements),
 					feeMin: parseOptionalInt(formData.feeMin),
 					feeMax: parseOptionalInt(formData.feeMax),
+					isNegotiable: formData.isNegotiable,
 					genreNames: formData.selectedGenres,
 					images: formData.images,
 				},
@@ -194,7 +266,7 @@ export default function ArtistProfileScreen() {
 						try {
 							await deleteMutation.mutateAsync({ id: artistId });
 							await queryClient.invalidateQueries();
-							router.replace("/artist");
+							router.replace("/(drawer)/artist");
 						} catch (error) {
 							const message =
 								error instanceof Error
@@ -250,7 +322,7 @@ export default function ArtistProfileScreen() {
 					</Text>
 					<TouchableOpacity
 						className="rounded-lg bg-primary px-4 py-2"
-						onPress={() => router.replace("/artist")}
+						onPress={() => router.replace("/(drawer)/artist")}
 					>
 						<Text className="font-sans-medium text-primary-foreground">
 							Retour à la liste
@@ -263,7 +335,7 @@ export default function ArtistProfileScreen() {
 
 	const genreLabel =
 		artist.genres?.length > 0
-			? artist.genres.map((g) => g.name).join(" • ")
+			? artist.genres.map((g: { name: string }) => g.name).join(" • ")
 			: null;
 
 	return (
@@ -338,6 +410,82 @@ export default function ArtistProfileScreen() {
 									<Ionicons name="open-outline" size={18} color="#9ca3af" />
 								</TouchableOpacity>
 							) : null}
+
+							{!isEditing
+								? (() => {
+										const sl =
+											(artist.socialLinks as Record<string, string>) || {};
+										const links: Array<{
+											key: keyof SocialLinks;
+											label: string;
+											url?: string;
+											icon: IoniconName;
+										}> = [
+											{
+												key: "spotify",
+												label: "Spotify",
+												url: sl.spotify,
+												icon: "logo-spotify",
+											},
+											{
+												key: "youtube",
+												label: "YouTube",
+												url: sl.youtube,
+												icon: "logo-youtube",
+											},
+											{
+												key: "soundcloud",
+												label: "SoundCloud",
+												url: sl.soundcloud,
+												icon: "headset",
+											},
+											{
+												key: "bandcamp",
+												label: "Bandcamp",
+												url: sl.bandcamp,
+												icon: "headset",
+											},
+											{
+												key: "deezer",
+												label: "Deezer",
+												url: sl.deezer,
+												icon: "headset",
+											},
+											{
+												key: "appleMusic",
+												label: "Apple Music",
+												url: sl.appleMusic,
+												icon: "logo-apple",
+											},
+										].filter((l) => l.url);
+
+										if (links.length === 0) return null;
+
+										return (
+											<View className="mt-4 flex-row flex-wrap gap-2">
+												{links.map((link) => (
+													<TouchableOpacity
+														key={link.key}
+														className="flex-row items-center rounded-full bg-primary/10 px-3 py-2"
+														onPress={() =>
+															Linking.openURL(link.url || "").catch(() => {})
+														}
+													>
+														<Ionicons
+															name={link.icon}
+															size={14}
+															color="#7c3aed"
+															style={{ marginRight: 6 }}
+														/>
+														<Text className="font-sans-medium text-primary text-sm">
+															{link.label}
+														</Text>
+													</TouchableOpacity>
+												))}
+											</View>
+										);
+									})()
+								: null}
 						</View>
 
 						<View className="mt-6 space-y-6">
@@ -370,6 +518,42 @@ export default function ArtistProfileScreen() {
 												) : null}
 											</View>
 
+											<View className="flex-row gap-3">
+												<View className="flex-1">
+													<Text className="mb-1 font-sans-medium text-foreground text-sm">
+														Ville
+													</Text>
+													<Input
+														className="rounded-lg border border-border bg-background p-3 text-foreground"
+														value={formData.city}
+														onChangeText={(v) => updateField("city", v)}
+														placeholder="Ex: Paris"
+														placeholderTextColor="#666"
+													/>
+												</View>
+												<View className="flex-1">
+													<Text className="mb-1 font-sans-medium text-foreground text-sm">
+														Code postal
+													</Text>
+													<Input
+														className={`rounded-lg border p-3 text-foreground ${
+															errors.postalCode
+																? "border-red-500"
+																: "border-border"
+														} bg-background`}
+														value={formData.postalCode}
+														onChangeText={(v) => updateField("postalCode", v)}
+														placeholder="Ex: 75000"
+														placeholderTextColor="#666"
+													/>
+													{errors.postalCode ? (
+														<Text className="mt-1 text-red-500 text-xs">
+															{errors.postalCode}
+														</Text>
+													) : null}
+												</View>
+											</View>
+
 											<View>
 												<Text className="mb-1 font-sans-medium text-foreground text-sm">
 													Bio
@@ -397,6 +581,72 @@ export default function ArtistProfileScreen() {
 													autoCapitalize="none"
 													keyboardType="url"
 												/>
+												{errors.website ? (
+													<Text className="mt-1 text-red-500 text-xs">
+														{errors.website}
+													</Text>
+												) : null}
+											</View>
+
+											<View className="space-y-4 pt-2">
+												<Text className="font-sans-bold text-foreground">
+													Liens musique
+												</Text>
+												{(
+													[
+														[
+															"spotify",
+															"Spotify",
+															"https://open.spotify.com/artist/...",
+														],
+														["youtube", "YouTube", "https://youtube.com/@..."],
+														[
+															"soundcloud",
+															"SoundCloud",
+															"https://soundcloud.com/...",
+														],
+														[
+															"bandcamp",
+															"Bandcamp",
+															"https://....bandcamp.com",
+														],
+														[
+															"deezer",
+															"Deezer",
+															"https://www.deezer.com/artist/...",
+														],
+														[
+															"appleMusic",
+															"Apple Music",
+															"https://music.apple.com/artist/...",
+														],
+													] as [keyof SocialLinks, string, string][]
+												).map(([key, label, placeholder]) => (
+													<View key={key}>
+														<Text className="mb-1 font-sans-medium text-foreground text-sm">
+															{label}
+														</Text>
+														<Input
+															className="rounded-lg border border-border bg-background p-3 text-foreground"
+															value={formData.socialLinks[key]}
+															onChangeText={(v) =>
+																updateField("socialLinks", {
+																	...formData.socialLinks,
+																	[key]: v,
+																})
+															}
+															placeholder={placeholder}
+															placeholderTextColor="#666"
+															autoCapitalize="none"
+															keyboardType="url"
+														/>
+													</View>
+												))}
+												{errors.socialLinks ? (
+													<Text className="text-red-500 text-xs">
+														{errors.socialLinks}
+													</Text>
+												) : null}
 											</View>
 
 											<View className="flex-row gap-3">
@@ -433,6 +683,30 @@ export default function ArtistProfileScreen() {
 												</View>
 											</View>
 
+											<View className="mt-4 flex-row items-center space-x-2">
+												<TouchableOpacity
+													className={`h-6 w-11 rounded-full ${
+														formData.isNegotiable
+															? "bg-primary"
+															: "bg-zinc-200 dark:bg-zinc-700"
+													} justify-center px-1`}
+													onPress={() =>
+														updateField("isNegotiable", !formData.isNegotiable)
+													}
+												>
+													<View
+														className={`h-4 w-4 rounded-full bg-white transition-transform ${
+															formData.isNegotiable
+																? "translate-x-5"
+																: "translate-x-0"
+														}`}
+													/>
+												</TouchableOpacity>
+												<Text className="ml-2 font-sans-medium text-foreground text-sm">
+													Cachet négociable
+												</Text>
+											</View>
+
 											<View>
 												<Text className="mb-1 font-sans-medium text-foreground text-sm">
 													Infos techniques
@@ -456,7 +730,7 @@ export default function ArtistProfileScreen() {
 											Genres
 										</Text>
 										<View className="flex-row flex-wrap gap-2">
-											{availableGenres.map((genre) => {
+											{MUSIC_GENRES.map((genre) => {
 												const isSelected =
 													formData.selectedGenres.includes(genre);
 												return (
@@ -618,12 +892,25 @@ export default function ArtistProfileScreen() {
 												setIsEditing(false);
 												setErrors({});
 												if (artist) {
+													const sl =
+														(artist.socialLinks as Record<string, string>) ||
+														{};
 													setFormData({
 														stageName: artist.stageName ?? "",
+														city: (artist as any).city ?? "",
+														postalCode: (artist as any).postalCode ?? "",
 														photoUrl: artist.photoUrl ?? "",
 														bannerUrl: artist.bannerUrl ?? "",
 														bio: artist.bio ?? "",
 														website: artist.website ?? "",
+														socialLinks: {
+															spotify: sl.spotify || "",
+															youtube: sl.youtube || "",
+															soundcloud: sl.soundcloud || "",
+															bandcamp: sl.bandcamp || "",
+															deezer: sl.deezer || "",
+															appleMusic: sl.appleMusic || "",
+														},
 														techRequirements: artist.techRequirements ?? "",
 														feeMin:
 															artist.feeMin != null
@@ -633,6 +920,7 @@ export default function ArtistProfileScreen() {
 															artist.feeMax != null
 																? String(artist.feeMax)
 																: "",
+														isNegotiable: artist.isNegotiable ?? false,
 														selectedGenres:
 															artist.genres?.map((g) => g.name) ?? [],
 														images: artist.images ?? [],
@@ -679,7 +967,9 @@ export default function ArtistProfileScreen() {
 										</View>
 									) : null}
 
-									{artist.feeMin != null || artist.feeMax != null ? (
+									{artist.feeMin != null ||
+									artist.feeMax != null ||
+									artist.isNegotiable ? (
 										<View className="rounded-xl border border-border bg-card p-4">
 											<Text className="font-sans-bold text-foreground">
 												Cachet
@@ -687,6 +977,7 @@ export default function ArtistProfileScreen() {
 											<Text className="mt-2 text-muted-foreground">
 												{artist.feeMin != null ? `${artist.feeMin}€` : "—"}{" "}
 												{artist.feeMax != null ? `→ ${artist.feeMax}€` : ""}
+												{artist.isNegotiable ? " (Négociable)" : ""}
 											</Text>
 										</View>
 									) : null}
@@ -713,7 +1004,7 @@ export default function ArtistProfileScreen() {
 												showsHorizontalScrollIndicator={false}
 											>
 												<View className="flex-row gap-3">
-													{artist.images.map((url) => (
+													{artist.images.map((url: string) => (
 														<Image
 															key={url}
 															source={{ uri: url }}

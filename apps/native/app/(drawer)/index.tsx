@@ -1,13 +1,10 @@
-import { useQuery } from "@tanstack/react-query";
 import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { Container } from "@/components/container";
 import { Login } from "@/components/login/login";
 import { authClient } from "@/lib/auth-client";
-import { queryClient, trpc } from "@/utils/trpc";
+import { queryClient } from "@/utils/trpc";
 
 export default function Home() {
-	const healthCheck = useQuery(trpc.healthCheck.queryOptions());
-	const privateData = useQuery(trpc.privateData.queryOptions());
 	const { data: session } = authClient.useSession();
 
 	return (
@@ -41,40 +38,7 @@ export default function Home() {
 							</TouchableOpacity>
 						</View>
 					) : null}
-					<View className="mb-6 rounded-lg border border-border p-4">
-						<Text className="mb-3 font-medium text-foreground">
-							État de l'API
-						</Text>
-						<View className="flex-row items-center gap-2">
-							<View
-								className={`h-3 w-3 rounded-full ${
-									healthCheck.data ? "bg-green-500" : "bg-red-500"
-								}`}
-							/>
-							<Text className="text-muted-foreground">
-								{healthCheck.isLoading
-									? "Vérification..."
-									: healthCheck.data
-										? "Connecté à l'API"
-										: `API Déconnectée : ${healthCheck.error?.message ?? "Inconnu"}`}
-							</Text>
-							<Text className="mt-1 text-muted-foreground text-xs">
-								URL: {process.env.EXPO_PUBLIC_SERVER_URL}
-							</Text>
-						</View>
-					</View>
-					<View className="mb-6 rounded-lg border border-border p-4">
-						<Text className="mb-3 font-medium text-foreground">
-							Données Privées
-						</Text>
-						{privateData && (
-							<View>
-								<Text className="text-muted-foreground">
-									{privateData.data?.message}
-								</Text>
-							</View>
-						)}
-					</View>
+
 					{!session?.user ? (
 						<View className="mb-6">
 							<Login />

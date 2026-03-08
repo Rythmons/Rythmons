@@ -1,5 +1,4 @@
-import { forgotPasswordSchema } from "@rythmons/validation";
-import { useForm } from "@tanstack/react-form";
+import { useForgotPasswordForm } from "@rythmons/auth/client";
 import { useState } from "react";
 import {
 	ActivityIndicator,
@@ -8,7 +7,6 @@ import {
 	TouchableOpacity,
 	View,
 } from "react-native";
-import { requestPasswordReset } from "@/lib/auth-client";
 
 type Props = {
 	onSwitchToSignUp: () => void;
@@ -18,31 +16,17 @@ type Props = {
 export function ForgotPassword({ onSwitchToSignUp, onSwitchToSignIn }: Props) {
 	const [message, setMessage] = useState<string | null>(null);
 	const [error, setError] = useState<string | null>(null);
-	const [isLoading, setIsLoading] = useState(false);
 
-	const form = useForm({
-		defaultValues: {
-			email: "",
-		},
-		validators: {
-			onChange: forgotPasswordSchema,
-		},
-		onSubmit: async ({ value }) => {
-			setIsLoading(true);
+	const { form, isLoading } = useForgotPasswordForm({
+		onSuccess: () => {
 			setError(null);
+			setMessage(
+				"Si un compte existe avec cet email, un lien de réinitialisation a été envoyé.",
+			);
+		},
+		onError: (errorMessage) => {
 			setMessage(null);
-			try {
-				await requestPasswordReset(value.email);
-				setMessage(
-					"Si un compte existe avec cet email, un lien de réinitialisation a été envoyé.",
-				);
-			} catch (err) {
-				setError(
-					err instanceof Error ? err.message : "Une erreur est survenue",
-				);
-			} finally {
-				setIsLoading(false);
-			}
+			setError(errorMessage);
 		},
 	});
 

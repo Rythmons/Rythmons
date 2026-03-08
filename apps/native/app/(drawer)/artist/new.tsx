@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { MUSIC_GENRES } from "@rythmons/validation";
+import { useMutation } from "@tanstack/react-query";
 import { router } from "expo-router";
 import { useMemo, useState } from "react";
 import {
@@ -19,15 +20,28 @@ import { Text, Title } from "@/components/ui/typography";
 import { authClient } from "@/lib/auth-client";
 import { queryClient, trpc } from "@/utils/trpc";
 
+interface SocialLinks {
+	spotify: string;
+	youtube: string;
+	soundcloud: string;
+	bandcamp: string;
+	deezer: string;
+	appleMusic: string;
+}
+
 interface FormData {
 	stageName: string;
+	city: string;
+	postalCode: string;
 	photoUrl: string;
 	bannerUrl: string;
 	bio: string;
 	website: string;
+	socialLinks: SocialLinks;
 	techRequirements: string;
 	feeMin: string;
 	feeMax: string;
+	isNegotiable: boolean;
 	selectedGenres: string[];
 	images: string[];
 }
@@ -44,25 +58,40 @@ function parseOptionalInt(value: string) {
 	return Number.isFinite(parsed) ? parsed : null;
 }
 
+function isValidUrl(value: string) {
+	try {
+		new URL(value);
+		return true;
+	} catch {
+		return false;
+	}
+}
+
 export default function NewArtistScreen() {
 	const { data: session, isPending: sessionPending } = authClient.useSession();
-
-	const { data: availableGenres = [] } = useQuery({
-		...trpc.venue.getAllGenres.queryOptions(),
-		enabled: Boolean(session?.user),
-	});
 
 	const createMutation = useMutation(trpc.artist.create.mutationOptions());
 
 	const [formData, setFormData] = useState<FormData>({
 		stageName: "",
+		city: "",
+		postalCode: "",
 		photoUrl: "",
 		bannerUrl: "",
 		bio: "",
 		website: "",
+		socialLinks: {
+			spotify: "",
+			youtube: "",
+			soundcloud: "",
+			bandcamp: "",
+			deezer: "",
+			appleMusic: "",
+		},
 		techRequirements: "",
 		feeMin: "",
 		feeMax: "",
+		isNegotiable: false,
 		selectedGenres: [],
 		images: [],
 	});
@@ -91,6 +120,22 @@ export default function NewArtistScreen() {
 		if (formData.stageName.trim().length < 2) {
 			newErrors.stageName =
 				"Le nom de scène doit contenir au moins 2 caractères";
+		}
+		if (
+			formData.postalCode.trim() &&
+			!/^\d{5}$/.test(formData.postalCode.trim())
+		) {
+			newErrors.postalCode = "Code postal invalide (5 chiffres)";
+		}
+		if (formData.website && !isValidUrl(formData.website)) {
+			newErrors.website = "URL invalide";
+		}
+		for (const value of Object.values(formData.socialLinks)) {
+			if (value && !isValidUrl(value)) {
+				newErrors.socialLinks =
+					"Tous les liens musique doivent être des URLs valides";
+				break;
+			}
 		}
 
 		const feeMin = parseOptionalInt(formData.feeMin);
@@ -121,21 +166,31 @@ export default function NewArtistScreen() {
 
 		setIsSaving(true);
 		try {
+			const normalizedSocialLinks = Object.fromEntries(
+				Object.entries(formData.socialLinks).map(([key, value]) => [
+					key,
+					value.trim(),
+				]),
+			) as SocialLinks;
 			const created = await createMutation.mutateAsync({
 				stageName: formData.stageName.trim(),
+				city: normalizeOptionalString(formData.city),
+				postalCode: normalizeOptionalString(formData.postalCode),
 				photoUrl: normalizeOptionalString(formData.photoUrl),
 				bannerUrl: normalizeOptionalString(formData.bannerUrl),
 				bio: normalizeOptionalString(formData.bio),
 				website: normalizeOptionalString(formData.website),
+				socialLinks: normalizedSocialLinks,
 				techRequirements: normalizeOptionalString(formData.techRequirements),
 				feeMin: parseOptionalInt(formData.feeMin),
 				feeMax: parseOptionalInt(formData.feeMax),
+				isNegotiable: formData.isNegotiable,
 				genreNames: formData.selectedGenres,
 				images: formData.images,
 			});
 
 			await queryClient.invalidateQueries();
-			router.replace(`/artist/${created.id}`);
+			router.replace(`/(drawer)/artist/${created.id}`);
 		} catch (error) {
 			const message =
 				error instanceof Error ? error.message : "Erreur lors de la création";
@@ -219,6 +274,40 @@ export default function NewArtistScreen() {
 									) : null}
 								</View>
 
+								<View className="flex-row gap-3">
+									<View className="flex-1">
+										<Text className="mb-1 font-sans-medium text-foreground text-sm">
+											Ville
+										</Text>
+										<Input
+											className="rounded-lg border border-border bg-background p-3 text-foreground"
+											value={formData.city}
+											onChangeText={(v) => updateField("city", v)}
+											placeholder="Ex: Paris"
+											placeholderTextColor="#666"
+										/>
+									</View>
+									<View className="flex-1">
+										<Text className="mb-1 font-sans-medium text-foreground text-sm">
+											Code postal
+										</Text>
+										<Input
+											className={`rounded-lg border p-3 text-foreground ${
+												errors.postalCode ? "border-red-500" : "border-border"
+											} bg-background`}
+											value={formData.postalCode}
+											onChangeText={(v) => updateField("postalCode", v)}
+											placeholder="Ex: 75000"
+											placeholderTextColor="#666"
+										/>
+										{errors.postalCode ? (
+											<Text className="mt-1 text-red-500 text-xs">
+												{errors.postalCode}
+											</Text>
+										) : null}
+									</View>
+								</View>
+
 								<View>
 									<Text className="mb-1 font-sans-medium text-foreground text-sm">
 										Bio
@@ -247,7 +336,7 @@ export default function NewArtistScreen() {
 							</Text>
 
 							<View className="flex-row flex-wrap gap-2">
-								{availableGenres.map((genre) => {
+								{MUSIC_GENRES.map((genre) => {
 									const isSelected = formData.selectedGenres.includes(genre);
 									return (
 										<TouchableOpacity
@@ -290,18 +379,78 @@ export default function NewArtistScreen() {
 							<View className="space-y-4">
 								<View>
 									<Text className="mb-1 font-sans-medium text-foreground text-sm">
-										Site web
+										Site web complet
 									</Text>
 									<Input
 										className="rounded-lg border border-border bg-background p-3 text-foreground"
 										value={formData.website}
 										onChangeText={(v) => updateField("website", v)}
-										placeholder="https://..."
+										placeholder="https://oursite.com"
 										placeholderTextColor="#666"
 										autoCapitalize="none"
 										keyboardType="url"
 									/>
+									{errors.website ? (
+										<Text className="mt-1 text-red-500 text-xs">
+											{errors.website}
+										</Text>
+									) : null}
 								</View>
+							</View>
+						</View>
+
+						<View className="rounded-xl border border-border bg-card p-4">
+							<View className="mb-4 flex-row items-center gap-2">
+								<Ionicons name="headset" size={20} color="#7c3aed" />
+								<Text className="font-sans-bold text-foreground">
+									Liens musique
+								</Text>
+							</View>
+
+							<View className="space-y-4">
+								{(
+									[
+										[
+											"spotify",
+											"Spotify",
+											"https://open.spotify.com/artist/...",
+										],
+										["youtube", "YouTube", "https://youtube.com/@..."],
+										["soundcloud", "SoundCloud", "https://soundcloud.com/..."],
+										["bandcamp", "Bandcamp", "https://....bandcamp.com"],
+										["deezer", "Deezer", "https://www.deezer.com/artist/..."],
+										[
+											"appleMusic",
+											"Apple Music",
+											"https://music.apple.com/artist/...",
+										],
+									] as [keyof SocialLinks, string, string][]
+								).map(([key, label, placeholder]) => (
+									<View key={key}>
+										<Text className="mb-1 font-sans-medium text-foreground text-sm">
+											{label}
+										</Text>
+										<Input
+											className="rounded-lg border border-border bg-background p-3 text-foreground"
+											value={formData.socialLinks[key]}
+											onChangeText={(v) =>
+												updateField("socialLinks", {
+													...formData.socialLinks,
+													[key]: v,
+												})
+											}
+											placeholder={placeholder}
+											placeholderTextColor="#666"
+											autoCapitalize="none"
+											keyboardType="url"
+										/>
+									</View>
+								))}
+								{errors.socialLinks ? (
+									<Text className="text-red-500 text-xs">
+										{errors.socialLinks}
+									</Text>
+								) : null}
 							</View>
 						</View>
 
@@ -345,6 +494,28 @@ export default function NewArtistScreen() {
 										</Text>
 									) : null}
 								</View>
+							</View>
+
+							<View className="mt-4 flex-row items-center space-x-2">
+								<TouchableOpacity
+									className={`h-6 w-11 rounded-full ${
+										formData.isNegotiable
+											? "bg-primary"
+											: "bg-zinc-200 dark:bg-zinc-700"
+									} justify-center px-1`}
+									onPress={() =>
+										updateField("isNegotiable", !formData.isNegotiable)
+									}
+								>
+									<View
+										className={`h-4 w-4 rounded-full bg-white transition-transform ${
+											formData.isNegotiable ? "translate-x-5" : "translate-x-0"
+										}`}
+									/>
+								</TouchableOpacity>
+								<Text className="ml-2 font-sans-medium text-foreground text-sm">
+									Cachet négociable
+								</Text>
 							</View>
 						</View>
 

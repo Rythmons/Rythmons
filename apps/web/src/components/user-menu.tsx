@@ -7,13 +7,24 @@ import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
-	DropdownMenuLabel,
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { trpc } from "@/utils/trpc";
 import { Button } from "./ui/button";
 import { Skeleton } from "./ui/skeleton";
+
+type ArtistMenuItem = {
+	id: string;
+	stageName: string;
+	photoUrl?: string | null;
+};
+
+type VenueMenuItem = {
+	id: string;
+	name: string;
+	logoUrl?: string | null;
+};
 
 export default function UserMenu() {
 	const router = useRouter();
@@ -30,6 +41,8 @@ export default function UserMenu() {
 		...trpc.venue.getMyVenues.queryOptions(),
 		enabled: !!session?.user,
 	});
+	const artistItems = (artists ?? []) as ArtistMenuItem[];
+	const venueItems = (venues ?? []) as VenueMenuItem[];
 
 	if (isPending) {
 		return <Skeleton className="h-9 w-24" />;
@@ -59,6 +72,7 @@ export default function UserMenu() {
 						<div className="ml-3 flex items-center gap-3">
 							<div className="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800">
 								{session.user.image ? (
+									/* biome-ignore lint/performance/noImgElement: menu avatars use uploaded remote URLs */
 									<img
 										src={session.user.image}
 										alt={session.user.name}
@@ -77,7 +91,7 @@ export default function UserMenu() {
 				{/* PROFILES LIST */}
 				<div className="flex flex-col">
 					{/* Artists */}
-					{(artists as any[])?.map((artist) => (
+					{artistItems.map((artist) => (
 						<Link
 							key={artist.id}
 							href={`/artist/${artist.id}`}
@@ -91,6 +105,7 @@ export default function UserMenu() {
 							<div className="ml-3 flex items-center gap-3">
 								<div className="flex h-9 w-9 items-center justify-center rounded-full bg-zinc-800">
 									{artist.photoUrl ? (
+										/* biome-ignore lint/performance/noImgElement: menu avatars use uploaded remote URLs */
 										<img
 											src={artist.photoUrl}
 											alt={artist.stageName}
@@ -108,10 +123,10 @@ export default function UserMenu() {
 					))}
 
 					{/* Venues */}
-					{(venues as any[])?.map((venue) => (
+					{venueItems.map((venue) => (
 						<Link
 							key={venue.id}
-							href={`/venue/${venue.id}` as any}
+							href={`/venue/${venue.id}`}
 							className="group relative flex h-14 w-full cursor-pointer items-center overflow-hidden border-white/10 border-b transition-colors hover:bg-white/5"
 						>
 							{/* Tag */}
@@ -122,6 +137,7 @@ export default function UserMenu() {
 							<div className="ml-3 flex items-center gap-3">
 								<div className="flex h-9 w-9 items-center justify-center rounded-lg bg-zinc-800">
 									{venue.logoUrl ? (
+										/* biome-ignore lint/performance/noImgElement: menu avatars use uploaded remote URLs */
 										<img
 											src={venue.logoUrl}
 											alt={venue.name}
@@ -140,6 +156,16 @@ export default function UserMenu() {
 				</div>
 
 				<DropdownMenuSeparator className="bg-white/10" />
+
+				<DropdownMenuItem
+					className="flex cursor-pointer items-center gap-2 p-4 text-zinc-400 hover:text-white focus:bg-white/5 focus:text-white"
+					onClick={() => {
+						router.push("/dashboard/profile");
+					}}
+				>
+					<User className="h-4 w-4" />
+					<span>Mon profil</span>
+				</DropdownMenuItem>
 
 				{/* Logout Option */}
 				<DropdownMenuItem

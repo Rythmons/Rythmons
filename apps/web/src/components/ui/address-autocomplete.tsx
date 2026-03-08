@@ -138,8 +138,10 @@ export function AddressAutocomplete({
 				<Input
 					value={query}
 					onChange={(e) => {
-						setQuery(e.target.value);
-						if (e.target.value === "") {
+						const nextQuery = e.target.value;
+						setQuery(nextQuery);
+						onChange(nextQuery, "", "");
+						if (nextQuery === "") {
 							setSuggestions([]);
 							setIsOpen(false);
 						}

@@ -79,7 +79,7 @@ export default function VenueProfileScreen() {
 					</Text>
 					<TouchableOpacity
 						className="rounded-lg bg-primary px-4 py-2"
-						onPress={() => router.replace("/venue")}
+						onPress={() => router.replace("/(drawer)/venue")}
 					>
 						<Text className="font-sans-medium text-primary-foreground">
 							Retour
@@ -185,6 +185,28 @@ export default function VenueProfileScreen() {
 							</View>
 						) : null}
 
+						{venue.paymentPolicy ? (
+							<View className="mt-4 rounded-lg border border-border bg-background px-3 py-3">
+								<Text className="font-sans-medium text-foreground text-sm">
+									Accueil & conditions
+								</Text>
+								<Text className="mt-1 text-muted-foreground">
+									{venue.paymentPolicy}
+								</Text>
+							</View>
+						) : null}
+
+						{venue.techInfo ? (
+							<View className="mt-4 rounded-lg border border-border bg-background px-3 py-3">
+								<Text className="font-sans-medium text-foreground text-sm">
+									Technique & matériel
+								</Text>
+								<Text className="mt-1 text-muted-foreground">
+									{venue.techInfo}
+								</Text>
+							</View>
+						) : null}
+
 						{venue.images?.length ? (
 							<View className="mt-4 rounded-lg border border-border bg-background px-3 py-3">
 								<Text className="font-sans-medium text-foreground text-sm">
@@ -196,7 +218,7 @@ export default function VenueProfileScreen() {
 									showsHorizontalScrollIndicator={false}
 								>
 									<View className="flex-row gap-3">
-										{venue.images.map((url) => (
+										{venue.images.map((url: string) => (
 											<Image
 												key={url}
 												source={{ uri: url }}
@@ -211,7 +233,7 @@ export default function VenueProfileScreen() {
 						{isOwner ? (
 							<TouchableOpacity
 								className="mt-6 flex-row items-center justify-center rounded-xl bg-primary p-4"
-								onPress={() => router.push("/venue")}
+								onPress={() => router.push(`/(drawer)/venue/edit/${venue.id}`)}
 							>
 								<Ionicons
 									name="create-outline"
