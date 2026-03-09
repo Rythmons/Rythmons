@@ -21,19 +21,25 @@ import { getVenueTypeLabel } from "@/utils/venue-labels";
 export function VenueSearch() {
 	const [search, setSearch] = useState("");
 	const normalizedQuery = useMemo(() => search.trim(), [search]);
-	const {
-		data: venues = [],
-		isLoading,
-		isFetching,
-	} = useQuery(
+	const venueSearchQuery = useQuery(
 		trpc.venue.search.queryOptions({
 			query: normalizedQuery,
 		}),
 	);
+	const venues = venueSearchQuery.data ?? [];
+	const hasVenues = venues.length > 0;
+	const hasSearchError = venueSearchQuery.isError;
+	const isLoading = venueSearchQuery.isLoading;
+	const isFetching = venueSearchQuery.isFetching;
 
-	const resultLabel = normalizedQuery
-		? `${venues.length} resultat(s) pour "${normalizedQuery}"`
-		: `${venues.length} lieu(x) disponible(s)`;
+	const resultLabel =
+		hasSearchError && !hasVenues
+			? normalizedQuery
+				? `Resultats indisponibles pour "${normalizedQuery}"`
+				: "Resultats indisponibles"
+			: normalizedQuery
+				? `${venues.length} resultat(s) pour "${normalizedQuery}"`
+				: `${venues.length} lieu(x) disponible(s)`;
 
 	return (
 		<div className="container mx-auto max-w-6xl px-4 py-8">
@@ -80,6 +86,36 @@ export function VenueSearch() {
 				) : null}
 			</div>
 
+			{hasSearchError ? (
+				<Card className="mb-6 border-destructive/30" role="alert">
+					<CardHeader>
+						<CardTitle>Impossible de charger les lieux</CardTitle>
+						<CardDescription>
+							Votre session a peut-etre expire ou le service est temporairement
+							indisponible. Reessayez, puis reconnectez-vous si le probleme
+							persiste.
+						</CardDescription>
+					</CardHeader>
+					<CardFooter>
+						<Button
+							type="button"
+							variant="outline"
+							onClick={() => venueSearchQuery.refetch()}
+							disabled={isFetching}
+						>
+							{isFetching ? (
+								<>
+									<Loader2 className="h-4 w-4 animate-spin" />
+									Reessai...
+								</>
+							) : (
+								"Reessayer"
+							)}
+						</Button>
+					</CardFooter>
+				</Card>
+			) : null}
+
 			{isLoading ? (
 				<div className="flex min-h-[240px] items-center justify-center rounded-xl border border-dashed">
 					<p className="inline-flex items-center gap-2 text-muted-foreground">
@@ -87,16 +123,18 @@ export function VenueSearch() {
 						Chargement des lieux...
 					</p>
 				</div>
-			) : venues.length === 0 ? (
-				<Card>
-					<CardHeader>
-						<CardTitle>Aucun lieu trouve pour ces criteres</CardTitle>
-						<CardDescription>
-							Essayez un autre nom de ville, un genre musical ou le nom
-							d&apos;un organisateur.
-						</CardDescription>
-					</CardHeader>
-				</Card>
+			) : !hasVenues ? (
+				hasSearchError ? null : (
+					<Card>
+						<CardHeader>
+							<CardTitle>Aucun lieu trouve pour ces criteres</CardTitle>
+							<CardDescription>
+								Essayez un autre nom de ville, un genre musical ou le nom
+								d&apos;un organisateur.
+							</CardDescription>
+						</CardHeader>
+					</Card>
+				)
 			) : (
 				<div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
 					{venues.map((venue) => (
