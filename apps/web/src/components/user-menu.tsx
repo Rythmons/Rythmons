@@ -1,6 +1,6 @@
 import { useAuth } from "@rythmons/auth/client";
 import { useQuery } from "@tanstack/react-query";
-import { Building2, LogOut, Mic2, User } from "lucide-react";
+import { Building2, LogOut, Mic2, Search, User } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -30,6 +30,8 @@ export default function UserMenu() {
 	const router = useRouter();
 	const authClient = useAuth();
 	const { data: session, isPending } = authClient.useSession();
+	const sessionRole = (session?.user as { role?: string | null } | undefined)
+		?.role;
 
 	// Fetch Artists and Venues for the menu
 	const { data: artists } = useQuery({
@@ -43,6 +45,10 @@ export default function UserMenu() {
 	});
 	const artistItems = (artists ?? []) as ArtistMenuItem[];
 	const venueItems = (venues ?? []) as VenueMenuItem[];
+	const canSearchVenues =
+		sessionRole === "ARTIST" ||
+		sessionRole === "BOTH" ||
+		artistItems.length > 0;
 
 	if (isPending) {
 		return <Skeleton className="h-9 w-24" />;
@@ -156,6 +162,18 @@ export default function UserMenu() {
 				</div>
 
 				<DropdownMenuSeparator className="bg-white/10" />
+
+				{canSearchVenues ? (
+					<DropdownMenuItem
+						className="flex cursor-pointer items-center gap-2 p-4 text-zinc-400 hover:text-white focus:bg-white/5 focus:text-white"
+						onClick={() => {
+							router.push("/dashboard/search");
+						}}
+					>
+						<Search className="h-4 w-4" />
+						<span>Rechercher des lieux</span>
+					</DropdownMenuItem>
+				) : null}
 
 				<DropdownMenuItem
 					className="flex cursor-pointer items-center gap-2 p-4 text-zinc-400 hover:text-white focus:bg-white/5 focus:text-white"

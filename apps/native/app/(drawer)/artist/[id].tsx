@@ -49,6 +49,35 @@ interface FormData {
 
 type IoniconName = ComponentProps<typeof Ionicons>["name"];
 
+type ArtistScreenData = {
+	id: string;
+	user?: {
+		id?: string;
+	} | null;
+	stageName?: string | null;
+	city?: string | null;
+	postalCode?: string | null;
+	photoUrl?: string | null;
+	bannerUrl?: string | null;
+	bio?: string | null;
+	website?: string | null;
+	socialLinks?: unknown;
+	techRequirements?: string | null;
+	feeMin?: number | null;
+	feeMax?: number | null;
+	isNegotiable?: boolean | null;
+	genres?: Array<{ name: string }> | null;
+	images?: string[] | null;
+};
+
+function readSocialLinks(value: unknown): Partial<SocialLinks> {
+	if (typeof value !== "object" || value === null) {
+		return {};
+	}
+
+	return value as Partial<SocialLinks>;
+}
+
 function normalizeOptionalString(value: string) {
 	const trimmed = value.trim();
 	return trimmed.length > 0 ? trimmed : null;
@@ -85,7 +114,7 @@ export default function ArtistProfileScreen() {
 		enabled: Boolean(artistId),
 	});
 
-	const artist = artistData;
+	const artist = artistData as ArtistScreenData | null;
 
 	const updateMutation = useMutation(trpc.artist.update.mutationOptions());
 	const deleteMutation = useMutation(trpc.artist.delete.mutationOptions());
@@ -126,11 +155,11 @@ export default function ArtistProfileScreen() {
 
 	useEffect(() => {
 		if (!artist) return;
-		const sl = (artist.socialLinks as Record<string, string>) || {};
+		const sl = readSocialLinks(artist.socialLinks);
 		setFormData({
 			stageName: artist.stageName ?? "",
-			city: (artist as any).city ?? "",
-			postalCode: (artist as any).postalCode ?? "",
+			city: artist.city ?? "",
+			postalCode: artist.postalCode ?? "",
 			photoUrl: artist.photoUrl ?? "",
 			bannerUrl: artist.bannerUrl ?? "",
 			bio: artist.bio ?? "",
@@ -333,10 +362,9 @@ export default function ArtistProfileScreen() {
 		);
 	}
 
+	const genres = artist.genres ?? [];
 	const genreLabel =
-		artist.genres?.length > 0
-			? artist.genres.map((g: { name: string }) => g.name).join(" • ")
-			: null;
+		genres.length > 0 ? genres.map((genre) => genre.name).join(" • ") : null;
 
 	return (
 		<Container>
@@ -413,57 +441,57 @@ export default function ArtistProfileScreen() {
 
 							{!isEditing
 								? (() => {
-										const sl =
-											(artist.socialLinks as Record<string, string>) || {};
-										const links: Array<{
-											key: keyof SocialLinks;
-											label: string;
-											url?: string;
-											icon: IoniconName;
-										}> = [
+										const sl = readSocialLinks(artist.socialLinks);
+										const links = [
 											{
 												key: "spotify",
 												label: "Spotify",
 												url: sl.spotify,
-												icon: "logo-spotify",
+												icon: "link",
 											},
 											{
 												key: "youtube",
 												label: "YouTube",
 												url: sl.youtube,
-												icon: "logo-youtube",
+												icon: "link",
 											},
 											{
 												key: "soundcloud",
 												label: "SoundCloud",
 												url: sl.soundcloud,
-												icon: "headset",
+												icon: "link",
 											},
 											{
 												key: "bandcamp",
 												label: "Bandcamp",
 												url: sl.bandcamp,
-												icon: "headset",
+												icon: "link",
 											},
 											{
 												key: "deezer",
 												label: "Deezer",
 												url: sl.deezer,
-												icon: "headset",
+												icon: "link",
 											},
 											{
 												key: "appleMusic",
 												label: "Apple Music",
 												url: sl.appleMusic,
-												icon: "logo-apple",
+												icon: "link",
 											},
-										].filter((l) => l.url);
+										] satisfies Array<{
+											key: keyof SocialLinks;
+											label: string;
+											url?: string;
+											icon: IoniconName;
+										}>;
+										const visibleLinks = links.filter((link) => link.url);
 
-										if (links.length === 0) return null;
+										if (visibleLinks.length === 0) return null;
 
 										return (
 											<View className="mt-4 flex-row flex-wrap gap-2">
-												{links.map((link) => (
+												{visibleLinks.map((link) => (
 													<TouchableOpacity
 														key={link.key}
 														className="flex-row items-center rounded-full bg-primary/10 px-3 py-2"
@@ -892,13 +920,11 @@ export default function ArtistProfileScreen() {
 												setIsEditing(false);
 												setErrors({});
 												if (artist) {
-													const sl =
-														(artist.socialLinks as Record<string, string>) ||
-														{};
+													const sl = readSocialLinks(artist.socialLinks);
 													setFormData({
 														stageName: artist.stageName ?? "",
-														city: (artist as any).city ?? "",
-														postalCode: (artist as any).postalCode ?? "",
+														city: artist.city ?? "",
+														postalCode: artist.postalCode ?? "",
 														photoUrl: artist.photoUrl ?? "",
 														bannerUrl: artist.bannerUrl ?? "",
 														bio: artist.bio ?? "",

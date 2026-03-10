@@ -1,10 +1,16 @@
+import { auth, type Session } from "@rythmons/auth";
 import { cookies, headers } from "next/headers";
+
+type ServerSessionResult = {
+	data: Session | null;
+	error: unknown | null;
+};
 
 /**
  * Récupère la session depuis un composant serveur.
- * Utilise le proxy local qui gère correctement les cookies sur le même domaine.
+ * Interroge Better Auth directement avec les en-têtes de la requête courante.
  */
-export async function getServerSession() {
+export async function getServerSession(): Promise<ServerSessionResult> {
 	const cookieStore = await cookies();
 	const allCookies = cookieStore.getAll();
 
@@ -16,7 +22,7 @@ export async function getServerSession() {
 	const isProd = process.env.NODE_ENV === "production";
 	if (!isProd) {
 		console.log(
-			"[getServerSession] Utilisation du proxy local /api/auth/get-session",
+			"[getServerSession] Utilisation directe de auth.api.getSession",
 		);
 		console.log(
 			"[getServerSession] cookies:",
@@ -27,45 +33,17 @@ export async function getServerSession() {
 
 	try {
 		const headersList = await headers();
-		const protocol = headersList.get("x-forwarded-proto") ?? "http";
-		const host = headersList.get("host");
-		const originFromHeaders = host ? `${protocol}://${host}` : null;
-		const baseURL =
-			process.env.NEXT_PUBLIC_SERVER_URL ||
-			process.env.BETTER_AUTH_URL ||
-			originFromHeaders;
+		const requestHeaders = new Headers(headersList);
 
-		if (!baseURL) {
-			console.error(
-				"[getServerSession] Impossible de déterminer l'URL de base pour le fetch",
-			);
-			return { data: null, error: new Error("URL de base manquante") };
+		// En environnement serveur, on force le header cookie s'il n'est pas déjà propagé.
+		if (cookieHeader && !requestHeaders.get("cookie")) {
+			requestHeaders.set("cookie", cookieHeader);
 		}
 
-		const endpoint = new URL("/api/auth/get-session", baseURL);
+		const sessionData = (await auth.api.getSession({
+			headers: requestHeaders,
+		})) as Session | null;
 
-		// Utilise le proxy local plutôt qu'un serveur externe pour garder les cookies en first-party
-		const response = await fetch(endpoint, {
-			method: "GET",
-			headers: {
-				cookie: cookieHeader,
-				"Content-Type": "application/json",
-			},
-			cache: "no-store",
-		});
-
-		if (!isProd) {
-			console.log("[getServerSession] statut de la réponse :", response.status);
-		}
-
-		if (!response.ok) {
-			if (!isProd) {
-				console.log("[getServerSession] réponse non OK");
-			}
-			return { data: null, error: null };
-		}
-
-		const sessionData = await response.json();
 		if (!isProd) {
 			console.log(
 				"[getServerSession] session trouvée :",
