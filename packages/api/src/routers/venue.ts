@@ -3,6 +3,10 @@ import { MUSIC_GENRES, venueSchema } from "@rythmons/validation";
 import { z } from "zod";
 import { protectedProcedure, publicProcedure, router } from "../trpc";
 
+const venueSearchSchema = z.object({
+	query: z.string().trim().max(100).default(""),
+});
+
 export const venueRouter = router({
 	// Get the current user's venues
 	getMyVenues: protectedProcedure.query(async ({ ctx }) => {
@@ -41,6 +45,52 @@ export const venueRouter = router({
 	getAllGenres: publicProcedure.query(() => {
 		return MUSIC_GENRES;
 	}),
+
+	// Search venues for artists
+	search: protectedProcedure
+		.input(venueSearchSchema)
+		.query(async ({ input }) => {
+			const query = input.query.trim();
+
+			return db.venue.findMany({
+				where: query
+					? {
+							OR: [
+								{ name: { contains: query, mode: "insensitive" } },
+								{ city: { contains: query, mode: "insensitive" } },
+								{ postalCode: { contains: query } },
+								{ address: { contains: query, mode: "insensitive" } },
+								{
+									owner: {
+										is: {
+											name: { contains: query, mode: "insensitive" },
+										},
+									},
+								},
+								{
+									genres: {
+										some: {
+											name: { contains: query, mode: "insensitive" },
+										},
+									},
+								},
+							],
+						}
+					: undefined,
+				include: {
+					genres: true,
+					owner: {
+						select: {
+							id: true,
+							name: true,
+							image: true,
+						},
+					},
+				},
+				orderBy: [{ name: "asc" }],
+				take: 24,
+			});
+		}),
 
 	// Create a new venue
 	create: protectedProcedure

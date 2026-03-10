@@ -48,7 +48,31 @@ This project was created with [Better-T-Stack](https://github.com/AmanVarshney01
     pnpm db:push
     ```
 
-4. Start the development servers:
+4. Or do both in one command:
+
+    ```bash
+    pnpm db:setup
+    ```
+
+    If you use `apps/web/.env.local` instead of `apps/web/.env`, run `pnpm db:local:setup`.
+
+5. Seed demo data for local development:
+
+    ```bash
+    pnpm db:seed
+    ```
+
+    If you use `apps/web/.env.local` instead of `apps/web/.env`, run `pnpm db:local:seed`.
+
+    Demo accounts created by the seed:
+
+    ```text
+    demo.artist@rythmons.local / Rythmons123!
+    demo.organizer@rythmons.local / Rythmons123!
+    demo.both@rythmons.local / Rythmons123!
+    ```
+
+6. Start the development servers:
 
     ```bash
     pnpm dev
@@ -83,6 +107,10 @@ Rythmons/
 - `pnpm db:studio`: Open Prisma Studio in the web app
 - `pnpm db:generate`: Generate the Prisma client
 - `pnpm db:migrate`: Run Prisma migrations in dev mode
+- `pnpm db:seed`: Seed the database with local demo accounts and content
+- `pnpm db:setup`: Push the schema, then seed local demo data
+- `pnpm db:local:seed`: Seed the database using `apps/web/.env.local`
+- `pnpm db:local:setup`: Push the schema and seed using `apps/web/.env.local`
 - `pnpm deploy`: Deploy the web app preview to Vercel
 - `pnpm deploy:prod`: Deploy the web app to production on Vercel
 

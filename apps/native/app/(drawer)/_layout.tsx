@@ -1,9 +1,25 @@
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
+import { useQuery } from "@tanstack/react-query";
 import { Tabs } from "expo-router";
 import { authClient } from "@/lib/auth-client";
+import { trpc } from "@/utils/trpc";
+
+type ArtistMenuItem = {
+	id: string;
+};
 
 export default function TabLayout() {
 	const { data: session } = authClient.useSession();
+	const sessionRole = (
+		session?.user as { role?: "ARTIST" | "BOTH" | null } | undefined
+	)?.role;
+	const hasArtistRole = sessionRole === "ARTIST" || sessionRole === "BOTH";
+	const { data: artists } = useQuery({
+		...trpc.artist.myArtists.queryOptions(),
+		enabled: Boolean(session?.user) && !hasArtistRole,
+	});
+	const canSearchVenues =
+		hasArtistRole || ((artists ?? []) as ArtistMenuItem[]).length > 0;
 
 	return (
 		<Tabs
@@ -48,6 +64,17 @@ export default function TabLayout() {
 					tabBarLabel: "Artistes",
 					tabBarIcon: ({ color, size }) => (
 						<Ionicons name="musical-notes-outline" size={size} color={color} />
+					),
+				}}
+			/>
+			<Tabs.Screen
+				name="search"
+				options={{
+					headerTitle: "Rechercher des lieux",
+					tabBarLabel: "Recherche",
+					href: canSearchVenues ? undefined : null,
+					tabBarIcon: ({ color, size }) => (
+						<Ionicons name="search-outline" size={size} color={color} />
 					),
 				}}
 			/>

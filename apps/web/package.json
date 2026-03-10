@@ -5,12 +5,14 @@
 	"packageManager": "pnpm@10.18.0",
 	"scripts": {
 		"dev": "next dev --turbopack",
-		"build": "prisma generate --schema=../../packages/db/prisma/schema.prisma && next build",
+		"build": "prisma generate && next build",
 		"start": "next start",
-		"db:push": "prisma db push --schema=../../packages/db/prisma/schema.prisma",
-		"db:studio": "prisma studio --schema=../../packages/db/prisma/schema.prisma",
-		"db:generate": "prisma generate --schema=../../packages/db/prisma/schema.prisma",
-		"db:migrate": "prisma migrate dev --schema=../../packages/db/prisma/schema.prisma"
+		"db:push": "prisma db push",
+		"db:studio": "prisma studio",
+		"db:generate": "prisma generate",
+		"db:migrate": "prisma migrate dev",
+		"db:seed": "prisma generate && prisma db seed",
+		"db:setup": "prisma db push && prisma generate && prisma db seed"
 	},
 	"dependencies": {
 		"@better-auth/expo": "^1.3.13",

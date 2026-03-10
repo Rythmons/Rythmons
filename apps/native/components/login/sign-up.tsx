@@ -17,9 +17,13 @@ type Props = {
 
 export function SignUp({ onSwitchToSignIn }: Props) {
 	const router = useRouter();
+	const [emailValue, setEmailValue] = useState("");
 	const { form, isLoading } = useSignUpForm({
 		onSuccess: async () => {
-			router.push("/verify-email" as never);
+			const verifyEmailHref = emailValue
+				? `/verify-email?email=${encodeURIComponent(emailValue)}`
+				: "/verify-email";
+			router.push(verifyEmailHref as never);
 		},
 	});
 
@@ -70,7 +74,10 @@ export function SignUp({ onSwitchToSignIn }: Props) {
 							className="rounded-md border border-input bg-input p-4 text-foreground"
 							placeholder="Adresse e-mail"
 							value={field.state.value}
-							onChangeText={field.handleChange}
+							onChangeText={(value) => {
+								setEmailValue(value);
+								field.handleChange(value);
+							}}
 							onBlur={field.handleBlur}
 							placeholderTextColor="#9CA3AF"
 							keyboardType="email-address"
