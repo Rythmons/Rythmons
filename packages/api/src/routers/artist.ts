@@ -1,5 +1,9 @@
 import type { Prisma } from "@rythmons/db";
-import { artistSchema } from "@rythmons/validation";
+import {
+	type ArtistSearchInput,
+	artistSchema,
+	artistSearchSchema,
+} from "@rythmons/validation";
 import { z } from "zod";
 import { getColumnAvailability } from "../prisma-compat";
 import { protectedProcedure, publicProcedure, router } from "../trpc";
@@ -108,6 +112,106 @@ function sanitizeArtistData<TArtistData extends Record<string, unknown>>(
 	return data;
 }
 
+function buildArtistGenreSearchFilter(genreNames: string[]) {
+	if (genreNames.length === 0) {
+		return undefined;
+	}
+
+	return {
+		some: {
+			OR: genreNames.map((genreName) => ({
+				name: {
+					equals: genreName,
+					mode: "insensitive" as const,
+				},
+			})),
+		},
+	};
+}
+
+function buildArtistSearchWhere(
+	input: ArtistSearchInput,
+	compat: Awaited<ReturnType<typeof getArtistCompat>>,
+): Prisma.ArtistWhereInput | undefined {
+	const query = input.query.trim();
+	const city = input.city.trim();
+	const postalCode = input.postalCode.trim();
+	const andFilters: Prisma.ArtistWhereInput[] = [];
+
+	if (query) {
+		const orFilters: Prisma.ArtistWhereInput[] = [
+			{ stageName: { contains: query, mode: "insensitive" } },
+			{ bio: { contains: query, mode: "insensitive" } },
+			{
+				user: {
+					is: {
+						name: { contains: query, mode: "insensitive" },
+					},
+				},
+			},
+			{
+				genres: {
+					some: {
+						name: { contains: query, mode: "insensitive" },
+					},
+				},
+			},
+		];
+
+		if (compat.city) {
+			orFilters.push({ city: { contains: query, mode: "insensitive" } });
+		}
+
+		if (compat.postalCode) {
+			orFilters.push({ postalCode: { contains: query } });
+		}
+
+		andFilters.push({ OR: orFilters });
+	}
+
+	const genreFilter = buildArtistGenreSearchFilter(input.genreNames);
+	if (genreFilter) {
+		andFilters.push({ genres: genreFilter });
+	}
+
+	if (city && compat.city) {
+		andFilters.push({
+			city: {
+				contains: city,
+				mode: "insensitive",
+			},
+		});
+	}
+
+	if (postalCode && compat.postalCode) {
+		andFilters.push({
+			postalCode: {
+				contains: postalCode,
+			},
+		});
+	}
+
+	if (input.feeMin != null && compat.feeMax) {
+		andFilters.push({
+			OR: [{ feeMax: { gte: input.feeMin } }, { feeMax: null }],
+		});
+	}
+
+	if (input.feeMax != null && compat.feeMin) {
+		andFilters.push({
+			OR: [{ feeMin: { lte: input.feeMax } }, { feeMin: null }],
+		});
+	}
+
+	if (andFilters.length === 0) {
+		return undefined;
+	}
+
+	return {
+		AND: andFilters,
+	};
+}
+
 export const artistRouter = router({
 	myArtists: protectedProcedure.query(async ({ ctx }) => {
 		const compat = await getArtistCompat(ctx.db);
@@ -130,6 +234,20 @@ export const artistRouter = router({
 			});
 
 			return artist ? normalizeArtist(artist, compat) : null;
+		}),
+
+	search: protectedProcedure
+		.input(artistSearchSchema)
+		.query(async ({ ctx, input }) => {
+			const compat = await getArtistCompat(ctx.db);
+			const artists = await ctx.db.artist.findMany({
+				where: buildArtistSearchWhere(input, compat),
+				select: buildArtistSelect(compat),
+				orderBy: [{ stageName: "asc" }],
+				take: 24,
+			});
+
+			return artists.map((artist) => normalizeArtist(artist, compat));
 		}),
 
 	create: protectedProcedure

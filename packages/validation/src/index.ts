@@ -131,6 +131,17 @@ export const artistSchema = z.object({
 
 export type ArtistInput = z.infer<typeof artistSchema>;
 
+export const artistSearchSchema = z.object({
+	query: z.string().trim().max(100).default(""),
+	genreNames: z.array(z.string().min(1)).default([]),
+	city: z.string().trim().max(100).default(""),
+	postalCode: z.string().trim().max(10).default(""),
+	feeMin: z.number().int().nonnegative().optional().nullable(),
+	feeMax: z.number().int().nonnegative().optional().nullable(),
+});
+
+export type ArtistSearchInput = z.infer<typeof artistSearchSchema>;
+
 export const venueSchema = z.object({
 	name: z.string().min(2, "Le nom doit contenir au moins 2 caractères"),
 	address: z.string().min(5, "L'adresse est requise"),
@@ -152,6 +163,18 @@ export const venueSchema = z.object({
 });
 
 export type VenueInput = z.infer<typeof venueSchema>;
+
+export const venueSearchSchema = z.object({
+	query: z.string().trim().max(100).default(""),
+	genreNames: z.array(z.string().min(1)).default([]),
+	city: z.string().trim().max(100).default(""),
+	postalCode: z.string().trim().max(10).default(""),
+	venueTypes: z.array(z.enum(venueTypeValues)).default([]),
+	budgetMin: z.number().int().nonnegative().optional().nullable(),
+	budgetMax: z.number().int().nonnegative().optional().nullable(),
+});
+
+export type VenueSearchInput = z.infer<typeof venueSearchSchema>;
 
 // Sign-in validation schema
 export const signInSchema = z.object({

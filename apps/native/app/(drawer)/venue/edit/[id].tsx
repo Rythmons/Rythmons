@@ -110,6 +110,12 @@ export default function EditVenueScreen() {
 	// Populate form when venue data loads
 	useEffect(() => {
 		if (venue) {
+			const compatVenue = venue as unknown as {
+				budgetMin?: number | null;
+				budgetMax?: number | null;
+				paymentTypes?: PaymentType[];
+			};
+
 			setFormData({
 				name: venue.name,
 				address: venue.address,
@@ -125,9 +131,9 @@ export default function EditVenueScreen() {
 				techInfo: venue.techInfo ?? "",
 				images: venue.images ?? [],
 				selectedGenres: venue.genres?.map((g) => g.name) ?? [],
-				paymentTypes: (venue.paymentTypes as PaymentType[]) ?? [],
-				budgetMin: venue.budgetMin?.toString() ?? "",
-				budgetMax: venue.budgetMax?.toString() ?? "",
+				paymentTypes: compatVenue.paymentTypes ?? [],
+				budgetMin: compatVenue.budgetMin?.toString() ?? "",
+				budgetMax: compatVenue.budgetMax?.toString() ?? "",
 			});
 		}
 	}, [venue]);

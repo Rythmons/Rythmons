@@ -32,6 +32,9 @@ export default function UserMenu() {
 	const { data: session, isPending } = authClient.useSession();
 	const sessionRole = (session?.user as { role?: string | null } | undefined)
 		?.role;
+	const hasArtistRole = sessionRole === "ARTIST" || sessionRole === "BOTH";
+	const hasOrganizerRole =
+		sessionRole === "ORGANIZER" || sessionRole === "BOTH";
 
 	// Fetch Artists and Venues for the menu
 	const { data: artists } = useQuery({
@@ -45,10 +48,9 @@ export default function UserMenu() {
 	});
 	const artistItems = (artists ?? []) as ArtistMenuItem[];
 	const venueItems = (venues ?? []) as VenueMenuItem[];
-	const canSearchVenues =
-		sessionRole === "ARTIST" ||
-		sessionRole === "BOTH" ||
-		artistItems.length > 0;
+	const canSearchVenues = hasArtistRole || artistItems.length > 0;
+	const canSearchArtists = hasOrganizerRole || venueItems.length > 0;
+	const canUseSearch = canSearchVenues || canSearchArtists;
 
 	if (isPending) {
 		return <Skeleton className="h-9 w-24" />;
@@ -163,7 +165,7 @@ export default function UserMenu() {
 
 				<DropdownMenuSeparator className="bg-white/10" />
 
-				{canSearchVenues ? (
+				{canUseSearch ? (
 					<DropdownMenuItem
 						className="flex cursor-pointer items-center gap-2 p-4 text-zinc-400 hover:text-white focus:bg-white/5 focus:text-white"
 						onClick={() => {
@@ -171,7 +173,7 @@ export default function UserMenu() {
 						}}
 					>
 						<Search className="h-4 w-4" />
-						<span>Rechercher des lieux</span>
+						<span>Recherche</span>
 					</DropdownMenuItem>
 				) : null}
 

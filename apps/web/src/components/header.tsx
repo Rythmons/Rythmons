@@ -16,16 +16,23 @@ export default function Header() {
 	const sessionRole = (session?.user as { role?: string | null } | undefined)
 		?.role;
 	const hasArtistRole = sessionRole === "ARTIST" || sessionRole === "BOTH";
+	const hasOrganizerRole =
+		sessionRole === "ORGANIZER" || sessionRole === "BOTH";
 	const { data: artists } = useQuery({
 		...trpc.artist.myArtists.queryOptions(),
 		enabled: Boolean(session?.user) && !hasArtistRole,
 	});
+	const { data: venues } = useQuery({
+		...trpc.venue.getMyVenues.queryOptions(),
+		enabled: Boolean(session?.user) && !hasOrganizerRole,
+	});
 	const canSearchVenues = hasArtistRole || (artists?.length ?? 0) > 0;
+	const canSearchArtists = hasOrganizerRole || (venues?.length ?? 0) > 0;
 	const links: HeaderLink[] = [
 		{ to: "/" as Route, label: "Accueil" },
 		{ to: "/dashboard" as Route, label: "Tableau de bord" },
-		...(canSearchVenues
-			? [{ to: "/dashboard/search" as Route, label: "Rechercher des lieux" }]
+		...(canSearchVenues || canSearchArtists
+			? [{ to: "/dashboard/search" as Route, label: "Recherche" }]
 			: []),
 	];
 
