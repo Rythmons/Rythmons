@@ -39,6 +39,9 @@ CORS_ORIGIN="exp://,mybettertapp://"
 # Générer le client Prisma
 pnpm db:generate
 
+# Appliquer les migrations committees
+pnpm db:deploy
+
 # Pousser le schéma vers la DB
 pnpm db:push
 
@@ -54,6 +57,15 @@ pnpm db:migrate
 # Seed de demo locale
 pnpm db:seed
 ```
+
+Workflow recommande pour les changements de schema :
+
+1. Modifiez `packages/db/prisma/schema.prisma`.
+2. Lancez `pnpm db:migrate` pour generer une migration versionnee.
+3. Committez le contenu de `packages/db/prisma/migrations/`.
+4. Laissez le deploy executer `pnpm db:deploy` avant le build.
+
+Gardez `pnpm db:push` pour initialiser une base locale ou pour du prototypage rapide. Ne l'utilisez pas comme mecanisme principal pour la production.
 
 Le seed cree des comptes de demo reutilisables :
 
