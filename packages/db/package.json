@@ -8,6 +8,7 @@
 		"build": "prisma generate && tsc --build"
 	},
 	"dependencies": {
+		"@faker-js/faker": "^9.9.0",
 		"@prisma/client": "^6.15.0",
 		"server-only": "^0.0.1"
 	},

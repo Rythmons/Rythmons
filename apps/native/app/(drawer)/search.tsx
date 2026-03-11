@@ -4,7 +4,8 @@ import { MUSIC_GENRES, venueTypeValues } from "@rythmons/validation";
 import { useQuery } from "@tanstack/react-query";
 import type { inferRouterOutputs } from "@trpc/server";
 import { router } from "expo-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { ScrollView as ScrollViewType } from "react-native";
 import {
 	ActivityIndicator,
 	Image,
@@ -33,6 +34,8 @@ type VenueListItem = {
 };
 
 type SearchTab = "venues" | "artists";
+
+const RESULTS_PER_PAGE = 9;
 
 function parseOptionalNumber(value: string) {
 	if (!value.trim()) {
@@ -68,6 +71,7 @@ function haveSameValues(left: string[], right: string[]) {
 
 export default function VenueSearchScreen() {
 	const { data: session, isPending: sessionPending } = authClient.useSession();
+	const scrollViewRef = useRef<ScrollViewType>(null);
 	const [activeTab, setActiveTab] = useState<SearchTab>("venues");
 	const [search, setSearch] = useState("");
 	const [city, setCity] = useState("");
@@ -78,6 +82,7 @@ export default function VenueSearchScreen() {
 	const [budgetMax, setBudgetMax] = useState("");
 	const [feeMin, setFeeMin] = useState("");
 	const [feeMax, setFeeMax] = useState("");
+	const [currentPage, setCurrentPage] = useState(1);
 	const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
 	const [showAllGenres, setShowAllGenres] = useState(false);
 	const [showAllVenueTypes, setShowAllVenueTypes] = useState(false);
@@ -186,6 +191,23 @@ export default function VenueSearchScreen() {
 	const venues = (venueSearchQuery.data ?? []) as SearchVenueItem[];
 	const artists = (artistSearchQuery.data ?? []) as SearchArtistItem[];
 	const activeItems = activeTab === "venues" ? venues : artists;
+	const totalPages = Math.max(
+		1,
+		Math.ceil(activeItems.length / RESULTS_PER_PAGE),
+	);
+	const safePage = Math.min(currentPage, totalPages);
+	const pageSliceStart = (safePage - 1) * RESULTS_PER_PAGE;
+	const pageSliceEnd = safePage * RESULTS_PER_PAGE;
+	const paginatedVenueItems = venues.slice(pageSliceStart, pageSliceEnd);
+	const paginatedArtistItems = artists.slice(pageSliceStart, pageSliceEnd);
+	const pageStart = activeItems.length === 0 ? 0 : pageSliceStart + 1;
+	const pageEnd = Math.min(pageSliceEnd, activeItems.length);
+	const paginationWindowStart = Math.max(1, safePage - 2);
+	const paginationWindowEnd = Math.min(totalPages, paginationWindowStart + 4);
+	const visiblePageNumbers = Array.from(
+		{ length: paginationWindowEnd - paginationWindowStart + 1 },
+		(_, i) => paginationWindowStart + i,
+	);
 	const activeQuery =
 		activeTab === "venues" ? venueSearchQuery : artistSearchQuery;
 	const visibleGenres = showAllGenres ? MUSIC_GENRES : MUSIC_GENRES.slice(0, 8);
@@ -221,7 +243,18 @@ export default function VenueSearchScreen() {
 		);
 	}
 
+	function goToPage(page: number) {
+		setCurrentPage(page);
+		scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+	}
+
+	function scrollToTop() {
+		scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+	}
+
 	function resetFilters() {
+		setCurrentPage(1);
+		scrollToTop();
 		setSearch("");
 		setCity("");
 		setPostalCode("");
@@ -243,6 +276,8 @@ export default function VenueSearchScreen() {
 	}
 
 	function applyFilters() {
+		setCurrentPage(1);
+		scrollToTop();
 		setAppliedSearch(normalizedQuery);
 		setAppliedCity(city.trim());
 		setAppliedPostalCode(postalCode.trim());
@@ -382,7 +417,7 @@ export default function VenueSearchScreen() {
 
 	return (
 		<Container>
-			<ScrollView className="flex-1 p-4">
+			<ScrollView ref={scrollViewRef} className="flex-1 p-4">
 				<View className="mb-6">
 					<Title className="text-2xl text-foreground">{heading}</Title>
 					<Text className="mt-1 text-muted-foreground">{subheading}</Text>
@@ -396,7 +431,11 @@ export default function VenueSearchScreen() {
 									? "bg-primary"
 									: "border border-border bg-card"
 							}`}
-							onPress={() => setActiveTab("venues")}
+							onPress={() => {
+								setActiveTab("venues");
+								setCurrentPage(1);
+								scrollToTop();
+							}}
 						>
 							<Text
 								className={`text-center font-sans-medium ${
@@ -414,7 +453,11 @@ export default function VenueSearchScreen() {
 									? "bg-primary"
 									: "border border-border bg-card"
 							}`}
-							onPress={() => setActiveTab("artists")}
+							onPress={() => {
+								setActiveTab("artists");
+								setCurrentPage(1);
+								scrollToTop();
+							}}
 						>
 							<Text
 								className={`text-center font-sans-medium ${
@@ -507,11 +550,18 @@ export default function VenueSearchScreen() {
 								? `${activeItems.length} lieu(x) disponible(s)`
 								: `${activeItems.length} artiste(s) disponible(s)`}
 					</Text>
-					{activeQuery.isFetching && !activeQuery.isLoading ? (
-						<Text className="text-muted-foreground text-xs">
-							Mise a jour...
-						</Text>
-					) : null}
+					<View className="flex-row items-center gap-3">
+						{activeItems.length > 0 ? (
+							<Text className="text-muted-foreground text-xs">
+								{pageStart}-{pageEnd} sur {activeItems.length}
+							</Text>
+						) : null}
+						{activeQuery.isFetching && !activeQuery.isLoading ? (
+							<Text className="text-muted-foreground text-xs">
+								Mise a jour...
+							</Text>
+						) : null}
+					</View>
 				</View>
 
 				{activeQuery.isLoading ? (
@@ -543,7 +593,7 @@ export default function VenueSearchScreen() {
 				) : (
 					<View className="gap-3">
 						{activeTab === "venues"
-							? venues.map((venue) => {
+							? paginatedVenueItems.map((venue) => {
 									const genreLabel = venue.genres.length
 										? venue.genres.map((genre) => genre.name).join(" • ")
 										: "Genres non renseignes";
@@ -555,7 +605,7 @@ export default function VenueSearchScreen() {
 											onPress={() =>
 												router.push({
 													pathname: "/(drawer)/venue/[id]",
-													params: { id: venue.id },
+													params: { id: venue.id, backTo: "/(drawer)/search" },
 												})
 											}
 										>
@@ -620,7 +670,7 @@ export default function VenueSearchScreen() {
 										</TouchableOpacity>
 									);
 								})
-							: artists.map((artist) => {
+							: paginatedArtistItems.map((artist) => {
 									const genreLabel = artist.genres.length
 										? artist.genres.map((genre) => genre.name).join(" • ")
 										: "Genres non renseignes";
@@ -628,59 +678,144 @@ export default function VenueSearchScreen() {
 									return (
 										<TouchableOpacity
 											key={artist.id}
-											className="rounded-xl border border-border bg-card p-4"
+											className="overflow-hidden rounded-xl border border-border bg-card"
 											onPress={() =>
 												router.push({
 													pathname: "/(drawer)/artist/[id]",
-													params: { id: artist.id },
+													params: { id: artist.id, backTo: "/(drawer)/search" },
 												})
 											}
 										>
-											<View className="mb-3 flex-row items-center gap-3">
-												{artist.photoUrl ? (
+											{artist.bannerUrl || artist.photoUrl ? (
+												<View className="relative">
 													<Image
-														source={{ uri: artist.photoUrl }}
-														className="h-14 w-14 rounded-full border border-border"
+														source={{
+															uri:
+																artist.bannerUrl ||
+																artist.photoUrl ||
+																undefined,
+														}}
+														className="h-32 w-full"
+														resizeMode="cover"
 													/>
-												) : (
-													<View className="h-14 w-14 items-center justify-center rounded-full bg-primary/10">
-														<Ionicons
-															name="musical-notes-outline"
-															size={24}
-															color="#7c3aed"
-														/>
-													</View>
-												)}
-
-												<View className="flex-1">
-													<Title className="text-foreground text-lg">
-														{artist.stageName}
-													</Title>
-													<Text className="text-muted-foreground text-sm">
-														{artist.city || "Localisation non renseignee"}
-													</Text>
+													<View className="absolute inset-0 bg-black/25" />
+													{artist.images.length > 0 ? (
+														<View className="absolute top-3 right-3 rounded-full bg-background/90 px-3 py-1">
+															<Text className="font-sans-medium text-foreground text-xs">
+																{artist.images.length} photo(s)
+															</Text>
+														</View>
+													) : null}
 												</View>
-												<Ionicons
-													name="chevron-forward"
-													size={18}
-													color="#9ca3af"
-												/>
+											) : null}
+
+											<View className="p-4">
+												<View className="mb-3 flex-row items-center gap-3">
+													{artist.photoUrl ? (
+														<Image
+															source={{ uri: artist.photoUrl }}
+															className="h-14 w-14 rounded-full border border-border"
+														/>
+													) : (
+														<View className="h-14 w-14 items-center justify-center rounded-full bg-primary/10">
+															<Ionicons
+																name="musical-notes-outline"
+																size={24}
+																color="#7c3aed"
+															/>
+														</View>
+													)}
+
+													<View className="flex-1">
+														<Title className="text-foreground text-lg">
+															{artist.stageName}
+														</Title>
+														<Text className="text-muted-foreground text-sm">
+															{artist.city || "Localisation non renseignee"}
+														</Text>
+													</View>
+													<Ionicons
+														name="chevron-forward"
+														size={18}
+														color="#9ca3af"
+													/>
+												</View>
+												<Text className="mb-2 text-muted-foreground text-sm">
+													{genreLabel}
+												</Text>
+												<Text className="mb-2 text-muted-foreground text-sm">
+													{formatRangeLabel(artist.feeMin, artist.feeMax)}
+												</Text>
+												<Text
+													className="text-muted-foreground"
+													numberOfLines={3}
+												>
+													{artist.bio ||
+														"Aucune description n'a encore ete ajoutee pour cet artiste."}
+												</Text>
 											</View>
-											<Text className="mb-2 text-muted-foreground text-sm">
-												{genreLabel}
-											</Text>
-											<Text className="mb-2 text-muted-foreground text-sm">
-												{formatRangeLabel(artist.feeMin, artist.feeMax)}
-											</Text>
-											<Text className="text-muted-foreground" numberOfLines={3}>
-												{artist.bio ||
-													"Aucune description n'a encore ete ajoutee pour cet artiste."}
-											</Text>
 										</TouchableOpacity>
 									);
 								})}
 					</View>
 				)}
+
+				{activeItems.length > 0 && totalPages > 1 ? (
+					<View className="mt-6 items-center gap-3 border-border border-t pt-5">
+						<Text className="text-muted-foreground text-sm">
+							Page {safePage} sur {totalPages}
+						</Text>
+						<View className="flex-row flex-wrap justify-center gap-2">
+							<TouchableOpacity
+								className={`rounded-lg border px-4 py-2 ${
+									safePage === 1
+										? "border-border bg-muted opacity-40"
+										: "border-border bg-card"
+								}`}
+								onPress={() => goToPage(safePage - 1)}
+								disabled={safePage === 1}
+							>
+								<Text className="font-sans-medium text-foreground text-sm">
+									← Préc.
+								</Text>
+							</TouchableOpacity>
+							{visiblePageNumbers.map((pageNumber) => (
+								<TouchableOpacity
+									key={pageNumber}
+									className={`h-9 w-9 items-center justify-center rounded-lg border ${
+										pageNumber === safePage
+											? "border-primary bg-primary"
+											: "border-border bg-card"
+									}`}
+									onPress={() => goToPage(pageNumber)}
+								>
+									<Text
+										className={`font-sans-medium text-sm ${
+											pageNumber === safePage
+												? "text-primary-foreground"
+												: "text-foreground"
+										}`}
+									>
+										{pageNumber}
+									</Text>
+								</TouchableOpacity>
+							))}
+							<TouchableOpacity
+								className={`rounded-lg border px-4 py-2 ${
+									safePage === totalPages
+										? "border-border bg-muted opacity-40"
+										: "border-border bg-card"
+								}`}
+								onPress={() => goToPage(safePage + 1)}
+								disabled={safePage === totalPages}
+							>
+								<Text className="font-sans-medium text-foreground text-sm">
+									Suiv. →
+								</Text>
+							</TouchableOpacity>
+						</View>
+					</View>
+				) : null}
 
 				<View className="h-8" />
 			</ScrollView>

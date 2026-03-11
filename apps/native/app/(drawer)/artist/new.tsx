@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { MUSIC_GENRES } from "@rythmons/validation";
 import { useMutation } from "@tanstack/react-query";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useMemo, useState } from "react";
 import {
 	ActivityIndicator,
@@ -18,6 +18,7 @@ import { ImageUpload } from "@/components/ui/image-upload";
 import { Input } from "@/components/ui/input";
 import { Text, Title } from "@/components/ui/typography";
 import { authClient } from "@/lib/auth-client";
+import { useContextualBackNavigation } from "@/lib/use-contextual-back-navigation";
 import { queryClient, trpc } from "@/utils/trpc";
 
 interface SocialLinks {
@@ -68,7 +69,12 @@ function isValidUrl(value: string) {
 }
 
 export default function NewArtistScreen() {
+	const params = useLocalSearchParams<{ backTo?: string }>();
+	const backTo = Array.isArray(params.backTo)
+		? params.backTo[0]
+		: params.backTo;
 	const { data: session, isPending: sessionPending } = authClient.useSession();
+	const handleBack = useContextualBackNavigation(backTo ?? "/(drawer)/artist");
 
 	const createMutation = useMutation(trpc.artist.create.mutationOptions());
 
@@ -190,7 +196,10 @@ export default function NewArtistScreen() {
 			});
 
 			await queryClient.invalidateQueries();
-			router.replace(`/(drawer)/artist/${created.id}`);
+			router.replace({
+				pathname: "/(drawer)/artist/[id]",
+				params: backTo ? { id: created.id, backTo } : { id: created.id },
+			} as any);
 		} catch (error) {
 			const message =
 				error instanceof Error ? error.message : "Erreur lors de la création";
@@ -219,7 +228,7 @@ export default function NewArtistScreen() {
 					</Text>
 					<TouchableOpacity
 						className="rounded-lg bg-primary px-4 py-2"
-						onPress={() => router.replace("/")}
+						onPress={handleBack}
 					>
 						<Text className="font-sans-medium text-primary-foreground">
 							Se connecter
@@ -238,7 +247,14 @@ export default function NewArtistScreen() {
 			>
 				<ScrollView className="flex-1 p-4">
 					<View className="mb-6">
-						<Title className="text-2xl text-foreground">Créer un artiste</Title>
+						<View className="mb-3 flex-row items-center gap-3">
+							<TouchableOpacity className="mr-1" onPress={handleBack}>
+								<Ionicons name="arrow-back" size={24} color="#7c3aed" />
+							</TouchableOpacity>
+							<Title className="text-2xl text-foreground">
+								Créer un artiste
+							</Title>
+						</View>
 						<Text className="text-muted-foreground">
 							Complétez votre profil public.
 						</Text>

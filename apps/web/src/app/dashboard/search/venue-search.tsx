@@ -5,17 +5,19 @@ import { useQuery } from "@tanstack/react-query";
 import {
 	Building2,
 	ChevronDown,
+	ChevronLeft,
+	ChevronRight,
 	ChevronUp,
 	Loader2,
 	MapPin,
 	Mic2,
-	Search,
-	SlidersHorizontal,
 	UserRound,
 	X,
 } from "lucide-react";
+import type { Route } from "next";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -45,6 +47,8 @@ type VenueSearchProps = {
 	canSearchVenues: boolean;
 	canSearchArtists: boolean;
 };
+
+const RESULTS_PER_PAGE = 9;
 
 function parseOptionalNumber(value: string) {
 	if (!value.trim()) {
@@ -82,10 +86,12 @@ export function VenueSearch({
 	canSearchVenues,
 	canSearchArtists,
 }: VenueSearchProps) {
+	const router = useRouter();
+	const pathname = usePathname();
+	const searchParams = useSearchParams();
 	const [activeTab, setActiveTab] = useState<SearchTab>(
 		canSearchVenues ? "venues" : "artists",
 	);
-	const [search, setSearch] = useState("");
 	const [city, setCity] = useState("");
 	const [postalCode, setPostalCode] = useState("");
 	const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
@@ -94,9 +100,10 @@ export function VenueSearch({
 	const [budgetMax, setBudgetMax] = useState("");
 	const [feeMin, setFeeMin] = useState("");
 	const [feeMax, setFeeMax] = useState("");
-	const [showFilters, setShowFilters] = useState(false);
 	const [showAllGenres, setShowAllGenres] = useState(false);
-	const [appliedSearch, setAppliedSearch] = useState("");
+	const [appliedSearch, setAppliedSearch] = useState(
+		searchParams.get("q")?.trim() ?? "",
+	);
 	const [appliedCity, setAppliedCity] = useState("");
 	const [appliedPostalCode, setAppliedPostalCode] = useState("");
 	const [appliedGenres, setAppliedGenres] = useState<string[]>([]);
@@ -105,7 +112,11 @@ export function VenueSearch({
 	const [appliedBudgetMax, setAppliedBudgetMax] = useState("");
 	const [appliedFeeMin, setAppliedFeeMin] = useState("");
 	const [appliedFeeMax, setAppliedFeeMax] = useState("");
-	const normalizedQuery = useMemo(() => search.trim(), [search]);
+	const normalizedQuery = searchParams.get("q")?.trim() ?? "";
+	const requestedPage = Number.parseInt(searchParams.get("page") ?? "1", 10);
+	const currentPage =
+		Number.isFinite(requestedPage) && requestedPage > 0 ? requestedPage : 1;
+	const showFilters = searchParams.get("filters") === "1";
 
 	const venueSearchInput = useMemo(
 		() => ({
@@ -162,7 +173,18 @@ export function VenueSearch({
 
 	const activeQuery =
 		activeTab === "venues" ? venueSearchQuery : artistSearchQuery;
-	const items = activeQuery.data ?? [];
+	const venueItems = venueSearchQuery.data ?? [];
+	const artistItems = artistSearchQuery.data ?? [];
+	const items = activeTab === "venues" ? venueItems : artistItems;
+	const totalPages = Math.max(1, Math.ceil(items.length / RESULTS_PER_PAGE));
+	const safePage = Math.min(currentPage, totalPages);
+	const pageSliceStart = (safePage - 1) * RESULTS_PER_PAGE;
+	const pageSliceEnd = safePage * RESULTS_PER_PAGE;
+	const paginatedVenueItems = venueItems.slice(pageSliceStart, pageSliceEnd);
+	const paginatedArtistItems = artistItems.slice(
+		(safePage - 1) * RESULTS_PER_PAGE,
+		safePage * RESULTS_PER_PAGE,
+	);
 	const hasResults = items.length > 0;
 	const hasSearchError = activeQuery.isError;
 	const isLoading = activeQuery.isLoading;
@@ -179,7 +201,6 @@ export function VenueSearch({
 				(appliedBudgetMax ? 1 : 0)
 			: (appliedFeeMin ? 1 : 0) + (appliedFeeMax ? 1 : 0));
 	const hasPendingChanges =
-		normalizedQuery !== appliedSearch ||
 		city.trim() !== appliedCity ||
 		postalCode.trim() !== appliedPostalCode ||
 		!haveSameValues(selectedGenres, appliedGenres) ||
@@ -200,19 +221,65 @@ export function VenueSearch({
 					? `${items.length} lieu(x) disponible(s)`
 					: `${items.length} artiste(s) disponible(s)`;
 
-	const heading =
-		canSearchVenues && canSearchArtists
-			? "Rechercher des lieux et des artistes"
-			: canSearchVenues
-				? "Rechercher des lieux"
-				: "Rechercher des artistes";
-
 	const description =
 		canSearchVenues && canSearchArtists
 			? "Explorez les profils disponibles sur Rythmons et affinez vos resultats avec des filtres simples de matching."
 			: activeTab === "venues"
 				? "Explorez les lieux et organisateurs deja presents sur Rythmons pour identifier ceux qui correspondent a votre projet."
 				: "Explorez les artistes deja presents sur Rythmons pour identifier ceux qui correspondent a votre programmation.";
+
+	useEffect(() => {
+		setAppliedSearch(normalizedQuery);
+	}, [normalizedQuery]);
+
+	useEffect(() => {
+		if (safePage === currentPage) {
+			return;
+		}
+
+		updateRouteSearchParams((params) => {
+			if (safePage <= 1) {
+				params.delete("page");
+				return;
+			}
+
+			params.set("page", String(safePage));
+		});
+	}, [currentPage, safePage]);
+
+	function updateRouteSearchParams(mutate: (params: URLSearchParams) => void) {
+		const params = new URLSearchParams(searchParams.toString());
+		mutate(params);
+		const query = params.toString();
+		router.replace((query ? `${pathname}?${query}` : pathname) as Route, {
+			scroll: false,
+		});
+	}
+
+	function closeFilters() {
+		updateRouteSearchParams((params) => {
+			params.delete("filters");
+		});
+	}
+
+	function setPage(page: number) {
+		window.scrollTo({ top: 0, behavior: "smooth" });
+		updateRouteSearchParams((params) => {
+			if (page <= 1) {
+				params.delete("page");
+				return;
+			}
+
+			params.set("page", String(page));
+		});
+	}
+
+	function handleTabChange(nextTab: SearchTab) {
+		setActiveTab(nextTab);
+		if (currentPage > 1) {
+			setPage(1);
+		}
+	}
 
 	function toggleGenre(genre: string) {
 		setSelectedGenres((currentGenres) =>
@@ -223,7 +290,6 @@ export function VenueSearch({
 	}
 
 	function resetFilters() {
-		setSearch("");
 		setCity("");
 		setPostalCode("");
 		setSelectedGenres([]);
@@ -241,6 +307,11 @@ export function VenueSearch({
 		setAppliedBudgetMax("");
 		setAppliedFeeMin("");
 		setAppliedFeeMax("");
+		updateRouteSearchParams((params) => {
+			params.delete("q");
+			params.delete("filters");
+			params.delete("page");
+		});
 	}
 
 	function applyFilters() {
@@ -253,6 +324,9 @@ export function VenueSearch({
 		setAppliedBudgetMax(budgetMax);
 		setAppliedFeeMin(feeMin);
 		setAppliedFeeMax(feeMax);
+		if (currentPage > 1) {
+			setPage(1);
+		}
 	}
 
 	const hasAdvancedFilters =
@@ -293,105 +367,79 @@ export function VenueSearch({
 			: activeTab === "venues"
 				? "Ville, type de lieu, budget, genres"
 				: "Ville, cachet, genres";
+	const pageStart =
+		items.length === 0 ? 0 : (safePage - 1) * RESULTS_PER_PAGE + 1;
+	const pageEnd = Math.min(safePage * RESULTS_PER_PAGE, items.length);
+	const paginationWindowStart = Math.max(1, safePage - 2);
+	const paginationWindowEnd = Math.min(totalPages, paginationWindowStart + 4);
+	const visiblePageNumbers = Array.from(
+		{ length: paginationWindowEnd - paginationWindowStart + 1 },
+		(_, index) => paginationWindowStart + index,
+	);
 
 	return (
-		<div className="container mx-auto max-w-6xl px-4 py-8">
-			<div className="mb-8 space-y-2">
-				<h1 className="font-bold text-3xl">{heading}</h1>
-				<p className="max-w-3xl text-muted-foreground">{description}</p>
+		<div className="container mx-auto max-w-6xl px-4 py-5">
+			<div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+				<div className="flex flex-wrap gap-2">
+					{canSearchVenues && canSearchArtists ? (
+						<>
+							<Button
+								type="button"
+								size="sm"
+								variant={activeTab === "venues" ? "default" : "outline"}
+								onClick={() => handleTabChange("venues")}
+							>
+								Lieux
+							</Button>
+							<Button
+								type="button"
+								size="sm"
+								variant={activeTab === "artists" ? "default" : "outline"}
+								onClick={() => handleTabChange("artists")}
+							>
+								Artistes
+							</Button>
+						</>
+					) : null}
+					{hasAdvancedFilters || appliedFilterChips.length > 0 ? (
+						<Button
+							type="button"
+							size="sm"
+							variant="ghost"
+							onClick={resetFilters}
+						>
+							Tout effacer
+						</Button>
+					) : null}
+				</div>
+				<p className="text-muted-foreground text-xs">{description}</p>
 			</div>
 
-			{canSearchVenues && canSearchArtists ? (
-				<div className="mb-6 flex flex-wrap gap-3">
-					<Button
-						type="button"
-						variant={activeTab === "venues" ? "default" : "outline"}
-						onClick={() => setActiveTab("venues")}
-					>
-						Rechercher des lieux
-					</Button>
-					<Button
-						type="button"
-						variant={activeTab === "artists" ? "default" : "outline"}
-						onClick={() => setActiveTab("artists")}
-					>
-						Rechercher des artistes
-					</Button>
+			{appliedFilterChips.length > 0 ? (
+				<div className="mb-4 flex flex-wrap gap-2">
+					{appliedFilterChips.map((chip) => (
+						<Badge key={chip} variant="secondary" className="text-[11px]">
+							{chip}
+						</Badge>
+					))}
 				</div>
 			) : null}
 
-			<Card className="mb-6">
-				<CardContent className="space-y-4 pt-6">
-					<div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-						<div className="relative flex-1">
-							<Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-							<Input
-								value={search}
-								onChange={(event) => setSearch(event.target.value)}
-								onKeyDown={(event) => {
-									if (event.key === "Enter") {
-										applyFilters();
-									}
-								}}
-								placeholder="Ex. Paris, Rock, Le Chato Do, festival..."
-								className="h-11 pr-24 pl-9"
-							/>
-							<Button
-								className="absolute top-1/2 right-1.5 h-8 -translate-y-1/2"
-								type="button"
-								size="sm"
-								onClick={applyFilters}
-								disabled={!hasPendingChanges}
-							>
-								Go
-							</Button>
-						</div>
-						<div className="flex flex-wrap items-center gap-2">
-							<Button
-								type="button"
-								variant={
-									showFilters || activeFilterCount > 0 ? "default" : "outline"
-								}
-								onClick={() => setShowFilters(true)}
-							>
-								<SlidersHorizontal className="h-4 w-4" />
-								Filtres{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
-							</Button>
-							{hasAdvancedFilters || appliedFilterChips.length > 0 ? (
-								<Button type="button" variant="ghost" onClick={resetFilters}>
-									Tout effacer
-								</Button>
-							) : null}
-						</div>
-					</div>
-
-					<div className="flex flex-col gap-2 text-muted-foreground text-sm lg:flex-row lg:items-center lg:justify-between">
-						<p>
-							{hasPendingChanges
-								? "Des changements sont prets a etre appliques."
-								: filterSummary}
-						</p>
-						{appliedFilterChips.length > 0 ? (
-							<div className="flex flex-wrap gap-2">
-								{appliedFilterChips.map((chip) => (
-									<Badge key={chip} variant="secondary">
-										{chip}
-									</Badge>
-								))}
-							</div>
-						) : null}
-					</div>
-				</CardContent>
-			</Card>
-
 			<div className="mb-4 flex flex-col gap-2 text-muted-foreground text-sm sm:flex-row sm:items-center sm:justify-between">
 				<p>{resultLabel}</p>
-				{isFetching && !isLoading ? (
-					<span className="inline-flex items-center gap-2">
-						<Loader2 className="h-4 w-4 animate-spin" />
-						Mise a jour des resultats...
-					</span>
-				) : null}
+				<div className="flex flex-wrap items-center gap-3">
+					{hasResults ? (
+						<span>
+							Affichage {pageStart}-{pageEnd} sur {items.length}
+						</span>
+					) : null}
+					{isFetching && !isLoading ? (
+						<span className="inline-flex items-center gap-2">
+							<Loader2 className="h-4 w-4 animate-spin" />
+							Mise a jour des resultats...
+						</span>
+					) : null}
+				</div>
 			</div>
 
 			{hasSearchError ? (
@@ -452,8 +500,31 @@ export function VenueSearch({
 			) : (
 				<div className="grid gap-6 xl:grid-cols-2 2xl:grid-cols-3">
 					{activeTab === "venues"
-						? venueSearchQuery.data?.map((venue) => (
+						? paginatedVenueItems.map((venue) => (
 								<Card key={venue.id} className="h-full">
+									<div className="relative h-40 overflow-hidden rounded-t-xl border-b bg-muted">
+										{venue.photoUrl ? (
+											/* biome-ignore lint/performance/noImgElement: venue photos are user-provided remote assets */
+											<img
+												src={venue.photoUrl}
+												alt={venue.name}
+												className="h-full w-full object-cover"
+											/>
+										) : (
+											<div className="flex h-full w-full items-center justify-center bg-muted">
+												<Building2 className="h-10 w-10 text-muted-foreground" />
+											</div>
+										)}
+										<div className="absolute inset-0 bg-gradient-to-t from-background/85 via-background/20 to-transparent" />
+										{venue.images.length > 0 ? (
+											<Badge
+												className="absolute top-3 right-3"
+												variant="secondary"
+											>
+												{venue.images.length} photo(s)
+											</Badge>
+										) : null}
+									</div>
 									<CardHeader className="flex flex-row items-start gap-4 space-y-0">
 										<div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border bg-muted">
 											{venue.logoUrl ? (
@@ -518,8 +589,41 @@ export function VenueSearch({
 									</CardFooter>
 								</Card>
 							))
-						: artistSearchQuery.data?.map((artist) => (
-								<Card key={artist.id} className="h-full">
+						: paginatedArtistItems.map((artist) => (
+								<Card key={artist.id} className="h-full overflow-hidden">
+									<div className="relative h-40 overflow-hidden border-b bg-muted">
+										{artist.bannerUrl || artist.photoUrl ? (
+											/* biome-ignore lint/performance/noImgElement: artist media are user-provided remote assets */
+											<img
+												src={artist.bannerUrl || artist.photoUrl || undefined}
+												alt={artist.stageName}
+												className="h-full w-full object-cover"
+											/>
+										) : (
+											<div className="flex h-full w-full items-center justify-center bg-muted">
+												<Mic2 className="h-10 w-10 text-muted-foreground" />
+											</div>
+										)}
+										<div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/25 to-transparent" />
+										<div className="absolute right-4 bottom-4 left-4 flex items-end justify-between gap-3">
+											<div className="min-w-0">
+												<CardTitle className="truncate text-white text-xl drop-shadow-sm">
+													{artist.stageName}
+												</CardTitle>
+												<CardDescription className="mt-1 text-white/85">
+													<span className="inline-flex items-center gap-1">
+														<MapPin className="h-3.5 w-3.5" />
+														{artist.city || "Localisation non renseignee"}
+													</span>
+												</CardDescription>
+											</div>
+											{artist.images.length > 0 ? (
+												<Badge variant="secondary">
+													{artist.images.length} photo(s)
+												</Badge>
+											) : null}
+										</div>
+									</div>
 									<CardHeader className="flex flex-row items-start gap-4 space-y-0">
 										<div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border bg-muted">
 											{artist.photoUrl ? (
@@ -585,6 +689,47 @@ export function VenueSearch({
 				</div>
 			)}
 
+			{hasResults && totalPages > 1 ? (
+				<div className="mt-8 flex flex-col gap-3 border-t pt-6 sm:flex-row sm:items-center sm:justify-between">
+					<p className="text-muted-foreground text-sm">
+						Page {safePage} sur {totalPages}
+					</p>
+					<div className="flex flex-wrap items-center gap-2">
+						<Button
+							type="button"
+							variant="outline"
+							size="sm"
+							onClick={() => setPage(safePage - 1)}
+							disabled={safePage === 1}
+						>
+							<ChevronLeft className="h-4 w-4" />
+							Precedent
+						</Button>
+						{visiblePageNumbers.map((pageNumber) => (
+							<Button
+								key={pageNumber}
+								type="button"
+								variant={pageNumber === safePage ? "default" : "outline"}
+								size="sm"
+								onClick={() => setPage(pageNumber)}
+							>
+								{pageNumber}
+							</Button>
+						))}
+						<Button
+							type="button"
+							variant="outline"
+							size="sm"
+							onClick={() => setPage(safePage + 1)}
+							disabled={safePage === totalPages}
+						>
+							Suivant
+							<ChevronRight className="h-4 w-4" />
+						</Button>
+					</div>
+				</div>
+			) : null}
+
 			{showFilters ? (
 				<div className="fixed inset-0 z-50 flex justify-end bg-black/50">
 					<div className="flex h-full w-full max-w-xl flex-col bg-background shadow-2xl">
@@ -601,7 +746,7 @@ export function VenueSearch({
 								type="button"
 								variant="ghost"
 								size="icon"
-								onClick={() => setShowFilters(false)}
+								onClick={closeFilters}
 							>
 								<X className="h-5 w-5" />
 							</Button>
@@ -756,18 +901,14 @@ export function VenueSearch({
 								Reinitialiser
 							</Button>
 							<div className="flex items-center gap-2">
-								<Button
-									type="button"
-									variant="outline"
-									onClick={() => setShowFilters(false)}
-								>
+								<Button type="button" variant="outline" onClick={closeFilters}>
 									Fermer
 								</Button>
 								<Button
 									type="button"
 									onClick={() => {
 										applyFilters();
-										setShowFilters(false);
+										closeFilters();
 									}}
 									disabled={!hasPendingChanges}
 								>
