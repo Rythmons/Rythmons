@@ -1,34 +1,59 @@
-import { db, type VenueType } from "@rythmons/db";
+import { db, type Prisma, type VenueType } from "@rythmons/db";
 import { MUSIC_GENRES, venueSchema } from "@rythmons/validation";
 import { z } from "zod";
+import { getColumnAvailability } from "../prisma-compat";
 import { protectedProcedure, publicProcedure, router } from "../trpc";
 
 const venueSearchSchema = z.object({
 	query: z.string().trim().max(100).default(""),
 });
 
-export const venueRouter = router({
-	// Get the current user's venues
-	getMyVenues: protectedProcedure.query(async ({ ctx }) => {
-		const venues = await db.venue.findMany({
-			where: {
-				ownerId: ctx.session.user.id,
-			},
-			include: {
-				genres: true,
-			},
-		});
-		return venues;
-	}),
+const venueCompatColumns = [
+	"paymentTypes",
+	"budgetMin",
+	"budgetMax",
+	"techInfo",
+] as const;
 
-	// Get a venue by ID (public)
-	getById: publicProcedure
-		.input(z.object({ id: z.string() }))
-		.query(async ({ input }) => {
-			const venue = await db.venue.findUnique({
-				where: { id: input.id },
-				include: {
-					genres: true,
+async function getVenueCompat(client: {
+	$queryRaw: <T = unknown>(query: Prisma.Sql) => Promise<T>;
+}) {
+	return getColumnAvailability(client, "venue", venueCompatColumns);
+}
+
+function buildVenueSelect(
+	compat: Awaited<ReturnType<typeof getVenueCompat>>,
+	includeOwner: boolean,
+): Prisma.VenueSelect {
+	return {
+		id: true,
+		name: true,
+		address: true,
+		city: true,
+		postalCode: true,
+		country: true,
+		venueType: true,
+		capacity: true,
+		description: true,
+		photoUrl: true,
+		logoUrl: true,
+		images: true,
+		paymentPolicy: true,
+		ownerId: true,
+		createdAt: true,
+		updatedAt: true,
+		...(compat.paymentTypes ? { paymentTypes: true } : {}),
+		...(compat.budgetMin ? { budgetMin: true } : {}),
+		...(compat.budgetMax ? { budgetMax: true } : {}),
+		...(compat.techInfo ? { techInfo: true } : {}),
+		genres: {
+			select: {
+				id: true,
+				name: true,
+			},
+		},
+		...(includeOwner
+			? {
 					owner: {
 						select: {
 							id: true,
@@ -36,9 +61,70 @@ export const venueRouter = router({
 							image: true,
 						},
 					},
-				},
+				}
+			: {}),
+	};
+}
+
+function normalizeVenue<TVenue extends Record<string, unknown>>(
+	venue: TVenue,
+	compat: Awaited<ReturnType<typeof getVenueCompat>>,
+) {
+	return {
+		...venue,
+		...(compat.paymentTypes ? {} : { paymentTypes: [] }),
+		...(compat.budgetMin ? {} : { budgetMin: null }),
+		...(compat.budgetMax ? {} : { budgetMax: null }),
+		...(compat.techInfo ? {} : { techInfo: null }),
+	};
+}
+
+function sanitizeVenueData<TVenueData extends Record<string, unknown>>(
+	data: TVenueData,
+	compat: Awaited<ReturnType<typeof getVenueCompat>>,
+): TVenueData {
+	if (!compat.paymentTypes) {
+		delete data.paymentTypes;
+	}
+
+	if (!compat.budgetMin) {
+		delete data.budgetMin;
+	}
+
+	if (!compat.budgetMax) {
+		delete data.budgetMax;
+	}
+
+	if (!compat.techInfo) {
+		delete data.techInfo;
+	}
+
+	return data;
+}
+
+export const venueRouter = router({
+	// Get the current user's venues
+	getMyVenues: protectedProcedure.query(async ({ ctx }) => {
+		const compat = await getVenueCompat(db);
+		const venues = await db.venue.findMany({
+			where: {
+				ownerId: ctx.session.user.id,
+			},
+			select: buildVenueSelect(compat, false),
+		});
+		return venues.map((venue) => normalizeVenue(venue, compat));
+	}),
+
+	// Get a venue by ID (public)
+	getById: publicProcedure
+		.input(z.object({ id: z.string() }))
+		.query(async ({ input }) => {
+			const compat = await getVenueCompat(db);
+			const venue = await db.venue.findUnique({
+				where: { id: input.id },
+				select: buildVenueSelect(compat, true),
 			});
-			return venue;
+			return venue ? normalizeVenue(venue, compat) : null;
 		}),
 
 	// Get all available genres
@@ -51,8 +137,9 @@ export const venueRouter = router({
 		.input(venueSearchSchema)
 		.query(async ({ input }) => {
 			const query = input.query.trim();
+			const compat = await getVenueCompat(db);
 
-			return db.venue.findMany({
+			const venues = await db.venue.findMany({
 				where: query
 					? {
 							OR: [
@@ -77,19 +164,12 @@ export const venueRouter = router({
 							],
 						}
 					: undefined,
-				include: {
-					genres: true,
-					owner: {
-						select: {
-							id: true,
-							name: true,
-							image: true,
-						},
-					},
-				},
+				select: buildVenueSelect(compat, true),
 				orderBy: [{ name: "asc" }],
 				take: 24,
 			});
+
+			return venues.map((venue) => normalizeVenue(venue, compat));
 		}),
 
 	// Create a new venue
@@ -106,7 +186,9 @@ export const venueRouter = router({
 				throw new Error("Vous avez atteint la limite de 5 lieux.");
 			}
 
+			const compat = await getVenueCompat(db);
 			const { genreNames, ...venueData } = input;
+			const sanitizedVenueData = sanitizeVenueData({ ...venueData }, compat);
 			console.log("Creating venue with data:", venueData); // SERVER DEBUG LOG
 
 			// Create or connect genres
@@ -126,19 +208,17 @@ export const venueRouter = router({
 
 			const venue = await db.venue.create({
 				data: {
-					...venueData,
+					...sanitizedVenueData,
 					venueType: venueData.venueType as VenueType,
 					ownerId: ctx.session.user.id,
 					genres: {
 						connect: genreConnections,
 					},
 				},
-				include: {
-					genres: true,
-				},
+				select: buildVenueSelect(compat, false),
 			});
 
-			return venue;
+			return normalizeVenue(venue, compat);
 		}),
 
 	// Update an existing venue
@@ -163,7 +243,9 @@ export const venueRouter = router({
 				throw new Error("Vous n'êtes pas autorisé à modifier ce lieu");
 			}
 
+			const compat = await getVenueCompat(db);
 			const { genreNames, ...venueData } = input.data;
+			const sanitizedVenueData = sanitizeVenueData({ ...venueData }, compat);
 			console.log("Updating venue with data:", venueData); // SERVER DEBUG LOG
 
 			// Handle genres update if provided
@@ -193,16 +275,14 @@ export const venueRouter = router({
 			const updatedVenue = await db.venue.update({
 				where: { id: input.id },
 				data: {
-					...venueData,
+					...sanitizedVenueData,
 					venueType: venueData.venueType as VenueType | undefined,
 					...genresUpdate,
 				},
-				include: {
-					genres: true,
-				},
+				select: buildVenueSelect(compat, false),
 			});
 
-			return updatedVenue;
+			return normalizeVenue(updatedVenue, compat);
 		}),
 
 	// Delete a venue
