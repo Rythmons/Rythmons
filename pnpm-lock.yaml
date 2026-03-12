@@ -28,7 +28,7 @@ importers:
     dependencies:
       '@better-auth/expo':
         specifier: ^1.4.11
-        version: 1.4.18(@better-auth/core@1.4.18(@better-auth/utils@0.3.0)(@better-fetch/fetch@1.1.21)(better-call@1.1.8(zod@4.1.11))(jose@6.1.0)(kysely@0.28.7)(nanostores@1.0.1))(better-auth@1.4.18(@prisma/client@6.16.3(prisma@6.16.3(typescript@5.9.3))(typescript@5.9.3))(next@16.0.10(@babel/core@7.28.4)(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(prisma@6.16.3(typescript@5.9.3))(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(expo-constants@18.0.13)(expo-linking@8.0.11)(expo-network@8.0.8(expo@54.0.12)(react@19.1.0))(expo-web-browser@15.0.10(expo@54.0.12)(react-native@0.81.5(@babel/core@7.28.4)(@types/react@19.1.17)(react@19.1.0)))
+        version: 1.4.18(@better-auth/core@1.4.18(@better-auth/utils@0.3.0)(@better-fetch/fetch@1.1.21)(better-call@1.1.8(zod@4.3.6))(jose@6.1.0)(kysely@0.28.7)(nanostores@1.0.1))(better-auth@1.4.18(@prisma/client@6.16.3(prisma@6.16.3(typescript@5.9.3))(typescript@5.9.3))(next@16.0.10(@babel/core@7.28.4)(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(prisma@6.16.3(typescript@5.9.3))(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(expo-constants@18.0.13)(expo-linking@8.0.11)(expo-network@8.0.8(expo@54.0.12)(react@19.1.0))(expo-web-browser@15.0.10(expo@54.0.12)(react-native@0.81.5(@babel/core@7.28.4)(@types/react@19.1.17)(react@19.1.0)))
       '@expo-google-fonts/fugaz-one':
         specifier: ^0.4.1
         version: 0.4.1
@@ -95,6 +95,9 @@ importers:
       expo-linking:
         specifier: ~8.0.11
         version: 8.0.11(expo@54.0.12)(react-native@0.81.5(@babel/core@7.28.4)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
+      expo-location:
+        specifier: ~18.0.7
+        version: 18.0.10(expo@54.0.12)
       expo-navigation-bar:
         specifier: ~5.0.10
         version: 5.0.10(expo@54.0.12)(react-native@0.81.5(@babel/core@7.28.4)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
@@ -3932,6 +3935,11 @@ packages:
       react: '*'
       react-native: '*'
 
+  expo-location@18.0.10:
+    resolution: {integrity: sha512-R0Iioz0UZ9Ts8TACPngh8uDFbajJhVa5/igLqWB8Pq/gp8UHuwj7PC8XbZV7avsFoShYjaxrOhf4U7IONeKLgg==}
+    peerDependencies:
+      expo: '*'
+
   expo-modules-autolinking@3.0.14:
     resolution: {integrity: sha512-/qh1ru2kGPOycGvE9dXEKJZbPmYA5U5UcAlWWFbcq9+VhhWdZWZ0zs7V2JCdl+OvpBDo1y9WbqPP5VHQSYqT+Q==}
     hasBin: true
@@ -7345,7 +7353,7 @@ snapshots:
       better-call: 1.0.19
       zod: 4.1.11
 
-  '@better-auth/core@1.4.18(@better-auth/utils@0.3.0)(@better-fetch/fetch@1.1.21)(better-call@1.1.8(zod@4.1.11))(jose@6.1.0)(kysely@0.28.7)(nanostores@1.0.1)':
+  '@better-auth/core@1.4.18(@better-auth/utils@0.3.0)(@better-fetch/fetch@1.1.21)(better-call@1.1.8(zod@4.3.6))(jose@6.1.0)(kysely@0.28.7)(nanostores@1.0.1)':
     dependencies:
       '@better-auth/utils': 0.3.0
       '@better-fetch/fetch': 1.1.21
@@ -7378,9 +7386,9 @@ snapshots:
       expo-web-browser: 15.0.10(expo@54.0.12)(react-native@0.81.5(@babel/core@7.28.4)(@types/react@19.2.0)(react@19.1.0))
       zod: 4.1.11
 
-  '@better-auth/expo@1.4.18(@better-auth/core@1.4.18(@better-auth/utils@0.3.0)(@better-fetch/fetch@1.1.21)(better-call@1.1.8(zod@4.1.11))(jose@6.1.0)(kysely@0.28.7)(nanostores@1.0.1))(better-auth@1.4.18(@prisma/client@6.16.3(prisma@6.16.3(typescript@5.9.3))(typescript@5.9.3))(next@16.0.10(@babel/core@7.28.4)(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(prisma@6.16.3(typescript@5.9.3))(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(expo-constants@18.0.13)(expo-linking@8.0.11)(expo-network@8.0.8(expo@54.0.12)(react@19.1.0))(expo-web-browser@15.0.10(expo@54.0.12)(react-native@0.81.5(@babel/core@7.28.4)(@types/react@19.1.17)(react@19.1.0)))':
+  '@better-auth/expo@1.4.18(@better-auth/core@1.4.18(@better-auth/utils@0.3.0)(@better-fetch/fetch@1.1.21)(better-call@1.1.8(zod@4.3.6))(jose@6.1.0)(kysely@0.28.7)(nanostores@1.0.1))(better-auth@1.4.18(@prisma/client@6.16.3(prisma@6.16.3(typescript@5.9.3))(typescript@5.9.3))(next@16.0.10(@babel/core@7.28.4)(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(prisma@6.16.3(typescript@5.9.3))(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(expo-constants@18.0.13)(expo-linking@8.0.11)(expo-network@8.0.8(expo@54.0.12)(react@19.1.0))(expo-web-browser@15.0.10(expo@54.0.12)(react-native@0.81.5(@babel/core@7.28.4)(@types/react@19.1.17)(react@19.1.0)))':
     dependencies:
-      '@better-auth/core': 1.4.18(@better-auth/utils@0.3.0)(@better-fetch/fetch@1.1.21)(better-call@1.1.8(zod@4.1.11))(jose@6.1.0)(kysely@0.28.7)(nanostores@1.0.1)
+      '@better-auth/core': 1.4.18(@better-auth/utils@0.3.0)(@better-fetch/fetch@1.1.21)(better-call@1.1.8(zod@4.3.6))(jose@6.1.0)(kysely@0.28.7)(nanostores@1.0.1)
       '@better-fetch/fetch': 1.1.21
       better-auth: 1.4.18(@prisma/client@6.16.3(prisma@6.16.3(typescript@5.9.3))(typescript@5.9.3))(next@16.0.10(@babel/core@7.28.4)(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(prisma@6.16.3(typescript@5.9.3))(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       better-call: 1.1.8(zod@4.3.6)
@@ -7391,9 +7399,9 @@ snapshots:
       expo-network: 8.0.8(expo@54.0.12)(react@19.1.0)
       expo-web-browser: 15.0.10(expo@54.0.12)(react-native@0.81.5(@babel/core@7.28.4)(@types/react@19.1.17)(react@19.1.0))
 
-  '@better-auth/telemetry@1.4.18(@better-auth/core@1.4.18(@better-auth/utils@0.3.0)(@better-fetch/fetch@1.1.21)(better-call@1.1.8(zod@4.1.11))(jose@6.1.0)(kysely@0.28.7)(nanostores@1.0.1))':
+  '@better-auth/telemetry@1.4.18(@better-auth/core@1.4.18(@better-auth/utils@0.3.0)(@better-fetch/fetch@1.1.21)(better-call@1.1.8(zod@4.3.6))(jose@6.1.0)(kysely@0.28.7)(nanostores@1.0.1))':
     dependencies:
-      '@better-auth/core': 1.4.18(@better-auth/utils@0.3.0)(@better-fetch/fetch@1.1.21)(better-call@1.1.8(zod@4.1.11))(jose@6.1.0)(kysely@0.28.7)(nanostores@1.0.1)
+      '@better-auth/core': 1.4.18(@better-auth/utils@0.3.0)(@better-fetch/fetch@1.1.21)(better-call@1.1.8(zod@4.3.6))(jose@6.1.0)(kysely@0.28.7)(nanostores@1.0.1)
       '@better-auth/utils': 0.3.0
       '@better-fetch/fetch': 1.1.21
 
@@ -7823,7 +7831,7 @@ snapshots:
       postcss: 8.4.49
       resolve-from: 5.0.0
     optionalDependencies:
-      expo: 54.0.12(@babel/core@7.28.4)(@expo/metro-runtime@6.1.2)(expo-router@6.0.23)(react-native@0.81.5(@babel/core@7.28.4)(@types/react@19.2.0)(react@19.1.0))(react@19.1.0)
+      expo: 54.0.12(@babel/core@7.28.4)(@expo/metro-runtime@6.1.2)(expo-router@6.0.23)(react-native@0.81.5(@babel/core@7.28.4)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
     transitivePeerDependencies:
       - bufferutil
       - supports-color
@@ -7904,11 +7912,11 @@ snapshots:
       '@expo/config': 12.0.10
       '@expo/config-plugins': 54.0.2
       '@expo/config-types': 54.0.8
-      '@expo/image-utils': 0.8.7
+      '@expo/image-utils': 0.8.8
       '@expo/json-file': 10.0.7
       '@react-native/normalize-colors': 0.81.4
       debug: 4.4.3
-      expo: 54.0.12(@babel/core@7.28.4)(@expo/metro-runtime@6.1.2)(expo-router@6.0.23)(react-native@0.81.5(@babel/core@7.28.4)(@types/react@19.2.0)(react@19.1.0))(react@19.1.0)
+      expo: 54.0.12(@babel/core@7.28.4)(@expo/metro-runtime@6.1.2)(expo-router@6.0.23)(react-native@0.81.5(@babel/core@7.28.4)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
       resolve-from: 5.0.0
       semver: 7.7.3
       xml2js: 0.6.0
@@ -10469,7 +10477,7 @@ snapshots:
       resolve-from: 5.0.0
     optionalDependencies:
       '@babel/runtime': 7.28.4
-      expo: 54.0.12(@babel/core@7.28.4)(@expo/metro-runtime@6.1.2)(expo-router@6.0.23)(react-native@0.81.5(@babel/core@7.28.4)(@types/react@19.2.0)(react@19.1.0))(react@19.1.0)
+      expo: 54.0.12(@babel/core@7.28.4)(@expo/metro-runtime@6.1.2)(expo-router@6.0.23)(react-native@0.81.5(@babel/core@7.28.4)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
     transitivePeerDependencies:
       - '@babel/core'
       - supports-color
@@ -10507,13 +10515,13 @@ snapshots:
 
   better-auth@1.4.18(@prisma/client@6.16.3(prisma@6.16.3(typescript@5.8.3))(typescript@5.8.3))(next@16.0.10(@babel/core@7.28.4)(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(prisma@6.16.3(typescript@5.8.3))(react-dom@19.1.0(react@19.1.0))(react@19.1.0):
     dependencies:
-      '@better-auth/core': 1.4.18(@better-auth/utils@0.3.0)(@better-fetch/fetch@1.1.21)(better-call@1.1.8(zod@4.1.11))(jose@6.1.0)(kysely@0.28.7)(nanostores@1.0.1)
-      '@better-auth/telemetry': 1.4.18(@better-auth/core@1.4.18(@better-auth/utils@0.3.0)(@better-fetch/fetch@1.1.21)(better-call@1.1.8(zod@4.1.11))(jose@6.1.0)(kysely@0.28.7)(nanostores@1.0.1))
+      '@better-auth/core': 1.4.18(@better-auth/utils@0.3.0)(@better-fetch/fetch@1.1.21)(better-call@1.1.8(zod@4.3.6))(jose@6.1.0)(kysely@0.28.7)(nanostores@1.0.1)
+      '@better-auth/telemetry': 1.4.18(@better-auth/core@1.4.18(@better-auth/utils@0.3.0)(@better-fetch/fetch@1.1.21)(better-call@1.1.8(zod@4.3.6))(jose@6.1.0)(kysely@0.28.7)(nanostores@1.0.1))
       '@better-auth/utils': 0.3.0
       '@better-fetch/fetch': 1.1.21
       '@noble/ciphers': 2.0.1
       '@noble/hashes': 2.0.1
-      better-call: 1.1.8(zod@4.1.11)
+      better-call: 1.1.8(zod@4.3.6)
       defu: 6.1.4
       jose: 6.1.0
       kysely: 0.28.7
@@ -10528,13 +10536,13 @@ snapshots:
 
   better-auth@1.4.18(@prisma/client@6.16.3(prisma@6.16.3(typescript@5.9.3))(typescript@5.9.3))(next@16.0.10(@babel/core@7.28.4)(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(prisma@6.16.3(typescript@5.9.3))(react-dom@19.1.0(react@19.1.0))(react@19.1.0):
     dependencies:
-      '@better-auth/core': 1.4.18(@better-auth/utils@0.3.0)(@better-fetch/fetch@1.1.21)(better-call@1.1.8(zod@4.1.11))(jose@6.1.0)(kysely@0.28.7)(nanostores@1.0.1)
-      '@better-auth/telemetry': 1.4.18(@better-auth/core@1.4.18(@better-auth/utils@0.3.0)(@better-fetch/fetch@1.1.21)(better-call@1.1.8(zod@4.1.11))(jose@6.1.0)(kysely@0.28.7)(nanostores@1.0.1))
+      '@better-auth/core': 1.4.18(@better-auth/utils@0.3.0)(@better-fetch/fetch@1.1.21)(better-call@1.1.8(zod@4.3.6))(jose@6.1.0)(kysely@0.28.7)(nanostores@1.0.1)
+      '@better-auth/telemetry': 1.4.18(@better-auth/core@1.4.18(@better-auth/utils@0.3.0)(@better-fetch/fetch@1.1.21)(better-call@1.1.8(zod@4.3.6))(jose@6.1.0)(kysely@0.28.7)(nanostores@1.0.1))
       '@better-auth/utils': 0.3.0
       '@better-fetch/fetch': 1.1.21
       '@noble/ciphers': 2.0.1
       '@noble/hashes': 2.0.1
-      better-call: 1.1.8(zod@4.3.6)
+      better-call: 1.1.8(zod@4.1.11)
       defu: 6.1.4
       jose: 6.1.0
       kysely: 0.28.7
@@ -11060,7 +11068,7 @@ snapshots:
   expo-crypto@15.0.8(expo@54.0.12):
     dependencies:
       base64-js: 1.5.1
-      expo: 54.0.12(@babel/core@7.28.4)(@expo/metro-runtime@6.1.2)(expo-router@6.0.23)(react-native@0.81.5(@babel/core@7.28.4)(@types/react@19.2.0)(react@19.1.0))(react@19.1.0)
+      expo: 54.0.12(@babel/core@7.28.4)(@expo/metro-runtime@6.1.2)(expo-router@6.0.23)(react-native@0.81.5(@babel/core@7.28.4)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
 
   expo-file-system@19.0.21(expo@54.0.12)(react-native@0.81.5(@babel/core@7.28.4)(@types/react@19.1.17)(react@19.1.0)):
     dependencies:
@@ -11097,7 +11105,7 @@ snapshots:
 
   expo-keep-awake@15.0.7(expo@54.0.12)(react@19.1.0):
     dependencies:
-      expo: 54.0.12(@babel/core@7.28.4)(@expo/metro-runtime@6.1.2)(expo-router@6.0.23)(react-native@0.81.5(@babel/core@7.28.4)(@types/react@19.2.0)(react@19.1.0))(react@19.1.0)
+      expo: 54.0.12(@babel/core@7.28.4)(@expo/metro-runtime@6.1.2)(expo-router@6.0.23)(react-native@0.81.5(@babel/core@7.28.4)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
       react: 19.1.0
 
   expo-linking@8.0.11(expo@54.0.12)(react-native@0.81.5(@babel/core@7.28.4)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0):
@@ -11119,6 +11127,10 @@ snapshots:
     transitivePeerDependencies:
       - expo
       - supports-color
+
+  expo-location@18.0.10(expo@54.0.12):
+    dependencies:
+      expo: 54.0.12(@babel/core@7.28.4)(@expo/metro-runtime@6.1.2)(expo-router@6.0.23)(react-native@0.81.5(@babel/core@7.28.4)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
 
   expo-modules-autolinking@3.0.14:
     dependencies:
@@ -11248,7 +11260,7 @@ snapshots:
 
   expo-secure-store@15.0.8(expo@54.0.12):
     dependencies:
-      expo: 54.0.12(@babel/core@7.28.4)(@expo/metro-runtime@6.1.2)(expo-router@6.0.23)(react-native@0.81.5(@babel/core@7.28.4)(@types/react@19.2.0)(react@19.1.0))(react@19.1.0)
+      expo: 54.0.12(@babel/core@7.28.4)(@expo/metro-runtime@6.1.2)(expo-router@6.0.23)(react-native@0.81.5(@babel/core@7.28.4)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
 
   expo-server@1.0.0: {}
 

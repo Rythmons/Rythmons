@@ -5,6 +5,7 @@ import {
 	artistSearchSchema,
 } from "@rythmons/validation";
 import { z } from "zod";
+import { geocodeAddress, haversineKm } from "../geocode";
 import { getColumnAvailability } from "../prisma-compat";
 import { protectedProcedure, publicProcedure, router } from "../trpc";
 
@@ -38,6 +39,8 @@ function buildArtistSelect(
 		images: true,
 		createdAt: true,
 		updatedAt: true,
+		latitude: true,
+		longitude: true,
 		...(compat.city ? { city: true } : {}),
 		...(compat.postalCode ? { postalCode: true } : {}),
 		...(compat.socialLinks ? { socialLinks: true } : {}),
@@ -174,7 +177,7 @@ function buildArtistSearchWhere(
 		andFilters.push({ genres: genreFilter });
 	}
 
-	if (city && compat.city) {
+	if (city && compat.city && !input.radiusKm) {
 		andFilters.push({
 			city: {
 				contains: city,
@@ -183,7 +186,7 @@ function buildArtistSearchWhere(
 		});
 	}
 
-	if (postalCode && compat.postalCode) {
+	if (postalCode && compat.postalCode && !input.radiusKm) {
 		andFilters.push({
 			postalCode: {
 				contains: postalCode,
@@ -244,10 +247,35 @@ export const artistRouter = router({
 				where: buildArtistSearchWhere(input, compat),
 				select: buildArtistSelect(compat),
 				orderBy: [{ stageName: "asc" }],
-				take: 24,
+				take: input.radiusKm != null ? 500 : 24,
 			});
 
-			return artists.map((artist) => normalizeArtist(artist, compat));
+			const normalized = artists.map((artist) =>
+				normalizeArtist(artist, compat),
+			);
+
+			if (input.radiusKm != null) {
+				let ref: { lat: number; lng: number } | null = null;
+				if (input.userLat != null && input.userLng != null) {
+					ref = { lat: input.userLat, lng: input.userLng };
+				} else {
+					const locationQuery = [input.city.trim(), input.postalCode.trim()]
+						.filter(Boolean)
+						.join(" ");
+					ref = locationQuery ? await geocodeAddress(locationQuery) : null;
+				}
+				if (ref) {
+					return normalized.filter((a) => {
+						if (a.latitude == null || a.longitude == null) return false;
+						return (
+							haversineKm(ref.lat, ref.lng, a.latitude, a.longitude) <=
+							(input.radiusKm as number)
+						);
+					});
+				}
+			}
+
+			return normalized;
 		}),
 
 	create: protectedProcedure
@@ -292,6 +320,21 @@ export const artistRouter = router({
 				},
 				select: buildArtistSelect(compat),
 			});
+
+			// Geocode asynchronously after creation
+			const geoQuery = [input.city, input.postalCode].filter(Boolean).join(" ");
+			if (geoQuery) {
+				geocodeAddress(geoQuery).then((coords) => {
+					if (coords) {
+						ctx.db.artist
+							.update({
+								where: { id: artist.id },
+								data: { latitude: coords.lat, longitude: coords.lng },
+							})
+							.catch(() => {});
+					}
+				});
+			}
 
 			return normalizeArtist(artist, compat);
 		}),
@@ -352,6 +395,23 @@ export const artistRouter = router({
 				},
 				select: buildArtistSelect(compat),
 			});
+
+			// Re-geocode if city/postal code changed
+			const geoQuery = [artistData.city, artistData.postalCode]
+				.filter(Boolean)
+				.join(" ");
+			if (geoQuery) {
+				geocodeAddress(geoQuery).then((coords) => {
+					if (coords) {
+						ctx.db.artist
+							.update({
+								where: { id: input.id },
+								data: { latitude: coords.lat, longitude: coords.lng },
+							})
+							.catch(() => {});
+					}
+				});
+			}
 
 			return normalizeArtist(updatedArtist, compat);
 		}),

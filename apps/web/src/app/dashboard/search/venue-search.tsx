@@ -8,13 +8,16 @@ import {
 	ChevronLeft,
 	ChevronRight,
 	ChevronUp,
+	List,
 	Loader2,
+	Map as MapIcon,
 	MapPin,
 	Mic2,
 	UserRound,
 	X,
 } from "lucide-react";
 import type { Route } from "next";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -40,6 +43,18 @@ import {
 } from "@/components/ui/select";
 import { trpc } from "@/utils/trpc";
 import { getVenueTypeLabel } from "@/utils/venue-labels";
+
+const SearchMap = dynamic(() => import("@/components/ui/search-map"), {
+	ssr: false,
+	loading: () => (
+		<div className="flex min-h-[520px] items-center justify-center rounded-xl border border-dashed">
+			<p className="inline-flex items-center gap-2 text-muted-foreground">
+				<Loader2 className="h-4 w-4 animate-spin" />
+				Chargement de la carte...
+			</p>
+		</div>
+	),
+});
 
 type SearchTab = "venues" | "artists";
 
@@ -92,6 +107,7 @@ export function VenueSearch({
 	const [activeTab, setActiveTab] = useState<SearchTab>(
 		canSearchVenues ? "venues" : "artists",
 	);
+	const [viewMode, setViewMode] = useState<"list" | "map">("list");
 	const [city, setCity] = useState("");
 	const [postalCode, setPostalCode] = useState("");
 	const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
@@ -100,6 +116,15 @@ export function VenueSearch({
 	const [budgetMax, setBudgetMax] = useState("");
 	const [feeMin, setFeeMin] = useState("");
 	const [feeMax, setFeeMax] = useState("");
+	const [radiusKm, setRadiusKm] = useState<string>("none");
+	const [useMyLocation, setUseMyLocation] = useState(false);
+	const [myLocationCoords, setMyLocationCoords] = useState<{
+		lat: number;
+		lng: number;
+	} | null>(null);
+	const [locationStatus, setLocationStatus] = useState<
+		"idle" | "loading" | "success" | "error"
+	>("idle");
 	const [showAllGenres, setShowAllGenres] = useState(false);
 	const [appliedSearch, setAppliedSearch] = useState(
 		searchParams.get("q")?.trim() ?? "",
@@ -112,6 +137,11 @@ export function VenueSearch({
 	const [appliedBudgetMax, setAppliedBudgetMax] = useState("");
 	const [appliedFeeMin, setAppliedFeeMin] = useState("");
 	const [appliedFeeMax, setAppliedFeeMax] = useState("");
+	const [appliedRadiusKm, setAppliedRadiusKm] = useState<string>("none");
+	const [appliedUserCoords, setAppliedUserCoords] = useState<{
+		lat: number;
+		lng: number;
+	} | null>(null);
 	const normalizedQuery = searchParams.get("q")?.trim() ?? "";
 	const requestedPage = Number.parseInt(searchParams.get("page") ?? "1", 10);
 	const currentPage =
@@ -124,6 +154,10 @@ export function VenueSearch({
 			genreNames: appliedGenres,
 			city: appliedCity,
 			postalCode: appliedPostalCode,
+			radiusKm:
+				appliedRadiusKm !== "none" ? Number(appliedRadiusKm) : undefined,
+			userLat: appliedUserCoords?.lat,
+			userLng: appliedUserCoords?.lng,
 			venueTypes:
 				appliedVenueType === "all"
 					? []
@@ -137,7 +171,9 @@ export function VenueSearch({
 			appliedCity,
 			appliedGenres,
 			appliedPostalCode,
+			appliedRadiusKm,
 			appliedSearch,
+			appliedUserCoords,
 			appliedVenueType,
 		],
 	);
@@ -148,6 +184,10 @@ export function VenueSearch({
 			genreNames: appliedGenres,
 			city: appliedCity,
 			postalCode: appliedPostalCode,
+			radiusKm:
+				appliedRadiusKm !== "none" ? Number(appliedRadiusKm) : undefined,
+			userLat: appliedUserCoords?.lat,
+			userLng: appliedUserCoords?.lng,
 			feeMin: parseOptionalNumber(appliedFeeMin),
 			feeMax: parseOptionalNumber(appliedFeeMax),
 		}),
@@ -157,7 +197,9 @@ export function VenueSearch({
 			appliedFeeMin,
 			appliedGenres,
 			appliedPostalCode,
+			appliedRadiusKm,
 			appliedSearch,
+			appliedUserCoords,
 		],
 	);
 
@@ -190,19 +232,11 @@ export function VenueSearch({
 	const isLoading = activeQuery.isLoading;
 	const isFetching = activeQuery.isFetching;
 	const visibleGenres = showAllGenres ? MUSIC_GENRES : MUSIC_GENRES.slice(0, 8);
-	const activeFilterCount =
-		(appliedSearch ? 1 : 0) +
-		(appliedCity ? 1 : 0) +
-		(appliedPostalCode ? 1 : 0) +
-		appliedGenres.length +
-		(activeTab === "venues"
-			? (appliedVenueType !== "all" ? 1 : 0) +
-				(appliedBudgetMin ? 1 : 0) +
-				(appliedBudgetMax ? 1 : 0)
-			: (appliedFeeMin ? 1 : 0) + (appliedFeeMax ? 1 : 0));
 	const hasPendingChanges =
 		city.trim() !== appliedCity ||
 		postalCode.trim() !== appliedPostalCode ||
+		radiusKm !== appliedRadiusKm ||
+		useMyLocation !== (appliedUserCoords != null) ||
 		!haveSameValues(selectedGenres, appliedGenres) ||
 		selectedVenueType !== appliedVenueType ||
 		budgetMin !== appliedBudgetMin ||
@@ -232,6 +266,7 @@ export function VenueSearch({
 		setAppliedSearch(normalizedQuery);
 	}, [normalizedQuery]);
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: updateRouteSearchParams is recreated each render; adding it to deps would fire the effect on every render
 	useEffect(() => {
 		if (safePage === currentPage) {
 			return;
@@ -276,6 +311,7 @@ export function VenueSearch({
 
 	function handleTabChange(nextTab: SearchTab) {
 		setActiveTab(nextTab);
+		setViewMode("list");
 		if (currentPage > 1) {
 			setPage(1);
 		}
@@ -289,9 +325,48 @@ export function VenueSearch({
 		);
 	}
 
+	function handleMyLocationToggle() {
+		if (useMyLocation) {
+			setUseMyLocation(false);
+			setMyLocationCoords(null);
+			setLocationStatus("idle");
+		} else {
+			setLocationStatus("loading");
+			navigator.geolocation.getCurrentPosition(
+				async (pos) => {
+					const { latitude, longitude } = pos.coords;
+					setMyLocationCoords({ lat: latitude, lng: longitude });
+					setUseMyLocation(true);
+					setLocationStatus("success");
+					try {
+						const res = await fetch(
+							`https://api-adresse.data.gouv.fr/reverse/?lon=${longitude}&lat=${latitude}&limit=1`,
+						);
+						if (res.ok) {
+							const data = await res.json();
+							const feature = data?.features?.[0]?.properties;
+							if (feature?.city) setCity(feature.city);
+							if (feature?.postcode) setPostalCode(feature.postcode);
+						}
+					} catch {
+						// reverse geocoding is best-effort, ignore errors
+					}
+				},
+				() => {
+					setLocationStatus("error");
+				},
+				{ timeout: 10000, enableHighAccuracy: false },
+			);
+		}
+	}
+
 	function resetFilters() {
 		setCity("");
 		setPostalCode("");
+		setRadiusKm("none");
+		setUseMyLocation(false);
+		setMyLocationCoords(null);
+		setLocationStatus("idle");
 		setSelectedGenres([]);
 		setSelectedVenueType("all");
 		setBudgetMin("");
@@ -301,6 +376,8 @@ export function VenueSearch({
 		setAppliedSearch("");
 		setAppliedCity("");
 		setAppliedPostalCode("");
+		setAppliedRadiusKm("none");
+		setAppliedUserCoords(null);
 		setAppliedGenres([]);
 		setAppliedVenueType("all");
 		setAppliedBudgetMin("");
@@ -318,6 +395,10 @@ export function VenueSearch({
 		setAppliedSearch(normalizedQuery);
 		setAppliedCity(city.trim());
 		setAppliedPostalCode(postalCode.trim());
+		setAppliedRadiusKm(radiusKm);
+		setAppliedUserCoords(
+			useMyLocation && myLocationCoords ? myLocationCoords : null,
+		);
 		setAppliedGenres(selectedGenres);
 		setAppliedVenueType(selectedVenueType);
 		setAppliedBudgetMin(budgetMin);
@@ -332,6 +413,8 @@ export function VenueSearch({
 	const hasAdvancedFilters =
 		city.trim().length > 0 ||
 		postalCode.trim().length > 0 ||
+		radiusKm !== "none" ||
+		useMyLocation ||
 		selectedGenres.length > 0 ||
 		(activeTab === "venues"
 			? selectedVenueType !== "all" ||
@@ -343,6 +426,8 @@ export function VenueSearch({
 		...(appliedSearch ? [`Recherche: ${appliedSearch}`] : []),
 		...(appliedCity ? [`Ville: ${appliedCity}`] : []),
 		...(appliedPostalCode ? [`CP: ${appliedPostalCode}`] : []),
+		...(appliedUserCoords != null ? ["Ma position"] : []),
+		...(appliedRadiusKm !== "none" ? [`Rayon: ${appliedRadiusKm} km`] : []),
 		...appliedGenres,
 		...(activeTab === "venues"
 			? [
@@ -361,12 +446,6 @@ export function VenueSearch({
 					...(appliedFeeMax ? [`Cachet max ${appliedFeeMax}€`] : []),
 				]),
 	];
-	const filterSummary =
-		activeFilterCount > 0
-			? `${activeFilterCount} filtre(s) actif(s)`
-			: activeTab === "venues"
-				? "Ville, type de lieu, budget, genres"
-				: "Ville, cachet, genres";
 	const pageStart =
 		items.length === 0 ? 0 : (safePage - 1) * RESULTS_PER_PAGE + 1;
 	const pageEnd = Math.min(safePage * RESULTS_PER_PAGE, items.length);
@@ -428,7 +507,35 @@ export function VenueSearch({
 			<div className="mb-4 flex flex-col gap-2 text-muted-foreground text-sm sm:flex-row sm:items-center sm:justify-between">
 				<p>{resultLabel}</p>
 				<div className="flex flex-wrap items-center gap-3">
-					{hasResults ? (
+					{hasResults && activeTab === "venues" ? (
+						<div className="flex items-center rounded-lg border p-0.5">
+							<button
+								type="button"
+								onClick={() => setViewMode("list")}
+								className={`flex items-center gap-1.5 rounded px-2.5 py-1.5 font-medium text-xs transition-colors ${
+									viewMode === "list"
+										? "bg-primary text-primary-foreground"
+										: "text-muted-foreground hover:text-foreground"
+								}`}
+							>
+								<List className="h-3.5 w-3.5" />
+								Liste
+							</button>
+							<button
+								type="button"
+								onClick={() => setViewMode("map")}
+								className={`flex items-center gap-1.5 rounded px-2.5 py-1.5 font-medium text-xs transition-colors ${
+									viewMode === "map"
+										? "bg-primary text-primary-foreground"
+										: "text-muted-foreground hover:text-foreground"
+								}`}
+							>
+								<MapIcon className="h-3.5 w-3.5" />
+								Carte
+							</button>
+						</div>
+					) : null}
+					{hasResults && viewMode === "list" ? (
 						<span>
 							Affichage {pageStart}-{pageEnd} sur {items.length}
 						</span>
@@ -497,6 +604,8 @@ export function VenueSearch({
 						</CardHeader>
 					</Card>
 				)
+			) : viewMode === "map" && activeTab === "venues" ? (
+				<SearchMap venues={venueItems} />
 			) : (
 				<div className="grid gap-6 xl:grid-cols-2 2xl:grid-cols-3">
 					{activeTab === "venues"
@@ -689,7 +798,7 @@ export function VenueSearch({
 				</div>
 			)}
 
-			{hasResults && totalPages > 1 ? (
+			{hasResults && totalPages > 1 && viewMode === "list" ? (
 				<div className="mt-8 flex flex-col gap-3 border-t pt-6 sm:flex-row sm:items-center sm:justify-between">
 					<p className="text-muted-foreground text-sm">
 						Page {safePage} sur {totalPages}
@@ -771,6 +880,60 @@ export function VenueSearch({
 										onChange={(event) => setPostalCode(event.target.value)}
 										placeholder="Ex. 75011"
 									/>
+								</div>
+								<div className="space-y-2 md:col-span-2">
+									<div className="flex items-center justify-between">
+										<Label htmlFor="search-radius">Rayon</Label>
+										<button
+											type="button"
+											onClick={handleMyLocationToggle}
+											disabled={locationStatus === "loading"}
+											className={`flex items-center gap-1.5 rounded-full px-3 py-1 font-medium text-xs transition-colors disabled:opacity-60 ${
+												useMyLocation
+													? "bg-primary text-primary-foreground"
+													: "border border-border bg-background text-foreground hover:bg-muted"
+											}`}
+										>
+											{locationStatus === "loading" ? (
+												<Loader2 className="h-3 w-3 animate-spin" />
+											) : (
+												<MapPin className="h-3 w-3" />
+											)}
+											{locationStatus === "loading"
+												? "Localisation..."
+												: "Ma position"}
+										</button>
+									</div>
+									<Select value={radiusKm} onValueChange={setRadiusKm}>
+										<SelectTrigger id="search-radius">
+											<SelectValue placeholder="Pas de limite" />
+										</SelectTrigger>
+										<SelectContent>
+											<SelectItem value="none">Pas de limite</SelectItem>
+											<SelectItem value="10">10 km</SelectItem>
+											<SelectItem value="25">25 km</SelectItem>
+											<SelectItem value="50">50 km</SelectItem>
+											<SelectItem value="100">100 km</SelectItem>
+											<SelectItem value="200">200 km</SelectItem>
+										</SelectContent>
+									</Select>
+									{useMyLocation && locationStatus === "success" ? (
+										<p className="text-green-600 text-xs dark:text-green-400">
+											✓ Position obtenue
+										</p>
+									) : locationStatus === "error" ? (
+										<p className="text-destructive text-xs">
+											Impossible d&apos;obtenir votre position.
+										</p>
+									) : !useMyLocation &&
+										radiusKm !== "none" &&
+										!city.trim() &&
+										!postalCode.trim() ? (
+										<p className="text-muted-foreground text-xs">
+											Saisissez une ville ou un code postal pour activer le
+											filtre rayon.
+										</p>
+									) : null}
 								</div>
 							</div>
 

@@ -13,16 +13,66 @@ const DEFAULT_ORGANIZER_COUNT = 12;
 const DEFAULT_VENUE_COUNT = 18;
 
 const CITY_FIXTURES = [
-	{ city: "Paris", postalCodes: ["75011", "75018", "75020"] },
-	{ city: "Lyon", postalCodes: ["69001", "69003", "69007"] },
-	{ city: "Marseille", postalCodes: ["13002", "13005", "13006"] },
-	{ city: "Bordeaux", postalCodes: ["33000", "33100", "33800"] },
-	{ city: "Lille", postalCodes: ["59000", "59800", "59260"] },
-	{ city: "Nantes", postalCodes: ["44000", "44100", "44200"] },
-	{ city: "Toulouse", postalCodes: ["31000", "31200", "31400"] },
-	{ city: "Montpellier", postalCodes: ["34000", "34070", "34090"] },
-	{ city: "Rennes", postalCodes: ["35000", "35700", "35200"] },
-	{ city: "Strasbourg", postalCodes: ["67000", "67100", "67200"] },
+	{
+		city: "Paris",
+		postalCodes: ["75011", "75018", "75020"],
+		lat: 48.8566,
+		lng: 2.3522,
+	},
+	{
+		city: "Lyon",
+		postalCodes: ["69001", "69003", "69007"],
+		lat: 45.764,
+		lng: 4.8357,
+	},
+	{
+		city: "Marseille",
+		postalCodes: ["13002", "13005", "13006"],
+		lat: 43.2965,
+		lng: 5.3698,
+	},
+	{
+		city: "Bordeaux",
+		postalCodes: ["33000", "33100", "33800"],
+		lat: 44.8378,
+		lng: -0.5792,
+	},
+	{
+		city: "Lille",
+		postalCodes: ["59000", "59800", "59260"],
+		lat: 50.6292,
+		lng: 3.0573,
+	},
+	{
+		city: "Nantes",
+		postalCodes: ["44000", "44100", "44200"],
+		lat: 47.2184,
+		lng: -1.5536,
+	},
+	{
+		city: "Toulouse",
+		postalCodes: ["31000", "31200", "31400"],
+		lat: 43.6047,
+		lng: 1.4442,
+	},
+	{
+		city: "Montpellier",
+		postalCodes: ["34000", "34070", "34090"],
+		lat: 43.6108,
+		lng: 3.8767,
+	},
+	{
+		city: "Rennes",
+		postalCodes: ["35000", "35700", "35200"],
+		lat: 48.1173,
+		lng: -1.6778,
+	},
+	{
+		city: "Strasbourg",
+		postalCodes: ["67000", "67100", "67200"],
+		lat: 48.5734,
+		lng: 7.7521,
+	},
 ];
 
 const GENRE_FIXTURES = [
@@ -117,6 +167,8 @@ const demoArtists = [
 		stageName: "Luna Echo",
 		city: "Paris",
 		postalCode: "75011",
+		latitude: 48.8632,
+		longitude: 2.3701,
 		photoUrl: creerPlaceholderMediaUrl({
 			type: "artist",
 			slug: "luna-echo",
@@ -160,6 +212,8 @@ const demoArtists = [
 		stageName: "River Lights",
 		city: "Lyon",
 		postalCode: "69001",
+		latitude: 45.764,
+		longitude: 4.8357,
 		photoUrl: creerPlaceholderMediaUrl({
 			type: "artist",
 			slug: "river-lights",
@@ -202,6 +256,8 @@ const demoArtists = [
 		stageName: "Maya Pulse",
 		city: "Marseille",
 		postalCode: "13006",
+		latitude: 43.2926,
+		longitude: 5.3825,
 		photoUrl: creerPlaceholderMediaUrl({
 			type: "artist",
 			slug: "maya-pulse",
@@ -249,6 +305,8 @@ const demoVenues = [
 		address: "12 Rue Oberkampf",
 		city: "Paris",
 		postalCode: "75011",
+		latitude: 48.8632,
+		longitude: 2.3701,
 		country: "France",
 		venueType: "CLUB",
 		capacity: 220,
@@ -284,6 +342,8 @@ const demoVenues = [
 		address: "8 Quai de Bondy",
 		city: "Lyon",
 		postalCode: "69005",
+		latitude: 45.7577,
+		longitude: 4.8274,
 		country: "France",
 		venueType: "CAFE",
 		capacity: 80,
@@ -318,6 +378,8 @@ const demoVenues = [
 		address: "24 Rue des Docks",
 		city: "Marseille",
 		postalCode: "13002",
+		latitude: 43.3044,
+		longitude: 5.3736,
 		country: "France",
 		venueType: "CONCERT_HALL",
 		capacity: 350,
@@ -396,9 +458,13 @@ function creerGalerieMedia({ type, slug, baseLabel, count }) {
 
 function choisirVille() {
 	const selection = faker.helpers.arrayElement(CITY_FIXTURES);
+	const offset = () =>
+		faker.number.float({ min: -0.04, max: 0.04, fractionDigits: 4 });
 	return {
 		city: selection.city,
 		postalCode: faker.helpers.arrayElement(selection.postalCodes),
+		lat: selection.lat + offset(),
+		lng: selection.lng + offset(),
 	};
 }
 
@@ -455,6 +521,8 @@ function creerArtistesGeneres(nombre) {
 				stageName,
 				city: localisation.city,
 				postalCode: localisation.postalCode,
+				latitude: localisation.lat,
+				longitude: localisation.lng,
 				photoUrl: creerPlaceholderMediaUrl({
 					type: "artist",
 					slug: `${slug}-portrait`,
@@ -543,6 +611,8 @@ function creerSallesGenerees(nombre, organisateurs) {
 			address: faker.location.streetAddress(),
 			city: localisation.city,
 			postalCode: localisation.postalCode,
+			latitude: localisation.lat,
+			longitude: localisation.lng,
 			country: "France",
 			venueType,
 			capacity: faker.number.int({ min: 50, max: 900 }),
@@ -672,6 +742,8 @@ async function upsertArtiste(artiste, userId) {
 			stageName: artiste.stageName,
 			city: artiste.city,
 			postalCode: artiste.postalCode,
+			latitude: artiste.latitude ?? null,
+			longitude: artiste.longitude ?? null,
 			photoUrl: artiste.photoUrl ?? null,
 			bannerUrl: artiste.bannerUrl ?? null,
 			bio: artiste.bio,
@@ -692,6 +764,8 @@ async function upsertArtiste(artiste, userId) {
 			stageName: artiste.stageName,
 			city: artiste.city,
 			postalCode: artiste.postalCode,
+			latitude: artiste.latitude ?? null,
+			longitude: artiste.longitude ?? null,
 			photoUrl: artiste.photoUrl ?? null,
 			bannerUrl: artiste.bannerUrl ?? null,
 			bio: artiste.bio,
@@ -720,6 +794,8 @@ async function upsertSalle(salle, ownerId) {
 			address: salle.address,
 			city: salle.city,
 			postalCode: salle.postalCode,
+			latitude: salle.latitude ?? null,
+			longitude: salle.longitude ?? null,
 			country: salle.country,
 			venueType: salle.venueType,
 			capacity: salle.capacity,
@@ -743,6 +819,8 @@ async function upsertSalle(salle, ownerId) {
 			address: salle.address,
 			city: salle.city,
 			postalCode: salle.postalCode,
+			latitude: salle.latitude ?? null,
+			longitude: salle.longitude ?? null,
 			country: salle.country,
 			venueType: salle.venueType,
 			capacity: salle.capacity,

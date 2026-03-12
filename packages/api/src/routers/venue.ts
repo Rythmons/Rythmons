@@ -6,6 +6,7 @@ import {
 	venueSearchSchema,
 } from "@rythmons/validation";
 import { z } from "zod";
+import { geocodeAddress, haversineKm } from "../geocode";
 import { getColumnAvailability } from "../prisma-compat";
 import { protectedProcedure, publicProcedure, router } from "../trpc";
 
@@ -43,6 +44,8 @@ function buildVenueSelect(
 		ownerId: true,
 		createdAt: true,
 		updatedAt: true,
+		latitude: true,
+		longitude: true,
 		...(compat.paymentTypes ? { paymentTypes: true } : {}),
 		...(compat.budgetMin ? { budgetMin: true } : {}),
 		...(compat.budgetMax ? { budgetMax: true } : {}),
@@ -158,7 +161,7 @@ function buildVenueSearchWhere(
 		andFilters.push({ genres: genreFilter });
 	}
 
-	if (city) {
+	if (city && !input.radiusKm) {
 		andFilters.push({
 			city: {
 				contains: city,
@@ -167,7 +170,7 @@ function buildVenueSearchWhere(
 		});
 	}
 
-	if (postalCode) {
+	if (postalCode && !input.radiusKm) {
 		andFilters.push({
 			postalCode: {
 				contains: postalCode,
@@ -244,10 +247,34 @@ export const venueRouter = router({
 				where: buildVenueSearchWhere(input),
 				select: buildVenueSelect(compat, true),
 				orderBy: [{ name: "asc" }],
-				take: 24,
+				// Increase limit when radius filtering so we have enough records to filter from
+				take: input.radiusKm != null ? 500 : 24,
 			});
 
-			return venues.map((venue) => normalizeVenue(venue, compat));
+			const normalized = venues.map((venue) => normalizeVenue(venue, compat));
+
+			if (input.radiusKm != null) {
+				let ref: { lat: number; lng: number } | null = null;
+				if (input.userLat != null && input.userLng != null) {
+					ref = { lat: input.userLat, lng: input.userLng };
+				} else {
+					const locationQuery = [input.city.trim(), input.postalCode.trim()]
+						.filter(Boolean)
+						.join(" ");
+					ref = locationQuery ? await geocodeAddress(locationQuery) : null;
+				}
+				if (ref) {
+					return normalized.filter((v) => {
+						if (v.latitude == null || v.longitude == null) return false;
+						return (
+							haversineKm(ref.lat, ref.lng, v.latitude, v.longitude) <=
+							(input.radiusKm as number)
+						);
+					});
+				}
+			}
+
+			return normalized;
 		}),
 
 	// Create a new venue
@@ -295,6 +322,23 @@ export const venueRouter = router({
 				},
 				select: buildVenueSelect(compat, false),
 			});
+
+			// Geocode asynchronously after creation (fire-and-forget)
+			const geoQuery = [venueData.city, venueData.postalCode]
+				.filter(Boolean)
+				.join(" ");
+			if (geoQuery) {
+				geocodeAddress(geoQuery).then((coords) => {
+					if (coords) {
+						db.venue
+							.update({
+								where: { id: venue.id },
+								data: { latitude: coords.lat, longitude: coords.lng },
+							})
+							.catch(() => {});
+					}
+				});
+			}
 
 			return normalizeVenue(venue, compat);
 		}),
@@ -359,6 +403,23 @@ export const venueRouter = router({
 				},
 				select: buildVenueSelect(compat, false),
 			});
+
+			// Re-geocode if city or postal code changed
+			const geoQuery = [venueData.city, venueData.postalCode]
+				.filter(Boolean)
+				.join(" ");
+			if (geoQuery) {
+				geocodeAddress(geoQuery).then((coords) => {
+					if (coords) {
+						db.venue
+							.update({
+								where: { id: input.id },
+								data: { latitude: coords.lat, longitude: coords.lng },
+							})
+							.catch(() => {});
+					}
+				});
+			}
 
 			return normalizeVenue(updatedVenue, compat);
 		}),

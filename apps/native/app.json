@@ -41,7 +41,13 @@
 				}
 			],
 			"expo-secure-store",
-			"expo-web-browser"
+			"expo-web-browser",
+			[
+				"expo-location",
+				{
+					"locationWhenInUsePermission": "Rythmons utilise votre position pour filtrer les résultats à proximité."
+				}
+			]
 		],
 		"experiments": {
 			"typedRoutes": true,

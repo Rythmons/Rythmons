@@ -3,6 +3,7 @@ import type { AppRouter } from "@rythmons/api";
 import { MUSIC_GENRES, venueTypeValues } from "@rythmons/validation";
 import { useQuery } from "@tanstack/react-query";
 import type { inferRouterOutputs } from "@trpc/server";
+import * as Location from "expo-location";
 import { router } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ScrollView as ScrollViewType } from "react-native";
@@ -82,6 +83,15 @@ export default function VenueSearchScreen() {
 	const [budgetMax, setBudgetMax] = useState("");
 	const [feeMin, setFeeMin] = useState("");
 	const [feeMax, setFeeMax] = useState("");
+	const [radiusKm, setRadiusKm] = useState<number | null>(null);
+	const [useMyLocation, setUseMyLocation] = useState(false);
+	const [myLocationCoords, setMyLocationCoords] = useState<{
+		lat: number;
+		lng: number;
+	} | null>(null);
+	const [locationStatus, setLocationStatus] = useState<
+		"idle" | "loading" | "success" | "error"
+	>("idle");
 	const [currentPage, setCurrentPage] = useState(1);
 	const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
 	const [showAllGenres, setShowAllGenres] = useState(false);
@@ -95,6 +105,11 @@ export default function VenueSearchScreen() {
 	const [appliedBudgetMax, setAppliedBudgetMax] = useState("");
 	const [appliedFeeMin, setAppliedFeeMin] = useState("");
 	const [appliedFeeMax, setAppliedFeeMax] = useState("");
+	const [appliedRadiusKm, setAppliedRadiusKm] = useState<number | null>(null);
+	const [appliedUserCoords, setAppliedUserCoords] = useState<{
+		lat: number;
+		lng: number;
+	} | null>(null);
 	const normalizedQuery = useMemo(() => search.trim(), [search]);
 	const sessionRole = (
 		session?.user as
@@ -140,6 +155,9 @@ export default function VenueSearchScreen() {
 			genreNames: appliedGenres,
 			city: appliedCity,
 			postalCode: appliedPostalCode,
+			radiusKm: appliedRadiusKm ?? undefined,
+			userLat: appliedUserCoords?.lat,
+			userLng: appliedUserCoords?.lng,
 			venueTypes: appliedVenueType
 				? [appliedVenueType as (typeof venueTypeValues)[number]]
 				: [],
@@ -152,7 +170,9 @@ export default function VenueSearchScreen() {
 			appliedCity,
 			appliedGenres,
 			appliedPostalCode,
+			appliedRadiusKm,
 			appliedSearch,
+			appliedUserCoords,
 			appliedVenueType,
 		],
 	);
@@ -163,6 +183,9 @@ export default function VenueSearchScreen() {
 			genreNames: appliedGenres,
 			city: appliedCity,
 			postalCode: appliedPostalCode,
+			radiusKm: appliedRadiusKm ?? undefined,
+			userLat: appliedUserCoords?.lat,
+			userLng: appliedUserCoords?.lng,
 			feeMin: parseOptionalNumber(appliedFeeMin),
 			feeMax: parseOptionalNumber(appliedFeeMax),
 		}),
@@ -172,7 +195,9 @@ export default function VenueSearchScreen() {
 			appliedFeeMin,
 			appliedGenres,
 			appliedPostalCode,
+			appliedRadiusKm,
 			appliedSearch,
+			appliedUserCoords,
 		],
 	);
 
@@ -218,6 +243,8 @@ export default function VenueSearchScreen() {
 		(appliedSearch ? 1 : 0) +
 		(appliedCity ? 1 : 0) +
 		(appliedPostalCode ? 1 : 0) +
+		(appliedRadiusKm != null ? 1 : 0) +
+		(appliedUserCoords != null ? 1 : 0) +
 		appliedGenres.length +
 		(activeTab === "venues"
 			? (appliedVenueType ? 1 : 0) +
@@ -228,12 +255,38 @@ export default function VenueSearchScreen() {
 		normalizedQuery !== appliedSearch ||
 		city.trim() !== appliedCity ||
 		postalCode.trim() !== appliedPostalCode ||
+		radiusKm !== appliedRadiusKm ||
+		useMyLocation !== (appliedUserCoords != null) ||
 		!haveSameValues(selectedGenres, appliedGenres) ||
 		selectedVenueType !== appliedVenueType ||
 		budgetMin !== appliedBudgetMin ||
 		budgetMax !== appliedBudgetMax ||
 		feeMin !== appliedFeeMin ||
 		feeMax !== appliedFeeMax;
+
+	async function handleMyLocationToggle() {
+		if (useMyLocation) {
+			setUseMyLocation(false);
+			setMyLocationCoords(null);
+			setLocationStatus("idle");
+			return;
+		}
+		setLocationStatus("loading");
+		const { status } = await Location.requestForegroundPermissionsAsync();
+		if (status !== "granted") {
+			setLocationStatus("error");
+			return;
+		}
+		const pos = await Location.getCurrentPositionAsync({
+			accuracy: Location.Accuracy.Balanced,
+		});
+		setMyLocationCoords({
+			lat: pos.coords.latitude,
+			lng: pos.coords.longitude,
+		});
+		setUseMyLocation(true);
+		setLocationStatus("success");
+	}
 
 	function toggleGenre(genreName: string) {
 		setSelectedGenres((currentGenres) =>
@@ -258,6 +311,10 @@ export default function VenueSearchScreen() {
 		setSearch("");
 		setCity("");
 		setPostalCode("");
+		setRadiusKm(null);
+		setUseMyLocation(false);
+		setMyLocationCoords(null);
+		setLocationStatus("idle");
 		setSelectedGenres([]);
 		setSelectedVenueType("");
 		setBudgetMin("");
@@ -267,6 +324,8 @@ export default function VenueSearchScreen() {
 		setAppliedSearch("");
 		setAppliedCity("");
 		setAppliedPostalCode("");
+		setAppliedRadiusKm(null);
+		setAppliedUserCoords(null);
 		setAppliedGenres([]);
 		setAppliedVenueType("");
 		setAppliedBudgetMin("");
@@ -281,6 +340,10 @@ export default function VenueSearchScreen() {
 		setAppliedSearch(normalizedQuery);
 		setAppliedCity(city.trim());
 		setAppliedPostalCode(postalCode.trim());
+		setAppliedRadiusKm(radiusKm);
+		setAppliedUserCoords(
+			useMyLocation && myLocationCoords ? myLocationCoords : null,
+		);
 		setAppliedGenres(selectedGenres);
 		setAppliedVenueType(selectedVenueType);
 		setAppliedBudgetMin(budgetMin);
@@ -297,6 +360,8 @@ export default function VenueSearchScreen() {
 	const hasAdvancedFilters =
 		city.trim().length > 0 ||
 		postalCode.trim().length > 0 ||
+		radiusKm != null ||
+		useMyLocation ||
 		selectedGenres.length > 0 ||
 		(activeTab === "venues"
 			? selectedVenueType.length > 0 ||
@@ -308,6 +373,8 @@ export default function VenueSearchScreen() {
 		...(appliedSearch ? [`Recherche: ${appliedSearch}`] : []),
 		...(appliedCity ? [`Ville: ${appliedCity}`] : []),
 		...(appliedPostalCode ? [`CP: ${appliedPostalCode}`] : []),
+		...(appliedUserCoords != null ? ["Ma position"] : []),
+		...(appliedRadiusKm != null ? [`Rayon: ${appliedRadiusKm} km`] : []),
 		...appliedGenres,
 		...(activeTab === "venues"
 			? [
@@ -859,6 +926,78 @@ export default function VenueSearchScreen() {
 										placeholder="Code postal"
 										placeholderTextColor="#9ca3af"
 									/>
+								</View>
+
+								<View>
+									<View className="mb-2 flex-row items-center justify-between">
+										<Text className="font-sans-medium text-foreground">
+											Rayon
+										</Text>
+										<TouchableOpacity
+											className={`flex-row items-center gap-1 rounded-full border px-3 py-1.5 ${
+												useMyLocation
+													? "border-primary bg-primary"
+													: "border-border bg-background"
+											}`}
+											onPress={handleMyLocationToggle}
+											disabled={locationStatus === "loading"}
+										>
+											<Ionicons
+												name={
+													locationStatus === "loading"
+														? "reload"
+														: "location-outline"
+												}
+												size={12}
+												color={useMyLocation ? "white" : undefined}
+											/>
+											<Text
+												className={`ml-1 text-xs ${useMyLocation ? "text-primary-foreground" : "text-foreground"}`}
+											>
+												{locationStatus === "loading"
+													? "Localisation..."
+													: "Ma position"}
+											</Text>
+										</TouchableOpacity>
+									</View>
+									<View className="flex-row flex-wrap gap-2">
+										{[null, 10, 25, 50, 100, 200].map((km) => {
+											const isSelected = radiusKm === km;
+											return (
+												<TouchableOpacity
+													key={km ?? "none"}
+													className={`rounded-full border px-3 py-2 ${
+														isSelected
+															? "border-primary bg-primary"
+															: "border-border bg-background"
+													}`}
+													onPress={() => setRadiusKm(km)}
+												>
+													<Text
+														className={`text-xs ${isSelected ? "text-primary-foreground" : "text-foreground"}`}
+													>
+														{km == null ? "Pas de limite" : `${km} km`}
+													</Text>
+												</TouchableOpacity>
+											);
+										})}
+									</View>
+									{useMyLocation && locationStatus === "success" ? (
+										<Text className="mt-1 text-green-600 text-xs">
+											✓ Position obtenue
+										</Text>
+									) : locationStatus === "error" ? (
+										<Text className="mt-1 text-destructive text-xs">
+											Impossible d&apos;obtenir votre position.
+										</Text>
+									) : !useMyLocation &&
+										radiusKm != null &&
+										!city.trim() &&
+										!postalCode.trim() ? (
+										<Text className="mt-1 text-muted-foreground text-xs">
+											Saisissez une ville ou un CP pour activer le rayon.
+										</Text>
+									) : null}
 								</View>
 
 								{activeTab === "venues" ? (

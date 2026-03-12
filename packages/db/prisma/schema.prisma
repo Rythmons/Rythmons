@@ -92,6 +92,8 @@ model Artist {
   feeMin           Int?
   feeMax           Int?
   isNegotiable     Boolean  @default(false)
+  latitude         Float?
+  longitude        Float?
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -141,6 +143,8 @@ model Venue {
   ownerId       String
   owner         User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   genres        Genre[]
+  latitude      Float?
+  longitude     Float?
   
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
