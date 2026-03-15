@@ -30,7 +30,7 @@ BETTER_AUTH_URL="http://localhost:3000"
 BETTER_AUTH_SECRET="your-secret-key-here"
 
 # CORS (pour l'app mobile uniquement)
-CORS_ORIGIN="exp://,mybettertapp://"
+CORS_ORIGIN="exp://,rythmons://
 ```
 
 ## 🗄️ Database
@@ -177,7 +177,7 @@ function MyComponent() {
 L'API est compatible avec l'application mobile Expo via :
 - CORS configuré pour les routes `/api` et `/trpc`
 - Better Auth Expo plugin
-- Support des schemes personnalisés (exp://, mybettertapp://)
+- Support des schemes personnalisés (exp://, rythmons://)
 
 ## 🎨 UI Components
 

@@ -222,7 +222,7 @@ export default function SignUpForm({
 											href="/cgu"
 											target="_blank"
 											rel="noopener noreferrer"
-											className="text-indigo-600 underline hover:text-indigo-800"
+											className="text-primary underline hover:opacity-80"
 										>
 											conditions générales d'utilisation
 										</a>
@@ -259,11 +259,7 @@ export default function SignUpForm({
 			</form>
 
 			<div className="mt-4 text-center">
-				<Button
-					variant="link"
-					onClick={onSwitchToSignIn}
-					className="text-indigo-600 hover:text-indigo-800"
-				>
+				<Button variant="link" onClick={onSwitchToSignIn}>
 					Vous avez déjà un compte ? Connectez-vous
 				</Button>
 			</div>

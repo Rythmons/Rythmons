@@ -1,12 +1,12 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Building2, Loader2 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
-import { queryClient, trpc } from "@/utils/trpc";
+import { trpc } from "@/utils/trpc";
 import { VenueForm } from "./venue-form";
 
 function VenuePageContent() {
@@ -14,6 +14,7 @@ function VenuePageContent() {
 	const searchParams = useSearchParams();
 	const editId = searchParams.get("id");
 	const { data: session, isPending: sessionPending } = authClient.useSession();
+	const queryClient = useQueryClient();
 	const {
 		data: venues,
 		isLoading,

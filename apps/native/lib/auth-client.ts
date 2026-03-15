@@ -68,7 +68,7 @@ export const authClient = createClient({
 	baseURL: getApiBaseUrl(),
 	plugins: [
 		expoClient({
-			scheme: "mybettertapp",
+			scheme: "rythmons",
 			storagePrefix: "Rythmons",
 			storage: authStorage,
 		}),

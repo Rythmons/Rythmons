@@ -1,12 +1,12 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Mic2 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
-import { queryClient, trpc } from "@/utils/trpc";
+import { trpc } from "@/utils/trpc";
 import { ArtistForm } from "./artist-form";
 
 type ArtistPageItem = {
@@ -28,6 +28,7 @@ function ArtistPageContent() {
 	const searchParams = useSearchParams();
 	const editId = searchParams.get("id");
 	const router = useRouter();
+	const queryClient = useQueryClient();
 
 	const { data: session, isPending: sessionPending } = authClient.useSession();
 
