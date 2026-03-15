@@ -6,7 +6,7 @@ import {
 	userRoleLabels,
 	userRoleValues,
 } from "@rythmons/validation";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useId, useState } from "react";
 import { toast } from "sonner";
@@ -20,7 +20,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import { queryClient, trpc } from "@/utils/trpc";
+import { trpc } from "@/utils/trpc";
 
 interface User {
 	name: string;
@@ -33,6 +33,7 @@ export function ProfileForm({ user }: { user: User }) {
 	const authClient = useAuth();
 	const router = useRouter();
 	const id = useId();
+	const queryClient = useQueryClient();
 	const [name, setName] = useState(user.name);
 	const [role, setRole] = useState<UserRole | null>(user.role ?? null);
 	const [isLoading, setIsLoading] = useState(false);

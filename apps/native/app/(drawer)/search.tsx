@@ -17,6 +17,7 @@ import {
 } from "react-native";
 import { Container } from "@/components/container";
 import { Input } from "@/components/ui/input";
+import { SearchMap } from "@/components/ui/search-map";
 import { Text, Title } from "@/components/ui/typography";
 import { authClient } from "@/lib/auth-client";
 import { trpc } from "@/utils/trpc";
@@ -96,6 +97,7 @@ export default function VenueSearchScreen() {
 	const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
 	const [showAllGenres, setShowAllGenres] = useState(false);
 	const [showAllVenueTypes, setShowAllVenueTypes] = useState(false);
+	const [viewMode, setViewMode] = useState<"list" | "map">("list");
 	const [appliedSearch, setAppliedSearch] = useState("");
 	const [appliedCity, setAppliedCity] = useState("");
 	const [appliedPostalCode, setAppliedPostalCode] = useState("");
@@ -484,408 +486,471 @@ export default function VenueSearchScreen() {
 
 	return (
 		<Container>
-			<ScrollView ref={scrollViewRef} className="flex-1 p-4">
-				<View className="mb-6">
-					<Title className="text-2xl text-foreground">{heading}</Title>
-					<Text className="mt-1 text-muted-foreground">{subheading}</Text>
-				</View>
-
-				{canSearchVenues && canSearchArtists ? (
-					<View className="mb-4 flex-row gap-3">
-						<TouchableOpacity
-							className={`flex-1 rounded-lg px-4 py-3 ${
-								activeTab === "venues"
-									? "bg-primary"
-									: "border border-border bg-card"
-							}`}
-							onPress={() => {
-								setActiveTab("venues");
-								setCurrentPage(1);
-								scrollToTop();
-							}}
-						>
-							<Text
-								className={`text-center font-sans-medium ${
-									activeTab === "venues"
-										? "text-primary-foreground"
-										: "text-foreground"
-								}`}
-							>
-								Lieux
-							</Text>
-						</TouchableOpacity>
-						<TouchableOpacity
-							className={`flex-1 rounded-lg px-4 py-3 ${
-								activeTab === "artists"
-									? "bg-primary"
-									: "border border-border bg-card"
-							}`}
-							onPress={() => {
-								setActiveTab("artists");
-								setCurrentPage(1);
-								scrollToTop();
-							}}
-						>
-							<Text
-								className={`text-center font-sans-medium ${
-									activeTab === "artists"
-										? "text-primary-foreground"
-										: "text-foreground"
-								}`}
-							>
-								Artistes
-							</Text>
-						</TouchableOpacity>
-					</View>
-				) : null}
-
-				<View className="mb-4 rounded-xl border border-border bg-card p-4">
-					<View className="mb-3 flex-row items-start justify-between gap-3">
-						<View className="flex-1">
-							<Text className="font-sans-medium text-foreground">
-								Recherche rapide
-							</Text>
-							<Text className="mt-1 text-muted-foreground text-xs">
-								{filterSummary}
-							</Text>
-						</View>
-						<TouchableOpacity
-							className="rounded-full border border-border bg-background px-4 py-2"
-							onPress={() => setIsFilterModalOpen(true)}
-						>
-							<Text className="font-sans-medium text-foreground text-sm">
-								Filtres{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
-							</Text>
-						</TouchableOpacity>
-					</View>
-					<View className="flex-row items-center rounded-lg border border-border bg-background px-3">
-						<Ionicons name="search-outline" size={18} color="#9ca3af" />
-						<Input
-							className="flex-1 px-3 py-3 text-foreground"
-							value={search}
-							onChangeText={setSearch}
-							onSubmitEditing={applyFilters}
-							placeholder="Nom, ville, code postal, genre..."
-							placeholderTextColor="#9ca3af"
-							autoCapitalize="none"
-							autoCorrect={false}
-						/>
-						<TouchableOpacity
-							className={`rounded-full px-3 py-2 ${
-								hasPendingChanges ? "bg-primary" : "bg-muted"
-							}`}
-							onPress={applyFilters}
-							disabled={!hasPendingChanges}
-						>
-							<Text className="font-sans-medium text-primary-foreground text-xs">
-								Go
-							</Text>
-						</TouchableOpacity>
-					</View>
-					<View className="mt-4 flex-row items-center justify-between gap-3">
-						<Text className="text-muted-foreground text-xs">
-							{hasPendingChanges
-								? "Des changements sont prets a etre appliques."
-								: "Les resultats affichent votre derniere recherche appliquee."}
+			{viewMode === "map" && activeTab === "venues" ? (
+				<>
+					<View className="flex-row items-center justify-between border-border border-b px-4 py-3">
+						<Text className="text-muted-foreground text-sm">
+							{venues.length} lieu(x) sur la carte
 						</Text>
-						{hasAdvancedFilters || appliedFilterChips.length > 0 ? (
-							<TouchableOpacity onPress={resetFilters}>
-								<Text className="text-primary text-xs">Tout effacer</Text>
+						<View className="flex-row gap-2">
+							<TouchableOpacity
+								className="rounded-full border border-border bg-card px-3 py-1.5"
+								onPress={() => setIsFilterModalOpen(true)}
+							>
+								<Text className="text-foreground text-xs">
+									Filtres
+									{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
+								</Text>
 							</TouchableOpacity>
-						) : null}
+							<TouchableOpacity
+								className="rounded-full border border-border bg-card px-3 py-1.5"
+								onPress={() => setViewMode("list")}
+							>
+								<Text className="text-foreground text-xs">Liste</Text>
+							</TouchableOpacity>
+						</View>
+					</View>
+					<SearchMap venues={venues} />
+				</>
+			) : (
+				<ScrollView ref={scrollViewRef} className="flex-1 p-4">
+					<View className="mb-6">
+						<Title className="text-2xl text-foreground">{heading}</Title>
+						<Text className="mt-1 text-muted-foreground">{subheading}</Text>
 					</View>
 
-					{appliedFilterChips.length > 0 ? (
-						<View className="mt-3 flex-row flex-wrap gap-2">
-							{appliedFilterChips.map((chip) => (
-								<View
-									key={chip}
-									className="rounded-full border border-border bg-background px-3 py-2"
+					{canSearchVenues && canSearchArtists ? (
+						<View className="mb-4 flex-row gap-3">
+							<TouchableOpacity
+								className={`flex-1 rounded-lg px-4 py-3 ${
+									activeTab === "venues"
+										? "bg-primary"
+										: "border border-border bg-card"
+								}`}
+								onPress={() => {
+									setActiveTab("venues");
+									setCurrentPage(1);
+									scrollToTop();
+								}}
+							>
+								<Text
+									className={`text-center font-sans-medium ${
+										activeTab === "venues"
+											? "text-primary-foreground"
+											: "text-foreground"
+									}`}
 								>
-									<Text className="text-foreground text-xs">{chip}</Text>
-								</View>
-							))}
+									Lieux
+								</Text>
+							</TouchableOpacity>
+							<TouchableOpacity
+								className={`flex-1 rounded-lg px-4 py-3 ${
+									activeTab === "artists"
+										? "bg-primary"
+										: "border border-border bg-card"
+								}`}
+								onPress={() => {
+									setActiveTab("artists");
+									setCurrentPage(1);
+									scrollToTop();
+								}}
+							>
+								<Text
+									className={`text-center font-sans-medium ${
+										activeTab === "artists"
+											? "text-primary-foreground"
+											: "text-foreground"
+									}`}
+								>
+									Artistes
+								</Text>
+							</TouchableOpacity>
 						</View>
 					) : null}
-				</View>
 
-				<View className="mb-4 flex-row items-center justify-between">
-					<Text className="text-muted-foreground text-sm">
-						{appliedSearch
-							? `${activeItems.length} resultat(s) pour "${appliedSearch}"`
-							: activeTab === "venues"
-								? `${activeItems.length} lieu(x) disponible(s)`
-								: `${activeItems.length} artiste(s) disponible(s)`}
-					</Text>
-					<View className="flex-row items-center gap-3">
-						{activeItems.length > 0 ? (
-							<Text className="text-muted-foreground text-xs">
-								{pageStart}-{pageEnd} sur {activeItems.length}
-							</Text>
-						) : null}
-						{activeQuery.isFetching && !activeQuery.isLoading ? (
-							<Text className="text-muted-foreground text-xs">
-								Mise a jour...
-							</Text>
-						) : null}
-					</View>
-				</View>
-
-				{activeQuery.isLoading ? (
-					<View className="rounded-xl border border-border bg-card p-6">
-						<ActivityIndicator size="large" />
-						<Text className="mt-3 text-center text-muted-foreground">
-							Chargement des resultats...
-						</Text>
-					</View>
-				) : activeQuery.isError ? (
-					<View className="rounded-xl border border-destructive/30 bg-card p-4">
-						<Text className="font-sans-medium text-destructive">
-							Impossible de charger les resultats.
-						</Text>
-						<Text className="mt-1 text-muted-foreground">
-							Verifiez votre connexion puis reessayez.
-						</Text>
-					</View>
-				) : activeItems.length === 0 ? (
-					<View className="rounded-xl border border-border bg-card p-4">
-						<Text className="font-sans-bold text-foreground">
-							Aucun {activeTab === "venues" ? "lieu" : "artiste"} trouve pour
-							ces criteres
-						</Text>
-						<Text className="mt-2 text-muted-foreground">
-							Essayez une autre ville, un autre genre ou ajustez vos filtres.
-						</Text>
-					</View>
-				) : (
-					<View className="gap-3">
-						{activeTab === "venues"
-							? paginatedVenueItems.map((venue) => {
-									const genreLabel = venue.genres.length
-										? venue.genres.map((genre) => genre.name).join(" • ")
-										: "Genres non renseignes";
-
-									return (
-										<TouchableOpacity
-											key={venue.id}
-											className="overflow-hidden rounded-xl border border-border bg-card"
-											onPress={() =>
-												router.push({
-													pathname: "/(drawer)/venue/[id]",
-													params: { id: venue.id, backTo: "/(drawer)/search" },
-												})
-											}
-										>
-											{venue.photoUrl ? (
-												<Image
-													source={{ uri: venue.photoUrl }}
-													className="h-28 w-full"
-													resizeMode="cover"
-												/>
-											) : (
-												<View className="h-28 w-full bg-primary/10" />
-											)}
-
-											<View className="p-4">
-												<View className="mb-3 flex-row items-center gap-3">
-													{venue.logoUrl ? (
-														<Image
-															source={{ uri: venue.logoUrl }}
-															className="h-12 w-12 rounded-lg border border-border"
-														/>
-													) : (
-														<View className="h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
-															<Ionicons
-																name="business-outline"
-																size={22}
-																color="#7c3aed"
-															/>
-														</View>
-													)}
-
-													<View className="flex-1">
-														<Title className="text-foreground text-lg">
-															{venue.name}
-														</Title>
-														<Text className="text-muted-foreground text-sm">
-															{venue.city} •{" "}
-															{getVenueTypeLabel(venue.venueType)}
-														</Text>
-													</View>
-
-													<Ionicons
-														name="chevron-forward"
-														size={18}
-														color="#9ca3af"
-													/>
-												</View>
-
-												<Text className="mb-2 text-muted-foreground text-sm">
-													Organisateur : {venue.owner.name}
-												</Text>
-												<Text className="mb-2 text-muted-foreground text-sm">
-													{genreLabel}
-												</Text>
-												<Text
-													className="text-muted-foreground"
-													numberOfLines={3}
-												>
-													{venue.description ||
-														"Aucune description n'a encore ete ajoutee pour ce lieu."}
-												</Text>
-											</View>
-										</TouchableOpacity>
-									);
-								})
-							: paginatedArtistItems.map((artist) => {
-									const genreLabel = artist.genres.length
-										? artist.genres.map((genre) => genre.name).join(" • ")
-										: "Genres non renseignes";
-
-									return (
-										<TouchableOpacity
-											key={artist.id}
-											className="overflow-hidden rounded-xl border border-border bg-card"
-											onPress={() =>
-												router.push({
-													pathname: "/(drawer)/artist/[id]",
-													params: { id: artist.id, backTo: "/(drawer)/search" },
-												})
-											}
-										>
-											{artist.bannerUrl || artist.photoUrl ? (
-												<View className="relative">
-													<Image
-														source={{
-															uri:
-																artist.bannerUrl ||
-																artist.photoUrl ||
-																undefined,
-														}}
-														className="h-32 w-full"
-														resizeMode="cover"
-													/>
-													<View className="absolute inset-0 bg-black/25" />
-													{artist.images.length > 0 ? (
-														<View className="absolute top-3 right-3 rounded-full bg-background/90 px-3 py-1">
-															<Text className="font-sans-medium text-foreground text-xs">
-																{artist.images.length} photo(s)
-															</Text>
-														</View>
-													) : null}
-												</View>
-											) : null}
-
-											<View className="p-4">
-												<View className="mb-3 flex-row items-center gap-3">
-													{artist.photoUrl ? (
-														<Image
-															source={{ uri: artist.photoUrl }}
-															className="h-14 w-14 rounded-full border border-border"
-														/>
-													) : (
-														<View className="h-14 w-14 items-center justify-center rounded-full bg-primary/10">
-															<Ionicons
-																name="musical-notes-outline"
-																size={24}
-																color="#7c3aed"
-															/>
-														</View>
-													)}
-
-													<View className="flex-1">
-														<Title className="text-foreground text-lg">
-															{artist.stageName}
-														</Title>
-														<Text className="text-muted-foreground text-sm">
-															{artist.city || "Localisation non renseignee"}
-														</Text>
-													</View>
-													<Ionicons
-														name="chevron-forward"
-														size={18}
-														color="#9ca3af"
-													/>
-												</View>
-												<Text className="mb-2 text-muted-foreground text-sm">
-													{genreLabel}
-												</Text>
-												<Text className="mb-2 text-muted-foreground text-sm">
-													{formatRangeLabel(artist.feeMin, artist.feeMax)}
-												</Text>
-												<Text
-													className="text-muted-foreground"
-													numberOfLines={3}
-												>
-													{artist.bio ||
-														"Aucune description n'a encore ete ajoutee pour cet artiste."}
-												</Text>
-											</View>
-										</TouchableOpacity>
-									);
-								})}
-					</View>
-				)}
-
-				{activeItems.length > 0 && totalPages > 1 ? (
-					<View className="mt-6 items-center gap-3 border-border border-t pt-5">
-						<Text className="text-muted-foreground text-sm">
-							Page {safePage} sur {totalPages}
-						</Text>
-						<View className="flex-row flex-wrap justify-center gap-2">
-							<TouchableOpacity
-								className={`rounded-lg border px-4 py-2 ${
-									safePage === 1
-										? "border-border bg-muted opacity-40"
-										: "border-border bg-card"
-								}`}
-								onPress={() => goToPage(safePage - 1)}
-								disabled={safePage === 1}
-							>
-								<Text className="font-sans-medium text-foreground text-sm">
-									← Préc.
+					<View className="mb-4 rounded-xl border border-border bg-card p-4">
+						<View className="mb-3 flex-row items-start justify-between gap-3">
+							<View className="flex-1">
+								<Text className="font-sans-medium text-foreground">
+									Recherche rapide
 								</Text>
-							</TouchableOpacity>
-							{visiblePageNumbers.map((pageNumber) => (
-								<TouchableOpacity
-									key={pageNumber}
-									className={`h-9 w-9 items-center justify-center rounded-lg border ${
-										pageNumber === safePage
-											? "border-primary bg-primary"
-											: "border-border bg-card"
-									}`}
-									onPress={() => goToPage(pageNumber)}
-								>
-									<Text
-										className={`font-sans-medium text-sm ${
-											pageNumber === safePage
-												? "text-primary-foreground"
-												: "text-foreground"
-										}`}
-									>
-										{pageNumber}
-									</Text>
-								</TouchableOpacity>
-							))}
+								<Text className="mt-1 text-muted-foreground text-xs">
+									{filterSummary}
+								</Text>
+							</View>
 							<TouchableOpacity
-								className={`rounded-lg border px-4 py-2 ${
-									safePage === totalPages
-										? "border-border bg-muted opacity-40"
-										: "border-border bg-card"
-								}`}
-								onPress={() => goToPage(safePage + 1)}
-								disabled={safePage === totalPages}
+								className="rounded-full border border-border bg-background px-4 py-2"
+								onPress={() => setIsFilterModalOpen(true)}
 							>
 								<Text className="font-sans-medium text-foreground text-sm">
-									Suiv. →
+									Filtres
+									{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
 								</Text>
 							</TouchableOpacity>
 						</View>
-					</View>
-				) : null}
+						<View className="flex-row items-center rounded-lg border border-border bg-background px-3">
+							<Ionicons name="search-outline" size={18} color="#9ca3af" />
+							<Input
+								className="flex-1 px-3 py-3 text-foreground"
+								value={search}
+								onChangeText={setSearch}
+								onSubmitEditing={applyFilters}
+								placeholder="Nom, ville, code postal, genre..."
+								placeholderTextColor="#9ca3af"
+								autoCapitalize="none"
+								autoCorrect={false}
+							/>
+							<TouchableOpacity
+								className={`rounded-full px-3 py-2 ${
+									hasPendingChanges ? "bg-primary" : "bg-muted"
+								}`}
+								onPress={applyFilters}
+								disabled={!hasPendingChanges}
+							>
+								<Text className="font-sans-medium text-primary-foreground text-xs">
+									Go
+								</Text>
+							</TouchableOpacity>
+						</View>
+						<View className="mt-4 flex-row items-center justify-between gap-3">
+							<Text className="text-muted-foreground text-xs">
+								{hasPendingChanges
+									? "Des changements sont prets a etre appliques."
+									: "Les resultats affichent votre derniere recherche appliquee."}
+							</Text>
+							{hasAdvancedFilters || appliedFilterChips.length > 0 ? (
+								<TouchableOpacity onPress={resetFilters}>
+									<Text className="text-primary text-xs">Tout effacer</Text>
+								</TouchableOpacity>
+							) : null}
+						</View>
 
-				<View className="h-8" />
-			</ScrollView>
+						{appliedFilterChips.length > 0 ? (
+							<View className="mt-3 flex-row flex-wrap gap-2">
+								{appliedFilterChips.map((chip) => (
+									<View
+										key={chip}
+										className="rounded-full border border-border bg-background px-3 py-2"
+									>
+										<Text className="text-foreground text-xs">{chip}</Text>
+									</View>
+								))}
+							</View>
+						) : null}
+					</View>
+
+					<View className="mb-4 flex-row items-center justify-between">
+						<Text className="text-muted-foreground text-sm">
+							{appliedSearch
+								? `${activeItems.length} resultat(s) pour "${appliedSearch}"`
+								: activeTab === "venues"
+									? `${activeItems.length} lieu(x) disponible(s)`
+									: `${activeItems.length} artiste(s) disponible(s)`}
+						</Text>
+						<View className="flex-row items-center gap-3">
+							{activeItems.length > 0 ? (
+								<Text className="text-muted-foreground text-xs">
+									{pageStart}-{pageEnd} sur {activeItems.length}
+								</Text>
+							) : null}
+							{activeQuery.isFetching && !activeQuery.isLoading ? (
+								<Text className="text-muted-foreground text-xs">
+									Mise a jour...
+								</Text>
+							) : null}
+						</View>
+					</View>
+
+					{activeTab === "venues" &&
+					activeItems.length > 0 &&
+					!activeQuery.isLoading &&
+					!activeQuery.isError ? (
+						<View className="mb-4 flex-row items-center rounded-lg border border-border bg-card p-1">
+							<TouchableOpacity
+								className={`flex-1 items-center rounded-md py-2 ${viewMode === "list" ? "bg-primary" : ""}`}
+								onPress={() => setViewMode("list")}
+							>
+								<Text
+									className={`font-sans-medium text-sm ${viewMode === "list" ? "text-primary-foreground" : "text-foreground"}`}
+								>
+									Liste
+								</Text>
+							</TouchableOpacity>
+							<TouchableOpacity
+								className={`flex-1 items-center rounded-md py-2 ${viewMode === "map" ? "bg-primary" : ""}`}
+								onPress={() => setViewMode("map")}
+							>
+								<Text
+									className={`font-sans-medium text-sm ${viewMode === "map" ? "text-primary-foreground" : "text-foreground"}`}
+								>
+									Carte
+								</Text>
+							</TouchableOpacity>
+						</View>
+					) : null}
+
+					{activeQuery.isLoading ? (
+						<View className="rounded-xl border border-border bg-card p-6">
+							<ActivityIndicator size="large" />
+							<Text className="mt-3 text-center text-muted-foreground">
+								Chargement des resultats...
+							</Text>
+						</View>
+					) : activeQuery.isError ? (
+						<View className="rounded-xl border border-destructive/30 bg-card p-4">
+							<Text className="font-sans-medium text-destructive">
+								Impossible de charger les resultats.
+							</Text>
+							<Text className="mt-1 text-muted-foreground">
+								Verifiez votre connexion puis reessayez.
+							</Text>
+						</View>
+					) : activeItems.length === 0 ? (
+						<View className="rounded-xl border border-border bg-card p-4">
+							<Text className="font-sans-bold text-foreground">
+								Aucun {activeTab === "venues" ? "lieu" : "artiste"} trouve pour
+								ces criteres
+							</Text>
+							<Text className="mt-2 text-muted-foreground">
+								Essayez une autre ville, un autre genre ou ajustez vos filtres.
+							</Text>
+						</View>
+					) : (
+						<View className="gap-3">
+							{activeTab === "venues"
+								? paginatedVenueItems.map((venue) => {
+										const genreLabel = venue.genres.length
+											? venue.genres.map((genre) => genre.name).join(" • ")
+											: "Genres non renseignes";
+
+										return (
+											<TouchableOpacity
+												key={venue.id}
+												className="overflow-hidden rounded-xl border border-border bg-card"
+												onPress={() =>
+													router.push({
+														pathname: "/(drawer)/venue/[id]",
+														params: {
+															id: venue.id,
+															backTo: "/(drawer)/search",
+														},
+													})
+												}
+											>
+												{venue.photoUrl ? (
+													<Image
+														source={{ uri: venue.photoUrl }}
+														className="h-28 w-full"
+														resizeMode="cover"
+													/>
+												) : (
+													<View className="h-28 w-full bg-primary/10" />
+												)}
+
+												<View className="p-4">
+													<View className="mb-3 flex-row items-center gap-3">
+														{venue.logoUrl ? (
+															<Image
+																source={{ uri: venue.logoUrl }}
+																className="h-12 w-12 rounded-lg border border-border"
+															/>
+														) : (
+															<View className="h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
+																<Ionicons
+																	name="business-outline"
+																	size={22}
+																	color="#7c3aed"
+																/>
+															</View>
+														)}
+
+														<View className="flex-1">
+															<Title className="text-foreground text-lg">
+																{venue.name}
+															</Title>
+															<Text className="text-muted-foreground text-sm">
+																{venue.city} •{" "}
+																{getVenueTypeLabel(venue.venueType)}
+															</Text>
+														</View>
+
+														<Ionicons
+															name="chevron-forward"
+															size={18}
+															color="#9ca3af"
+														/>
+													</View>
+
+													<Text className="mb-2 text-muted-foreground text-sm">
+														Organisateur : {venue.owner.name}
+													</Text>
+													<Text className="mb-2 text-muted-foreground text-sm">
+														{genreLabel}
+													</Text>
+													<Text
+														className="text-muted-foreground"
+														numberOfLines={3}
+													>
+														{venue.description ||
+															"Aucune description n'a encore ete ajoutee pour ce lieu."}
+													</Text>
+												</View>
+											</TouchableOpacity>
+										);
+									})
+								: paginatedArtistItems.map((artist) => {
+										const genreLabel = artist.genres.length
+											? artist.genres.map((genre) => genre.name).join(" • ")
+											: "Genres non renseignes";
+
+										return (
+											<TouchableOpacity
+												key={artist.id}
+												className="overflow-hidden rounded-xl border border-border bg-card"
+												onPress={() =>
+													router.push({
+														pathname: "/(drawer)/artist/[id]",
+														params: {
+															id: artist.id,
+															backTo: "/(drawer)/search",
+														},
+													})
+												}
+											>
+												{artist.bannerUrl || artist.photoUrl ? (
+													<View className="relative">
+														<Image
+															source={{
+																uri:
+																	artist.bannerUrl ||
+																	artist.photoUrl ||
+																	undefined,
+															}}
+															className="h-32 w-full"
+															resizeMode="cover"
+														/>
+														<View className="absolute inset-0 bg-black/25" />
+														{artist.images.length > 0 ? (
+															<View className="absolute top-3 right-3 rounded-full bg-background/90 px-3 py-1">
+																<Text className="font-sans-medium text-foreground text-xs">
+																	{artist.images.length} photo(s)
+																</Text>
+															</View>
+														) : null}
+													</View>
+												) : null}
+
+												<View className="p-4">
+													<View className="mb-3 flex-row items-center gap-3">
+														{artist.photoUrl ? (
+															<Image
+																source={{ uri: artist.photoUrl }}
+																className="h-14 w-14 rounded-full border border-border"
+															/>
+														) : (
+															<View className="h-14 w-14 items-center justify-center rounded-full bg-primary/10">
+																<Ionicons
+																	name="musical-notes-outline"
+																	size={24}
+																	color="#7c3aed"
+																/>
+															</View>
+														)}
+
+														<View className="flex-1">
+															<Title className="text-foreground text-lg">
+																{artist.stageName}
+															</Title>
+															<Text className="text-muted-foreground text-sm">
+																{artist.city || "Localisation non renseignee"}
+															</Text>
+														</View>
+														<Ionicons
+															name="chevron-forward"
+															size={18}
+															color="#9ca3af"
+														/>
+													</View>
+													<Text className="mb-2 text-muted-foreground text-sm">
+														{genreLabel}
+													</Text>
+													<Text className="mb-2 text-muted-foreground text-sm">
+														{formatRangeLabel(artist.feeMin, artist.feeMax)}
+													</Text>
+													<Text
+														className="text-muted-foreground"
+														numberOfLines={3}
+													>
+														{artist.bio ||
+															"Aucune description n'a encore ete ajoutee pour cet artiste."}
+													</Text>
+												</View>
+											</TouchableOpacity>
+										);
+									})}
+						</View>
+					)}
+
+					{activeItems.length > 0 && totalPages > 1 ? (
+						<View className="mt-6 items-center gap-3 border-border border-t pt-5">
+							<Text className="text-muted-foreground text-sm">
+								Page {safePage} sur {totalPages}
+							</Text>
+							<View className="flex-row flex-wrap justify-center gap-2">
+								<TouchableOpacity
+									className={`rounded-lg border px-4 py-2 ${
+										safePage === 1
+											? "border-border bg-muted opacity-40"
+											: "border-border bg-card"
+									}`}
+									onPress={() => goToPage(safePage - 1)}
+									disabled={safePage === 1}
+								>
+									<Text className="font-sans-medium text-foreground text-sm">
+										← Préc.
+									</Text>
+								</TouchableOpacity>
+								{visiblePageNumbers.map((pageNumber) => (
+									<TouchableOpacity
+										key={pageNumber}
+										className={`h-9 w-9 items-center justify-center rounded-lg border ${
+											pageNumber === safePage
+												? "border-primary bg-primary"
+												: "border-border bg-card"
+										}`}
+										onPress={() => goToPage(pageNumber)}
+									>
+										<Text
+											className={`font-sans-medium text-sm ${
+												pageNumber === safePage
+													? "text-primary-foreground"
+													: "text-foreground"
+											}`}
+										>
+											{pageNumber}
+										</Text>
+									</TouchableOpacity>
+								))}
+								<TouchableOpacity
+									className={`rounded-lg border px-4 py-2 ${
+										safePage === totalPages
+											? "border-border bg-muted opacity-40"
+											: "border-border bg-card"
+									}`}
+									onPress={() => goToPage(safePage + 1)}
+									disabled={safePage === totalPages}
+								>
+									<Text className="font-sans-medium text-foreground text-sm">
+										Suiv. →
+									</Text>
+								</TouchableOpacity>
+							</View>
+						</View>
+					) : null}
+
+					<View className="h-8" />
+				</ScrollView>
+			)}
 
 			<Modal
 				animationType="slide"

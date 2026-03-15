@@ -109,7 +109,7 @@ function SearchHeaderControls({
 	}
 
 	return (
-		<div className="flex min-w-[320px] flex-1 items-center justify-center gap-2 lg:px-4">
+		<div className="flex w-full min-w-0 flex-1 items-center justify-center gap-2 px-0 lg:px-4">
 			<div className="flex h-10 w-full max-w-xl items-center rounded-md border border-input bg-transparent pl-3 shadow-xs focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/50 dark:bg-input/30">
 				<Search className="h-4 w-4 shrink-0 text-muted-foreground" />
 				<Input
@@ -120,6 +120,7 @@ function SearchHeaderControls({
 							submitSearch();
 						}
 					}}
+					aria-label="Rechercher un lieu, un artiste, une ville"
 					placeholder="Rechercher un lieu, un artiste, une ville..."
 					className="h-full border-0 bg-transparent pl-3 shadow-none focus-visible:ring-0"
 				/>
@@ -152,30 +153,37 @@ export default function Header() {
 	const links: HeaderLink[] = [
 		{ to: "/" as Route, label: "Accueil" },
 		{ to: "/dashboard" as Route, label: "Tableau de bord" },
-		...(canSearchVenues || canSearchArtists
-			? [{ to: "/dashboard/search" as Route, label: "Recherche" }]
-			: []),
 	];
 
 	return (
 		<div className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-			<div className="flex flex-wrap items-center justify-between gap-3 px-2 py-2">
-				<nav className="flex gap-4 text-lg">
-					{links.map(({ to, label }) => {
-						return (
-							<Link key={to} href={to}>
-								{label}
-							</Link>
-						);
-					})}
+			{/* ── Main bar ─────────────────────────────────────────── */}
+			<div className="flex items-center gap-3 px-2 py-2">
+				{/* Nav links — always visible */}
+				<nav className="flex shrink-0 gap-2 text-sm lg:gap-4 lg:text-lg">
+					{links.map(({ to, label }) => (
+						<Link key={to} href={to}>
+							{label}
+						</Link>
+					))}
 				</nav>
-				<Suspense fallback={null}>
-					<SearchHeaderControls
-						canSearchVenues={canSearchVenues}
-						canSearchArtists={canSearchArtists}
-					/>
-				</Suspense>
-				<div className="flex items-center gap-2">
+
+				{/* Search — flex-1 so it fills available space without overflowing */}
+				<div className="min-w-0 flex-1">
+					<Suspense
+						fallback={
+							<div className="h-10 w-full animate-pulse rounded-md bg-muted" />
+						}
+					>
+						<SearchHeaderControls
+							canSearchVenues={canSearchVenues}
+							canSearchArtists={canSearchArtists}
+						/>
+					</Suspense>
+				</div>
+
+				{/* User menu */}
+				<div className="flex shrink-0 items-center gap-2">
 					<UserMenu />
 				</div>
 			</div>

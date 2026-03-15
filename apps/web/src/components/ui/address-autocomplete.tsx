@@ -51,14 +51,17 @@ export function AddressAutocomplete({
 	const [isLoading, setIsLoading] = useState(false);
 	const [isOpen, setIsOpen] = useState(false);
 	const containerRef = useRef<HTMLDivElement>(null);
+	const abortRef = useRef<AbortController | null>(null);
 
-	// Sync query with value prop if it changes externally
-	useEffect(() => {
-		if (value !== undefined && value !== query) {
-			setQuery(value);
-		}
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [value]);
+	// Derived state: sync query with external value changes without a side-effect.
+	// Using a ref comparison during render avoids the infinite-loop that would
+	// occur if query were listed as a dep in an effect, and removes the need for
+	// eslint-disable-next-line react-hooks/exhaustive-deps.
+	const prevValueRef = useRef(value);
+	if (prevValueRef.current !== value) {
+		prevValueRef.current = value;
+		setQuery(value);
+	}
 
 	useEffect(() => {
 		const handleClickOutside = (event: MouseEvent) => {
@@ -73,38 +76,36 @@ export function AddressAutocomplete({
 		return () => document.removeEventListener("mousedown", handleClickOutside);
 	}, []);
 
-	const searchAddress = async (search: string) => {
-		if (search.length < 3) return;
-
-		setIsLoading(true);
-		try {
-			// Utilisation exclusive de l'API Adresse Gouv (France uniquement)
-			// C'est l'API la plus rapide et fiable pour les adresses françaises.
-			const response = await fetch(
-				`https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(search)}&limit=5&autocomplete=1`,
-			);
-			const data = await response.json();
-			if (data.features) {
-				setSuggestions(data.features);
-				setIsOpen(true);
-			}
-		} catch (error) {
-			console.error("Error fetching address:", error);
-		} finally {
-			setIsLoading(false);
-		}
-	};
-
 	// Debounce plus court pour plus de réactivité (300ms -> 200ms)
 	useEffect(() => {
-		const timer = setTimeout(() => {
-			if (query && query !== value) {
-				searchAddress(query);
+		if (!query || query === value || query.length < 3) return;
+
+		const timer = setTimeout(async () => {
+			// Abort any in-flight request before starting a new one, preventing
+			// stale responses from overwriting fresher results.
+			abortRef.current?.abort();
+			abortRef.current = new AbortController();
+			setIsLoading(true);
+			try {
+				const response = await fetch(
+					`https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(query)}&limit=5&autocomplete=1`,
+					{ signal: abortRef.current.signal },
+				);
+				const data = await response.json();
+				if (data.features) {
+					setSuggestions(data.features);
+					setIsOpen(true);
+				}
+			} catch (err) {
+				if ((err as { name?: string }).name !== "AbortError") {
+					console.error("Error fetching address:", err);
+				}
+			} finally {
+				setIsLoading(false);
 			}
 		}, 200);
 
 		return () => clearTimeout(timer);
-		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [query, value]);
 
 	const handleSelect = (feature: AddressFeature) => {

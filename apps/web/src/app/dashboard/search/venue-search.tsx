@@ -104,44 +104,59 @@ export function VenueSearch({
 	const router = useRouter();
 	const pathname = usePathname();
 	const searchParams = useSearchParams();
-	const [activeTab, setActiveTab] = useState<SearchTab>(
-		canSearchVenues ? "venues" : "artists",
+	// Active tab and view mode derived from URL
+	const activeTab: SearchTab =
+		searchParams.get("tab") === "artists" && canSearchArtists
+			? "artists"
+			: canSearchVenues
+				? "venues"
+				: "artists";
+	const viewMode: "list" | "map" =
+		searchParams.get("view") === "map" && canSearchVenues ? "map" : "list";
+
+	// Applied filter values read from URL — survive navigation
+	const appliedCity = searchParams.get("city") ?? "";
+	const appliedPostalCode = searchParams.get("cp") ?? "";
+	const appliedRadiusKm = searchParams.get("radius") ?? "none";
+	const appliedGenresRaw = searchParams.get("genres") ?? "";
+	const appliedVenueType = searchParams.get("type") ?? "all";
+	const appliedBudgetMin = searchParams.get("bmin") ?? "";
+	const appliedBudgetMax = searchParams.get("bmax") ?? "";
+	const appliedFeeMin = searchParams.get("fmin") ?? "";
+	const appliedFeeMax = searchParams.get("fmax") ?? "";
+	const appliedLatRaw = searchParams.get("lat");
+	const appliedLngRaw = searchParams.get("lng");
+	const appliedLat =
+		appliedLatRaw != null ? Number.parseFloat(appliedLatRaw) : Number.NaN;
+	const appliedLng =
+		appliedLngRaw != null ? Number.parseFloat(appliedLngRaw) : Number.NaN;
+	const appliedUserCoords =
+		Number.isFinite(appliedLat) && Number.isFinite(appliedLng)
+			? { lat: appliedLat, lng: appliedLng }
+			: null;
+
+	// Draft state for the filter panel, initialized from applied URL state on mount
+	const [city, setCity] = useState(appliedCity);
+	const [postalCode, setPostalCode] = useState(appliedPostalCode);
+	const [selectedGenres, setSelectedGenres] = useState<string[]>(
+		appliedGenresRaw ? appliedGenresRaw.split(",") : [],
 	);
-	const [viewMode, setViewMode] = useState<"list" | "map">("list");
-	const [city, setCity] = useState("");
-	const [postalCode, setPostalCode] = useState("");
-	const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
-	const [selectedVenueType, setSelectedVenueType] = useState<string>("all");
-	const [budgetMin, setBudgetMin] = useState("");
-	const [budgetMax, setBudgetMax] = useState("");
-	const [feeMin, setFeeMin] = useState("");
-	const [feeMax, setFeeMax] = useState("");
-	const [radiusKm, setRadiusKm] = useState<string>("none");
-	const [useMyLocation, setUseMyLocation] = useState(false);
+	const [selectedVenueType, setSelectedVenueType] =
+		useState<string>(appliedVenueType);
+	const [budgetMin, setBudgetMin] = useState(appliedBudgetMin);
+	const [budgetMax, setBudgetMax] = useState(appliedBudgetMax);
+	const [feeMin, setFeeMin] = useState(appliedFeeMin);
+	const [feeMax, setFeeMax] = useState(appliedFeeMax);
+	const [radiusKm, setRadiusKm] = useState<string>(appliedRadiusKm);
+	const [useMyLocation, setUseMyLocation] = useState(appliedUserCoords != null);
 	const [myLocationCoords, setMyLocationCoords] = useState<{
 		lat: number;
 		lng: number;
-	} | null>(null);
+	} | null>(appliedUserCoords);
 	const [locationStatus, setLocationStatus] = useState<
 		"idle" | "loading" | "success" | "error"
-	>("idle");
+	>(appliedUserCoords != null ? "success" : "idle");
 	const [showAllGenres, setShowAllGenres] = useState(false);
-	const [appliedSearch, setAppliedSearch] = useState(
-		searchParams.get("q")?.trim() ?? "",
-	);
-	const [appliedCity, setAppliedCity] = useState("");
-	const [appliedPostalCode, setAppliedPostalCode] = useState("");
-	const [appliedGenres, setAppliedGenres] = useState<string[]>([]);
-	const [appliedVenueType, setAppliedVenueType] = useState<string>("all");
-	const [appliedBudgetMin, setAppliedBudgetMin] = useState("");
-	const [appliedBudgetMax, setAppliedBudgetMax] = useState("");
-	const [appliedFeeMin, setAppliedFeeMin] = useState("");
-	const [appliedFeeMax, setAppliedFeeMax] = useState("");
-	const [appliedRadiusKm, setAppliedRadiusKm] = useState<string>("none");
-	const [appliedUserCoords, setAppliedUserCoords] = useState<{
-		lat: number;
-		lng: number;
-	} | null>(null);
 	const normalizedQuery = searchParams.get("q")?.trim() ?? "";
 	const requestedPage = Number.parseInt(searchParams.get("page") ?? "1", 10);
 	const currentPage =
@@ -150,8 +165,8 @@ export function VenueSearch({
 
 	const venueSearchInput = useMemo(
 		() => ({
-			query: appliedSearch,
-			genreNames: appliedGenres,
+			query: normalizedQuery,
+			genreNames: appliedGenresRaw ? appliedGenresRaw.split(",") : [],
 			city: appliedCity,
 			postalCode: appliedPostalCode,
 			radiusKm:
@@ -166,22 +181,23 @@ export function VenueSearch({
 			budgetMax: parseOptionalNumber(appliedBudgetMax),
 		}),
 		[
-			appliedBudgetMax,
-			appliedBudgetMin,
+			normalizedQuery,
+			appliedGenresRaw,
 			appliedCity,
-			appliedGenres,
 			appliedPostalCode,
 			appliedRadiusKm,
-			appliedSearch,
-			appliedUserCoords,
+			appliedUserCoords?.lat,
+			appliedUserCoords?.lng,
 			appliedVenueType,
+			appliedBudgetMin,
+			appliedBudgetMax,
 		],
 	);
 
 	const artistSearchInput = useMemo(
 		() => ({
-			query: appliedSearch,
-			genreNames: appliedGenres,
+			query: normalizedQuery,
+			genreNames: appliedGenresRaw ? appliedGenresRaw.split(",") : [],
 			city: appliedCity,
 			postalCode: appliedPostalCode,
 			radiusKm:
@@ -192,14 +208,15 @@ export function VenueSearch({
 			feeMax: parseOptionalNumber(appliedFeeMax),
 		}),
 		[
+			normalizedQuery,
+			appliedGenresRaw,
 			appliedCity,
-			appliedFeeMax,
-			appliedFeeMin,
-			appliedGenres,
 			appliedPostalCode,
 			appliedRadiusKm,
-			appliedSearch,
-			appliedUserCoords,
+			appliedUserCoords?.lat,
+			appliedUserCoords?.lng,
+			appliedFeeMin,
+			appliedFeeMax,
 		],
 	);
 
@@ -237,7 +254,10 @@ export function VenueSearch({
 		postalCode.trim() !== appliedPostalCode ||
 		radiusKm !== appliedRadiusKm ||
 		useMyLocation !== (appliedUserCoords != null) ||
-		!haveSameValues(selectedGenres, appliedGenres) ||
+		!haveSameValues(
+			selectedGenres,
+			appliedGenresRaw ? appliedGenresRaw.split(",") : [],
+		) ||
 		selectedVenueType !== appliedVenueType ||
 		budgetMin !== appliedBudgetMin ||
 		budgetMax !== appliedBudgetMax ||
@@ -246,11 +266,11 @@ export function VenueSearch({
 
 	const resultLabel =
 		hasSearchError && !hasResults
-			? appliedSearch
-				? `Resultats indisponibles pour "${appliedSearch}"`
+			? normalizedQuery
+				? `Resultats indisponibles pour "${normalizedQuery}"`
 				: "Resultats indisponibles"
-			: appliedSearch
-				? `${items.length} resultat(s) pour "${appliedSearch}"`
+			: normalizedQuery
+				? `${items.length} resultat(s) pour "${normalizedQuery}"`
 				: activeTab === "venues"
 					? `${items.length} lieu(x) disponible(s)`
 					: `${items.length} artiste(s) disponible(s)`;
@@ -261,10 +281,6 @@ export function VenueSearch({
 			: activeTab === "venues"
 				? "Explorez les lieux et organisateurs deja presents sur Rythmons pour identifier ceux qui correspondent a votre projet."
 				: "Explorez les artistes deja presents sur Rythmons pour identifier ceux qui correspondent a votre programmation.";
-
-	useEffect(() => {
-		setAppliedSearch(normalizedQuery);
-	}, [normalizedQuery]);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: updateRouteSearchParams is recreated each render; adding it to deps would fire the effect on every render
 	useEffect(() => {
@@ -309,12 +325,26 @@ export function VenueSearch({
 		});
 	}
 
+	function setViewMode(mode: "list" | "map") {
+		updateRouteSearchParams((params) => {
+			if (mode === "map") {
+				params.set("view", "map");
+			} else {
+				params.delete("view");
+			}
+		});
+	}
+
 	function handleTabChange(nextTab: SearchTab) {
-		setActiveTab(nextTab);
-		setViewMode("list");
-		if (currentPage > 1) {
-			setPage(1);
-		}
+		updateRouteSearchParams((params) => {
+			if (nextTab === "artists") {
+				params.set("tab", "artists");
+			} else {
+				params.delete("tab");
+			}
+			params.delete("view");
+			params.delete("page");
+		});
 	}
 
 	function toggleGenre(genre: string) {
@@ -373,41 +403,82 @@ export function VenueSearch({
 		setBudgetMax("");
 		setFeeMin("");
 		setFeeMax("");
-		setAppliedSearch("");
-		setAppliedCity("");
-		setAppliedPostalCode("");
-		setAppliedRadiusKm("none");
-		setAppliedUserCoords(null);
-		setAppliedGenres([]);
-		setAppliedVenueType("all");
-		setAppliedBudgetMin("");
-		setAppliedBudgetMax("");
-		setAppliedFeeMin("");
-		setAppliedFeeMax("");
 		updateRouteSearchParams((params) => {
 			params.delete("q");
+			params.delete("city");
+			params.delete("cp");
+			params.delete("radius");
+			params.delete("genres");
+			params.delete("type");
+			params.delete("bmin");
+			params.delete("bmax");
+			params.delete("fmin");
+			params.delete("fmax");
+			params.delete("lat");
+			params.delete("lng");
 			params.delete("filters");
 			params.delete("page");
 		});
 	}
 
 	function applyFilters() {
-		setAppliedSearch(normalizedQuery);
-		setAppliedCity(city.trim());
-		setAppliedPostalCode(postalCode.trim());
-		setAppliedRadiusKm(radiusKm);
-		setAppliedUserCoords(
-			useMyLocation && myLocationCoords ? myLocationCoords : null,
-		);
-		setAppliedGenres(selectedGenres);
-		setAppliedVenueType(selectedVenueType);
-		setAppliedBudgetMin(budgetMin);
-		setAppliedBudgetMax(budgetMax);
-		setAppliedFeeMin(feeMin);
-		setAppliedFeeMax(feeMax);
-		if (currentPage > 1) {
-			setPage(1);
-		}
+		updateRouteSearchParams((params) => {
+			if (city.trim()) {
+				params.set("city", city.trim());
+			} else {
+				params.delete("city");
+			}
+			if (postalCode.trim()) {
+				params.set("cp", postalCode.trim());
+			} else {
+				params.delete("cp");
+			}
+			if (radiusKm !== "none") {
+				params.set("radius", radiusKm);
+			} else {
+				params.delete("radius");
+			}
+			if (selectedGenres.length > 0) {
+				params.set("genres", selectedGenres.join(","));
+			} else {
+				params.delete("genres");
+			}
+			if (selectedVenueType !== "all") {
+				params.set("type", selectedVenueType);
+			} else {
+				params.delete("type");
+			}
+			if (budgetMin) {
+				params.set("bmin", budgetMin);
+			} else {
+				params.delete("bmin");
+			}
+			if (budgetMax) {
+				params.set("bmax", budgetMax);
+			} else {
+				params.delete("bmax");
+			}
+			if (feeMin) {
+				params.set("fmin", feeMin);
+			} else {
+				params.delete("fmin");
+			}
+			if (feeMax) {
+				params.set("fmax", feeMax);
+			} else {
+				params.delete("fmax");
+			}
+			if (useMyLocation && myLocationCoords) {
+				params.set("lat", String(myLocationCoords.lat));
+				params.set("lng", String(myLocationCoords.lng));
+			} else {
+				params.delete("lat");
+				params.delete("lng");
+			}
+			params.delete("page");
+			// Close the filter panel in the same URL update
+			params.delete("filters");
+		});
 	}
 
 	const hasAdvancedFilters =
@@ -423,12 +494,12 @@ export function VenueSearch({
 			: feeMin.trim().length > 0 || feeMax.trim().length > 0);
 
 	const appliedFilterChips = [
-		...(appliedSearch ? [`Recherche: ${appliedSearch}`] : []),
+		...(normalizedQuery ? [`Recherche: ${normalizedQuery}`] : []),
 		...(appliedCity ? [`Ville: ${appliedCity}`] : []),
 		...(appliedPostalCode ? [`CP: ${appliedPostalCode}`] : []),
 		...(appliedUserCoords != null ? ["Ma position"] : []),
 		...(appliedRadiusKm !== "none" ? [`Rayon: ${appliedRadiusKm} km`] : []),
-		...appliedGenres,
+		...(appliedGenresRaw ? appliedGenresRaw.split(",") : []),
 		...(activeTab === "venues"
 			? [
 					...(appliedVenueType !== "all"
@@ -840,7 +911,7 @@ export function VenueSearch({
 			) : null}
 
 			{showFilters ? (
-				<div className="fixed inset-0 z-50 flex justify-end bg-black/50">
+				<div className="fixed inset-0 z-[2000] flex justify-end bg-black/50">
 					<div className="flex h-full w-full max-w-xl flex-col bg-background shadow-2xl">
 						<div className="flex items-start justify-between gap-4 border-b px-6 py-5">
 							<div>
@@ -1071,7 +1142,6 @@ export function VenueSearch({
 									type="button"
 									onClick={() => {
 										applyFilters();
-										closeFilters();
 									}}
 									disabled={!hasPendingChanges}
 								>
