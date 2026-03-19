@@ -26,12 +26,9 @@ export default function SignInForm({
 	}, [session?.user, router]);
 
 	const { form, isLoading: isSigningIn } = useSignInForm({
-		onSuccess: async () => {
+		onSuccess: () => {
 			toast.success("Connexion réussie");
-			// Wait for session to be set before redirecting
-			await new Promise((resolve) => setTimeout(resolve, 500));
-			router.push("/dashboard");
-			router.refresh();
+			// Navigation is handled by the useEffect watching session?.user
 		},
 		onError: (error) => {
 			toast.error(error);
@@ -128,18 +125,10 @@ export default function SignInForm({
 			</form>
 
 			<div className="mt-4 text-center">
-				<Button
-					variant="link"
-					onClick={onSwitchToSignUp}
-					className="text-indigo-600 hover:text-indigo-800"
-				>
-					Besoin d’un compte ? Inscrivez-vous
+				<Button variant="link" onClick={onSwitchToSignUp}>
+					Besoin d'un compte ? Inscrivez-vous
 				</Button>
-				<Button
-					variant="link"
-					onClick={onSwitchToForgottenPassword}
-					className="text-indigo-600 hover:text-indigo-800"
-				>
+				<Button variant="link" onClick={onSwitchToForgottenPassword}>
 					Mot de passe oublié ?
 				</Button>
 			</div>

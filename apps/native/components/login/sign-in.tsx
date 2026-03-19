@@ -1,4 +1,5 @@
 import { useSignInForm } from "@rythmons/auth/client";
+import { router } from "expo-router";
 import {
 	ActivityIndicator,
 	Alert,
@@ -18,8 +19,12 @@ type Props = {
 export function SignIn({ onSwitchToSignUp, onSwitchToForgotPassword }: Props) {
 	const { form, isLoading } = useSignInForm({
 		onSuccess: async () => {
-			Alert.alert("Succès", "Connexion réussie");
 			void queryClient.refetchQueries();
+			router.replace("/(drawer)/profile");
+			Alert.alert("Succès", "Connexion réussie");
+		},
+		onError: (error) => {
+			Alert.alert("Connexion impossible", error);
 		},
 	});
 

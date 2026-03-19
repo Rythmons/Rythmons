@@ -1,3 +1,4 @@
+import { accountRouter } from "./routers/account";
 import { artistRouter } from "./routers/artist";
 import { mediaRouter } from "./routers/media";
 import { venueRouter } from "./routers/venue";
@@ -13,6 +14,7 @@ export const appRouter = router({
 			user: ctx.session.user,
 		};
 	}),
+	account: accountRouter,
 	venue: venueRouter,
 	artist: artistRouter,
 	media: mediaRouter,

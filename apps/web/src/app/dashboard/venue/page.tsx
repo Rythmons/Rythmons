@@ -1,12 +1,12 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Building2, Loader2 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
-import { queryClient, trpc } from "@/utils/trpc";
+import { trpc } from "@/utils/trpc";
 import { VenueForm } from "./venue-form";
 
 function VenuePageContent() {
@@ -14,6 +14,7 @@ function VenuePageContent() {
 	const searchParams = useSearchParams();
 	const editId = searchParams.get("id");
 	const { data: session, isPending: sessionPending } = authClient.useSession();
+	const queryClient = useQueryClient();
 	const {
 		data: venues,
 		isLoading,
@@ -27,7 +28,9 @@ function VenuePageContent() {
 	useEffect(() => {
 		if (editId && !isLoading) {
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			router.replace(`/venue/${editId}` as any);
+			router.replace(
+				`/venue/${editId}` as Parameters<typeof router.replace>[0],
+			);
 		}
 	}, [editId, isLoading, router]);
 
@@ -36,7 +39,11 @@ function VenuePageContent() {
 	useEffect(() => {
 		if (!isNewMode && !isLoading && venues && venues.length > 0) {
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			router.replace(`/venue/${(venues as any[])[0].id}` as any);
+			router.replace(
+				`/venue/${(venues as any[])[0].id}` as Parameters<
+					typeof router.replace
+				>[0],
+			);
 		}
 	}, [isNewMode, isLoading, venues, router]);
 
@@ -100,7 +107,9 @@ function VenuePageContent() {
 						queryClient.invalidateQueries();
 						if (venueId) {
 							// eslint-disable-next-line @typescript-eslint/no-explicit-any
-							router.push(`/venue/${venueId}` as any);
+							router.push(
+								`/venue/${venueId}` as Parameters<typeof router.push>[0],
+							);
 						} else {
 							router.push("/dashboard");
 						}

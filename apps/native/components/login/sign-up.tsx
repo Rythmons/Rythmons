@@ -1,13 +1,14 @@
 import { useSignUpForm } from "@rythmons/auth/client";
+import { useRouter } from "expo-router";
+import { useState } from "react";
 import {
 	ActivityIndicator,
-	Alert,
+	Pressable,
 	Text,
 	TextInput,
 	TouchableOpacity,
 	View,
 } from "react-native";
-import { queryClient } from "@/utils/trpc";
 import { GoogleAuthButton } from "../google-auth-button";
 
 type Props = {
@@ -15,10 +16,14 @@ type Props = {
 };
 
 export function SignUp({ onSwitchToSignIn }: Props) {
+	const router = useRouter();
+	const [emailValue, setEmailValue] = useState("");
 	const { form, isLoading } = useSignUpForm({
 		onSuccess: async () => {
-			Alert.alert("Succès", "Compte créé avec succès");
-			void queryClient.refetchQueries();
+			const verifyEmailHref = emailValue
+				? `/verify-email?email=${encodeURIComponent(emailValue)}`
+				: "/verify-email";
+			router.push(verifyEmailHref as never);
 		},
 	});
 
@@ -69,7 +74,10 @@ export function SignUp({ onSwitchToSignIn }: Props) {
 							className="rounded-md border border-input bg-input p-4 text-foreground"
 							placeholder="Adresse e-mail"
 							value={field.state.value}
-							onChangeText={field.handleChange}
+							onChangeText={(value) => {
+								setEmailValue(value);
+								field.handleChange(value);
+							}}
 							onBlur={field.handleBlur}
 							placeholderTextColor="#9CA3AF"
 							keyboardType="email-address"
@@ -132,6 +140,44 @@ export function SignUp({ onSwitchToSignIn }: Props) {
 							placeholderTextColor="#9CA3AF"
 							secureTextEntry
 						/>
+						{field.state.meta.errors.length > 0 && (
+							<Text className="mt-1 text-destructive text-sm">
+								{typeof field.state.meta.errors[0] === "object"
+									? (field.state.meta.errors[0] as { message: string }).message
+									: String(field.state.meta.errors[0])}
+							</Text>
+						)}
+					</View>
+				)}
+			</form.Field>
+
+			<form.Field name="acceptedTerms">
+				{(field) => (
+					<View className="mb-4">
+						<Pressable
+							onPress={() => field.handleChange(!field.state.value)}
+							className="flex-row items-start gap-3"
+						>
+							<View
+								className={`mt-0.5 h-5 w-5 items-center justify-center rounded border ${
+									field.state.value
+										? "border-primary bg-primary"
+										: "border-input bg-input"
+								}`}
+							>
+								{field.state.value && (
+									<Text className="font-bold text-primary-foreground text-xs">
+										✓
+									</Text>
+								)}
+							</View>
+							<Text className="flex-1 text-foreground text-sm">
+								J'accepte les{" "}
+								<Text className="text-primary underline">
+									conditions générales d'utilisation
+								</Text>
+							</Text>
+						</Pressable>
 						{field.state.meta.errors.length > 0 && (
 							<Text className="mt-1 text-destructive text-sm">
 								{typeof field.state.meta.errors[0] === "object"

@@ -74,26 +74,31 @@ model Verification {
 }
 
 model Artist {
-  id          String   @id @default(cuid()) @map("_id")
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  stageName   String
-  photoUrl    String?
-  bannerUrl   String?
-  bio         String?
-  website     String?
-  socialLinks Json?    @default("{}")
-  genres      Genre[]
-  images      String[] @default([])
+  id               String   @id @default(cuid()) @map("_id")
+  userId           String
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stageName        String
+  city             String?
+  postalCode       String?
+  photoUrl         String?
+  bannerUrl        String?
+  bio              String?
+  website          String?
+  socialLinks      Json?    @default("{}")
+  genres           Genre[]
+  images           String[] @default([])
 
   techRequirements String?
   feeMin           Int?
   feeMax           Int?
+  isNegotiable     Boolean  @default(false)
+  latitude         Float?
+  longitude        Float?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  medias Media[] // ← ajout
+  medias Media[]
 
   @@map("artist")
 }
@@ -133,15 +138,27 @@ model Venue {
   logoUrl       String?
   images        String[]  @default([])
   paymentPolicy String?
+  paymentTypes  PaymentType[] @default([])
+  budgetMin     Int?
+  budgetMax     Int?
   techInfo      String?
   ownerId       String
   owner         User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   genres        Genre[]
+  latitude      Float?
+  longitude     Float?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   @@map("venue")
+}
+
+enum PaymentType {
+  FIXED_FEE
+  PERCENTAGE
+  HAT
+  NEGOTIABLE
 }
 
 model Genre {

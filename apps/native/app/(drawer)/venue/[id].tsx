@@ -14,14 +14,19 @@ import { Container } from "@/components/container";
 import { Text, Title } from "@/components/ui/typography";
 import { VenueMap } from "@/components/ui/venue-map";
 import { authClient } from "@/lib/auth-client";
+import { useContextualBackNavigation } from "@/lib/use-contextual-back-navigation";
 import { trpc } from "@/utils/trpc";
 import { getVenueTypeLabel } from "@/utils/venue-labels";
 
 export default function VenueProfileScreen() {
-	const params = useLocalSearchParams<{ id: string }>();
+	const params = useLocalSearchParams<{ id: string; backTo?: string }>();
 	const venueId = Array.isArray(params.id) ? params.id[0] : params.id;
+	const backTo = Array.isArray(params.backTo)
+		? params.backTo[0]
+		: params.backTo;
 
 	const { data: session } = authClient.useSession();
+	const handleBack = useContextualBackNavigation(backTo ?? "/(drawer)/venue");
 
 	const { data: venue, isLoading } = useQuery({
 		...trpc.venue.getById.queryOptions({ id: venueId ?? "" }),
@@ -79,7 +84,7 @@ export default function VenueProfileScreen() {
 					</Text>
 					<TouchableOpacity
 						className="rounded-lg bg-primary px-4 py-2"
-						onPress={() => router.replace("/venue")}
+						onPress={handleBack}
 					>
 						<Text className="font-sans-medium text-primary-foreground">
 							Retour
@@ -185,6 +190,28 @@ export default function VenueProfileScreen() {
 							</View>
 						) : null}
 
+						{venue.paymentPolicy ? (
+							<View className="mt-4 rounded-lg border border-border bg-background px-3 py-3">
+								<Text className="font-sans-medium text-foreground text-sm">
+									Accueil & conditions
+								</Text>
+								<Text className="mt-1 text-muted-foreground">
+									{venue.paymentPolicy}
+								</Text>
+							</View>
+						) : null}
+
+						{venue.techInfo ? (
+							<View className="mt-4 rounded-lg border border-border bg-background px-3 py-3">
+								<Text className="font-sans-medium text-foreground text-sm">
+									Technique & matériel
+								</Text>
+								<Text className="mt-1 text-muted-foreground">
+									{venue.techInfo}
+								</Text>
+							</View>
+						) : null}
+
 						{venue.images?.length ? (
 							<View className="mt-4 rounded-lg border border-border bg-background px-3 py-3">
 								<Text className="font-sans-medium text-foreground text-sm">
@@ -196,7 +223,7 @@ export default function VenueProfileScreen() {
 									showsHorizontalScrollIndicator={false}
 								>
 									<View className="flex-row gap-3">
-										{venue.images.map((url) => (
+										{venue.images.map((url: string) => (
 											<Image
 												key={url}
 												source={{ uri: url }}
@@ -211,7 +238,16 @@ export default function VenueProfileScreen() {
 						{isOwner ? (
 							<TouchableOpacity
 								className="mt-6 flex-row items-center justify-center rounded-xl bg-primary p-4"
-								onPress={() => router.push("/venue")}
+								onPress={() =>
+									router.push({
+										pathname: "/(drawer)/venue/edit/[id]",
+										params: {
+											id: venue.id,
+											backTo: `/(drawer)/venue/${venue.id}`,
+											parentBackTo: backTo ?? "",
+										},
+									} as any)
+								}
 							>
 								<Ionicons
 									name="create-outline"

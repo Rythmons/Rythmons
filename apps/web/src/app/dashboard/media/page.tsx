@@ -1,18 +1,19 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Mic2 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
-import { queryClient, trpc } from "@/utils/trpc";
+import { trpc } from "@/utils/trpc";
 import { MediaForm } from "./media-form";
 
 function MediaPageContent() {
 	const searchParams = useSearchParams();
 	const editId = searchParams.get("id");
 	const router = useRouter();
+	const queryClient = useQueryClient();
 
 	const { data: session, isPending: sessionPending } = authClient.useSession();
 
@@ -60,8 +61,7 @@ function MediaPageContent() {
 	// (The Dashboard handles the list view now).
 
 	const mediaToEdit = editId
-		? // eslint-disable-next-line @typescript-eslint/no-explicit-any
-			(medias as any[])?.find((a) => a.id === editId)
+		? (medias ?? []).find((a: { id: string }) => a.id === editId)
 		: undefined;
 
 	// If ID provided but not found?
@@ -87,7 +87,7 @@ function MediaPageContent() {
 					<div>
 						<h1 className="mb-2 font-bold text-3xl">
 							{mediaToEdit
-								? `Modifier ${mediaToEdit.stageName}`
+								? `Modifier ${mediaToEdit.name}`
 								: "Nouveau projet médiatique"}
 						</h1>
 						<p className="text-lg text-muted-foreground">

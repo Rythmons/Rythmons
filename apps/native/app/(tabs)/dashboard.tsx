@@ -122,7 +122,7 @@ export default function DashboardScreen() {
 							<Text className="font-medium text-foreground">Mes lieux</Text>
 							<TouchableOpacity
 								className="rounded-md bg-primary px-3 py-2"
-								onPress={() => router.push("/venue")}
+								onPress={() => router.push("/(drawer)/venue" as any)}
 							>
 								<Text className="font-medium text-primary-foreground">
 									{venues.length ? "Gérer" : "Créer"}
@@ -142,7 +142,12 @@ export default function DashboardScreen() {
 									<TouchableOpacity
 										key={venue.id}
 										className="rounded-md border border-border bg-background p-3"
-										onPress={() => router.push(`/venue/${venue.id}`)}
+										onPress={() =>
+											router.push({
+												pathname: "/(drawer)/venue/[id]",
+												params: { id: venue.id, backTo: "/(tabs)/dashboard" },
+											} as any)
+										}
 									>
 										<Text className="font-medium text-foreground">
 											{venue.name}
@@ -165,7 +170,12 @@ export default function DashboardScreen() {
 							<Text className="font-medium text-foreground">Mes artistes</Text>
 							<TouchableOpacity
 								className="rounded-md bg-primary px-3 py-2"
-								onPress={() => router.push("/artist/new")}
+								onPress={() =>
+									router.push({
+										pathname: "/(drawer)/artist/new",
+										params: { backTo: "/(tabs)/dashboard" },
+									} as any)
+								}
 							>
 								<Text className="font-medium text-primary-foreground">
 									Créer
@@ -185,7 +195,12 @@ export default function DashboardScreen() {
 									<TouchableOpacity
 										key={artist.id}
 										className="rounded-md border border-border bg-background p-3"
-										onPress={() => router.push(`/artist/${artist.id}`)}
+										onPress={() =>
+											router.push({
+												pathname: "/(drawer)/artist/[id]",
+												params: { id: artist.id, backTo: "/(tabs)/dashboard" },
+											} as any)
+										}
 									>
 										<Text className="font-medium text-foreground">
 											{artist.stageName}
@@ -203,7 +218,7 @@ export default function DashboardScreen() {
 
 								<TouchableOpacity
 									className="self-start rounded-md border border-border px-4 py-2"
-									onPress={() => router.push("/artist")}
+									onPress={() => router.push("/(drawer)/artist" as any)}
 								>
 									<Text className="font-medium text-foreground">
 										Voir tous mes artistes

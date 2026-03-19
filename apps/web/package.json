@@ -4,13 +4,16 @@
 	"private": true,
 	"packageManager": "pnpm@10.18.0",
 	"scripts": {
-		"dev": "next dev --turbopack",
-		"build": "prisma generate --schema=../../packages/db/prisma/schema.prisma && next build",
+		"dev": "next dev --hostname 0.0.0.0 --turbopack",
+		"build": "prisma generate && next build",
 		"start": "next start",
-		"db:push": "prisma db push --schema=../../packages/db/prisma/schema.prisma",
-		"db:studio": "prisma studio --schema=../../packages/db/prisma/schema.prisma",
-		"db:generate": "prisma generate --schema=../../packages/db/prisma/schema.prisma",
-		"db:migrate": "prisma migrate dev --schema=../../packages/db/prisma/schema.prisma"
+		"db:deploy": "prisma migrate deploy",
+		"db:push": "prisma db push",
+		"db:studio": "prisma studio",
+		"db:generate": "prisma generate",
+		"db:migrate": "prisma migrate dev",
+		"db:seed": "prisma generate && prisma db seed",
+		"db:setup": "prisma db push && prisma generate && prisma db seed"
 	},
 	"dependencies": {
 		"@better-auth/expo": "^1.3.13",
@@ -33,6 +36,7 @@
 		"dotenv": "^17.2.1",
 		"leaflet": "^1.9.4",
 		"lucide-react": "^0.487.0",
+		"maplibre-gl": "^5.20.0",
 		"next": "16.0.10",
 		"next-themes": "^0.4.6",
 		"radix-ui": "^1.4.2",
@@ -40,6 +44,7 @@
 		"react-dom": "19.1.0",
 		"react-image-crop": "^11.0.10",
 		"react-leaflet": "^5.0.0",
+		"react-map-gl": "^8.1.0",
 		"sonner": "^2.0.5",
 		"tailwind-merge": "^3.4.0",
 		"tw-animate-css": "^1.3.4",

@@ -39,7 +39,7 @@ This project was created with [Better-T-Stack](https://github.com/AmanVarshney01
     DATABASE_URL="postgresql://user:password@localhost:5432/rythmons"
     BETTER_AUTH_URL="http://localhost:3000"
     BETTER_AUTH_SECRET="replace-with-a-strong-secret"
-    CORS_ORIGIN="exp://,mybettertapp://"
+    CORS_ORIGIN="exp://,rythmons://"
     ```
 
 3. Set up the database schema:
@@ -48,7 +48,33 @@ This project was created with [Better-T-Stack](https://github.com/AmanVarshney01
     pnpm db:push
     ```
 
-4. Start the development servers:
+    Use `pnpm db:push` for local bootstrapping or rapid prototyping only. For any schema change you intend to keep, create a migration and commit it.
+
+4. Or do both in one command:
+
+    ```bash
+    pnpm db:setup
+    ```
+
+    If you use `apps/web/.env.local` instead of `apps/web/.env`, run `pnpm db:local:setup`.
+
+5. Seed demo data for local development:
+
+    ```bash
+    pnpm db:seed
+    ```
+
+    If you use `apps/web/.env.local` instead of `apps/web/.env`, run `pnpm db:local:seed`.
+
+    Demo accounts created by the seed:
+
+    ```text
+    demo.artist@rythmons.local / Rythmons123!
+    demo.organizer@rythmons.local / Rythmons123!
+    demo.both@rythmons.local / Rythmons123!
+    ```
+
+6. Start the development servers:
 
     ```bash
     pnpm dev
@@ -79,11 +105,28 @@ Rythmons/
 - `pnpm check`: Run Biome formatting and linting
 - `pnpm dev:web`: Start only the web application
 - `pnpm dev:native`: Start the React Native/Expo development server
+- `pnpm db:deploy`: Apply committed Prisma migrations to the target database
 - `pnpm db:push`: Push schema changes to the database
 - `pnpm db:studio`: Open Prisma Studio in the web app
 - `pnpm db:generate`: Generate the Prisma client
 - `pnpm db:migrate`: Run Prisma migrations in dev mode
+- `pnpm db:seed`: Seed the database with local demo accounts and content
+- `pnpm db:setup`: Push the schema, then seed local demo data
+- `pnpm db:local:deploy`: Apply committed Prisma migrations using `apps/web/.env.local`
+- `pnpm db:local:seed`: Seed the database using `apps/web/.env.local`
+- `pnpm db:local:setup`: Push the schema and seed using `apps/web/.env.local`
 - `pnpm deploy`: Deploy the web app preview to Vercel
 - `pnpm deploy:prod`: Deploy the web app to production on Vercel
+
+## Database Workflow
+
+Use this flow whenever the Prisma schema changes:
+
+1. Update `packages/db/prisma/schema.prisma`.
+2. Run `pnpm db:migrate` or `pnpm db:local:migrate` to generate a versioned migration.
+3. Commit the generated files under `packages/db/prisma/migrations/`.
+4. Deploy normally. Vercel now runs `pnpm db:deploy` before `pnpm build`, so committed migrations are applied before the new Prisma client is used.
+
+Avoid using `pnpm db:push` as the production workflow. It changes a database directly but does not create a migration artifact, which makes schema drift easy to miss.
 
 For more in-depth guidance, including API usage and authentication flows, see `apps/web/README.md` and the documents inside `docs/`.

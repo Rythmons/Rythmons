@@ -1,13 +1,25 @@
 "use client";
 
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { Euro, FileText, Mic2, Music, Sparkles } from "lucide-react";
+import { type ArtistSocialLinks, MUSIC_GENRES } from "@rythmons/validation";
+import { useMutation } from "@tanstack/react-query";
+import {
+	Euro,
+	ExternalLink,
+	FileText,
+	Headphones,
+	Image as ImageIcon,
+	MapPin,
+	Mic2,
+	Music,
+	Sparkles,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useId, useState as useReactState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ImageUpload } from "@/components/ui/image-upload";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -16,42 +28,64 @@ import { UploadDropzone } from "@/utils/uploadthing";
 
 interface ArtistFormData {
 	stageName: string;
+	city: string;
+	postalCode: string;
 	photoUrl: string;
+	bannerUrl: string;
 	bio: string;
 	website: string;
+	socialLinks: ArtistSocialLinks;
 	techRequirements: string;
 	feeMin: number | null;
 	feeMax: number | null;
+	isNegotiable: boolean;
 	selectedGenres: string[];
+	images: string[];
 }
 
 interface ArtistFormProps {
-	initialData?: Partial<ArtistFormData> & {
+	initialData?: Omit<Partial<ArtistFormData>, "socialLinks"> & {
 		id?: string;
 		genres?: { id: string; name: string }[];
+		socialLinks?: Record<string, string> | null;
 	};
 	mode: "create" | "edit";
-	onSuccess?: () => void;
+	onSuccess?: (artistId?: string) => void;
 }
 
 export function ArtistForm({ initialData, mode, onSuccess }: ArtistFormProps) {
 	const router = useRouter();
 	const id = useId();
 
-	// Fetch available genres (reusing venue endpoint for now as genres are shared ideally)
-	const { data: availableGenres = [] } = useQuery(
-		trpc.venue.getAllGenres.queryOptions(),
-	);
+	const parsedSocialLinks: ArtistSocialLinks = {
+		spotify:
+			(initialData?.socialLinks as Record<string, string>)?.spotify ?? "",
+		youtube:
+			(initialData?.socialLinks as Record<string, string>)?.youtube ?? "",
+		soundcloud:
+			(initialData?.socialLinks as Record<string, string>)?.soundcloud ?? "",
+		bandcamp:
+			(initialData?.socialLinks as Record<string, string>)?.bandcamp ?? "",
+		deezer: (initialData?.socialLinks as Record<string, string>)?.deezer ?? "",
+		appleMusic:
+			(initialData?.socialLinks as Record<string, string>)?.appleMusic ?? "",
+	};
 
 	const [formData, setFormData] = useReactState<ArtistFormData>({
 		stageName: initialData?.stageName ?? "",
+		city: initialData?.city ?? "",
+		postalCode: initialData?.postalCode ?? "",
 		photoUrl: initialData?.photoUrl ?? "",
+		bannerUrl: initialData?.bannerUrl ?? "",
 		bio: initialData?.bio ?? "",
 		website: initialData?.website ?? "",
+		socialLinks: parsedSocialLinks,
 		techRequirements: initialData?.techRequirements ?? "",
 		feeMin: initialData?.feeMin ?? null,
 		feeMax: initialData?.feeMax ?? null,
+		isNegotiable: initialData?.isNegotiable ?? false,
 		selectedGenres: initialData?.genres?.map((g) => g.name) ?? [],
+		images: initialData?.images ?? [],
 	});
 
 	const [isLoading, setIsLoading] = useReactState(false);
@@ -71,6 +105,26 @@ export function ArtistForm({ initialData, mode, onSuccess }: ArtistFormProps) {
 		}
 		if (formData.website && !isValidUrl(formData.website)) {
 			newErrors.website = "URL invalide";
+		}
+		for (const value of Object.values(formData.socialLinks)) {
+			if (value && !isValidUrl(value)) {
+				newErrors.socialLinks =
+					"Tous les liens musique doivent être des URLs valides";
+				break;
+			}
+		}
+		if (
+			formData.feeMin !== null &&
+			formData.feeMax !== null &&
+			formData.feeMax < formData.feeMin
+		) {
+			newErrors.feeMax = "Le cachet max doit être supérieur ou égal au minimum";
+		}
+		if (
+			formData.postalCode.trim() !== "" &&
+			!/^\d{5}$/.test(formData.postalCode.trim())
+		) {
+			newErrors.postalCode = "Le code postal doit contenir 5 chiffres";
 		}
 
 		setErrors(newErrors);
@@ -98,20 +152,35 @@ export function ArtistForm({ initialData, mode, onSuccess }: ArtistFormProps) {
 
 		try {
 			const { selectedGenres, ...restData } = formData;
+			const normalizedSocialLinks = Object.fromEntries(
+				Object.entries(formData.socialLinks).map(([key, value]) => [
+					key,
+					value.trim(),
+				]),
+			) as ArtistSocialLinks;
 			const submitData = {
 				...restData,
+				city: formData.city.trim() || null,
+				postalCode: formData.postalCode.trim()
+					? formData.postalCode.trim()
+					: null,
 				feeMin: formData.feeMin ?? null,
 				feeMax: formData.feeMax ?? null,
+				isNegotiable: formData.isNegotiable,
 				bio: formData.bio || null,
 				website: formData.website || null,
+				socialLinks: normalizedSocialLinks,
 				techRequirements: formData.techRequirements || null,
 				photoUrl: formData.photoUrl || null,
+				bannerUrl: formData.bannerUrl || null,
 				genreNames: selectedGenres,
+				images: formData.images,
 			};
 
 			if (mode === "create") {
-				await createMutation.mutateAsync(submitData);
+				const createdArtist = await createMutation.mutateAsync(submitData);
 				toast.success("Profil artiste créé avec succès !");
+				onSuccess?.(createdArtist.id);
 			} else {
 				if (!initialData?.id) throw new Error("ID manquant");
 				await updateMutation.mutateAsync({
@@ -119,10 +188,10 @@ export function ArtistForm({ initialData, mode, onSuccess }: ArtistFormProps) {
 					data: submitData,
 				});
 				toast.success("Profil artiste mis à jour !");
+				onSuccess?.(initialData.id);
 			}
 
 			router.refresh();
-			onSuccess?.();
 		} catch (error) {
 			const message =
 				error instanceof Error ? error.message : "Erreur lors de la sauvegarde";
@@ -158,6 +227,7 @@ export function ArtistForm({ initialData, mode, onSuccess }: ArtistFormProps) {
 							<Label>Photo de profil</Label>
 							{formData.photoUrl ? (
 								<div className="relative overflow-hidden rounded-full border">
+									{/* biome-ignore lint/performance/noImgElement: existing upload preview uses direct remote URL */}
 									<img
 										src={formData.photoUrl}
 										alt="Profil"
@@ -214,152 +284,421 @@ export function ArtistForm({ initialData, mode, onSuccess }: ArtistFormProps) {
 								{errors.stageName && (
 									<p className="text-destructive text-sm">{errors.stageName}</p>
 								)}
+								<div className="space-y-4">
+									<div className="space-y-2">
+										<Label htmlFor={`${id}-website`}>Site web</Label>
+										<Input
+											id={`${id}-website`}
+											type="url"
+											value={formData.website}
+											onChange={(e) => updateField("website", e.target.value)}
+											placeholder="https://monsite.com"
+											aria-invalid={!!errors.website}
+										/>
+										{errors.website && (
+											<p className="text-destructive text-sm">
+												{errors.website}
+											</p>
+										)}
+									</div>
+								</div>
 							</div>
+						</div>
+					</div>
 
+					{/* Localisation */}
+					<div className="space-y-6">
+						<div className="flex items-center gap-2 font-semibold text-lg">
+							<MapPin className="h-5 w-5 text-primary" />
+							<span>Localisation</span>
+						</div>
+						<div className="grid gap-4 md:grid-cols-2">
 							<div className="space-y-2">
-								<Label htmlFor={`${id}-website`}>
-									Site web / YouTube / Bandcamp
-								</Label>
+								<Label htmlFor={`${id}-city`}>Ville</Label>
 								<Input
-									id={`${id}-website`}
-									type="url"
-									value={formData.website}
-									onChange={(e) => updateField("website", e.target.value)}
-									placeholder="https://..."
-									aria-invalid={!!errors.website}
+									id={`${id}-city`}
+									value={formData.city}
+									onChange={(e) => updateField("city", e.target.value)}
+									placeholder="Ex: Paris"
 								/>
-								{errors.website && (
-									<p className="text-destructive text-sm">{errors.website}</p>
+							</div>
+							<div className="space-y-2">
+								<Label htmlFor={`${id}-postalCode`}>Code postal</Label>
+								<Input
+									id={`${id}-postalCode`}
+									value={formData.postalCode}
+									onChange={(e) =>
+										updateField(
+											"postalCode",
+											e.target.value.replace(/\D/g, "").slice(0, 5),
+										)
+									}
+									placeholder="75001"
+									maxLength={5}
+									aria-invalid={!!errors.postalCode}
+								/>
+								{errors.postalCode && (
+									<p className="text-destructive text-sm">
+										{errors.postalCode}
+									</p>
 								)}
 							</div>
 						</div>
 					</div>
-				</div>
-			</div>
 
-			{/* Genres */}
-			<div className="space-y-6">
-				<div className="flex items-center gap-2 font-semibold text-lg">
-					<Music className="h-5 w-5 text-primary" />
-					<span>Genres musicaux</span>
-				</div>
+					{/* Music Links */}
+					<div className="space-y-6">
+						<div className="flex items-center gap-2 font-semibold text-lg">
+							<Headphones className="h-5 w-5 text-primary" />
+							<span>Liens musique</span>
+						</div>
+						<p className="text-muted-foreground text-sm">
+							Ajoutez vos liens de streaming pour que les organisateurs puissent
+							écouter votre musique
+						</p>
 
-				<div className="space-y-4">
-					<div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-						{availableGenres.map((genre) => (
-							<div key={genre} className="flex items-center space-x-2">
-								<Checkbox
-									id={`${id}-genre-${genre}`}
-									checked={formData.selectedGenres.includes(genre)}
-									onCheckedChange={(checked) => {
-										if (checked) {
-											updateField("selectedGenres", [
-												...formData.selectedGenres,
-												genre,
-											]);
-										} else {
-											updateField(
-												"selectedGenres",
-												formData.selectedGenres.filter((g) => g !== genre),
-											);
+						<div className="grid gap-4 md:grid-cols-2">
+							<div className="space-y-2">
+								<Label htmlFor={`${id}-spotify`}>Spotify</Label>
+								<div className="relative">
+									<ExternalLink className="absolute top-2.5 left-2.5 h-4 w-4 text-muted-foreground" />
+									<Input
+										id={`${id}-spotify`}
+										type="url"
+										className="pl-9"
+										value={formData.socialLinks.spotify}
+										onChange={(e) =>
+											updateField("socialLinks", {
+												...formData.socialLinks,
+												spotify: e.target.value,
+											})
 										}
-									}}
-								/>
-								<Label
-									htmlFor={`${id}-genre-${genre}`}
-									className="cursor-pointer font-normal text-sm"
-								>
-									{genre}
-								</Label>
+										placeholder="https://open.spotify.com/artist/..."
+									/>
+								</div>
 							</div>
-						))}
-					</div>
-				</div>
-			</div>
 
-			{/* Bio & Details */}
-			<div className="space-y-6">
-				<div className="flex items-center gap-2 font-semibold text-lg">
-					<FileText className="h-5 w-5 text-primary" />
-					<span>Présentation</span>
-				</div>
+							<div className="space-y-2">
+								<Label htmlFor={`${id}-youtube`}>YouTube</Label>
+								<div className="relative">
+									<ExternalLink className="absolute top-2.5 left-2.5 h-4 w-4 text-muted-foreground" />
+									<Input
+										id={`${id}-youtube`}
+										type="url"
+										className="pl-9"
+										value={formData.socialLinks.youtube}
+										onChange={(e) =>
+											updateField("socialLinks", {
+												...formData.socialLinks,
+												youtube: e.target.value,
+											})
+										}
+										placeholder="https://youtube.com/@..."
+									/>
+								</div>
+							</div>
 
-				<div className="space-y-2">
-					<Label htmlFor={`${id}-bio`}>Biographie courte</Label>
-					<Textarea
-						id={`${id}-bio`}
-						value={formData.bio}
-						onChange={(e) => updateField("bio", e.target.value)}
-						placeholder="Racontez votre histoire..."
-						rows={4}
-					/>
-				</div>
-			</div>
+							<div className="space-y-2">
+								<Label htmlFor={`${id}-soundcloud`}>SoundCloud</Label>
+								<div className="relative">
+									<ExternalLink className="absolute top-2.5 left-2.5 h-4 w-4 text-muted-foreground" />
+									<Input
+										id={`${id}-soundcloud`}
+										type="url"
+										className="pl-9"
+										value={formData.socialLinks.soundcloud}
+										onChange={(e) =>
+											updateField("socialLinks", {
+												...formData.socialLinks,
+												soundcloud: e.target.value,
+											})
+										}
+										placeholder="https://soundcloud.com/..."
+									/>
+								</div>
+							</div>
 
-			{/* Technical & Fees */}
-			<div className="space-y-6">
-				<div className="flex items-center gap-2 font-semibold text-lg">
-					<Sparkles className="h-5 w-5 text-primary" />
-					<span>Technique & Tarifs</span>
-				</div>
+							<div className="space-y-2">
+								<Label htmlFor={`${id}-bandcamp`}>Bandcamp</Label>
+								<div className="relative">
+									<ExternalLink className="absolute top-2.5 left-2.5 h-4 w-4 text-muted-foreground" />
+									<Input
+										id={`${id}-bandcamp`}
+										type="url"
+										className="pl-9"
+										value={formData.socialLinks.bandcamp}
+										onChange={(e) =>
+											updateField("socialLinks", {
+												...formData.socialLinks,
+												bandcamp: e.target.value,
+											})
+										}
+										placeholder="https://....bandcamp.com"
+									/>
+								</div>
+							</div>
 
-				<div className="space-y-4">
-					<div className="space-y-2">
-						<Label htmlFor={`${id}-tech`}>
-							Besoins techniques (fiche technique simplifiée)
-						</Label>
-						<Textarea
-							id={`${id}-tech`}
-							value={formData.techRequirements}
-							onChange={(e) => updateField("techRequirements", e.target.value)}
-							placeholder="Ex: 2 micros, 1 ampli basse, batterie fournie..."
-							rows={3}
-						/>
-					</div>
+							<div className="space-y-2">
+								<Label htmlFor={`${id}-deezer`}>Deezer</Label>
+								<div className="relative">
+									<ExternalLink className="absolute top-2.5 left-2.5 h-4 w-4 text-muted-foreground" />
+									<Input
+										id={`${id}-deezer`}
+										type="url"
+										className="pl-9"
+										value={formData.socialLinks.deezer}
+										onChange={(e) =>
+											updateField("socialLinks", {
+												...formData.socialLinks,
+												deezer: e.target.value,
+											})
+										}
+										placeholder="https://www.deezer.com/artist/..."
+									/>
+								</div>
+							</div>
 
-					<div className="grid gap-4 md:grid-cols-2">
-						<div className="space-y-2">
-							<Label htmlFor={`${id}-feeMin`}>Cachet minimum (€)</Label>
-							<div className="relative">
-								<Euro className="absolute top-2.5 left-2.5 h-4 w-4 text-muted-foreground" />
-								<Input
-									id={`${id}-feeMin`}
-									type="number"
-									min={0}
-									className="pl-9"
-									value={formData.feeMin ?? ""}
-									onChange={(e) =>
-										updateField(
-											"feeMin",
-											e.target.value
-												? Number.parseInt(e.target.value, 10)
-												: null,
-										)
-									}
-									placeholder="0"
-								/>
+							<div className="space-y-2">
+								<Label htmlFor={`${id}-appleMusic`}>Apple Music</Label>
+								<div className="relative">
+									<ExternalLink className="absolute top-2.5 left-2.5 h-4 w-4 text-muted-foreground" />
+									<Input
+										id={`${id}-appleMusic`}
+										type="url"
+										className="pl-9"
+										value={formData.socialLinks.appleMusic}
+										onChange={(e) =>
+											updateField("socialLinks", {
+												...formData.socialLinks,
+												appleMusic: e.target.value,
+											})
+										}
+										placeholder="https://music.apple.com/artist/..."
+									/>
+								</div>
 							</div>
 						</div>
-						<div className="space-y-2">
-							<Label htmlFor={`${id}-feeMax`}>Cachet souhaité (€)</Label>
-							<div className="relative">
-								<Euro className="absolute top-2.5 left-2.5 h-4 w-4 text-muted-foreground" />
-								<Input
-									id={`${id}-feeMax`}
-									type="number"
-									min={0}
-									className="pl-9"
-									value={formData.feeMax ?? ""}
-									onChange={(e) =>
-										updateField(
-											"feeMax",
-											e.target.value
-												? Number.parseInt(e.target.value, 10)
-												: null,
-										)
-									}
-									placeholder="0"
+						{errors.socialLinks && (
+							<p className="text-destructive text-sm">{errors.socialLinks}</p>
+						)}
+					</div>
+
+					<div className="space-y-6">
+						<div className="flex items-center gap-2 font-semibold text-lg">
+							<ImageIcon className="h-5 w-5 text-primary" />
+							<span>Visuels additionnels</span>
+						</div>
+						<div className="grid gap-6 md:grid-cols-2">
+							<div className="space-y-2">
+								<Label>Bannière</Label>
+								<ImageUpload
+									value={formData.bannerUrl}
+									onChange={(url) => updateField("bannerUrl", url)}
+									onRemove={() => updateField("bannerUrl", "")}
+									label="Déposez votre bannière ici"
+									aspectRatio="video"
+									cropAspectRatio={16 / 9}
 								/>
+							</div>
+							<div className="space-y-2">
+								<Label>Galerie</Label>
+								<ImageUpload
+									value=""
+									onChange={(url) => {
+										if (formData.images.includes(url)) {
+											toast.error("Cette image est déjà ajoutée.");
+											return;
+										}
+										updateField("images", [...formData.images, url]);
+									}}
+									label="Ajouter une image"
+									aspectRatio="square"
+									enableCrop={false}
+								/>
+								{formData.images.length > 0 ? (
+									<div className="grid grid-cols-3 gap-3">
+										{formData.images.map((imageUrl) => (
+											<div
+												key={imageUrl}
+												className="relative overflow-hidden rounded-lg border"
+											>
+												{/* biome-ignore lint/performance/noImgElement: existing upload preview uses direct remote URL */}
+												<img
+													src={imageUrl}
+													alt="Galerie"
+													className="aspect-square w-full object-cover"
+												/>
+												<Button
+													type="button"
+													size="sm"
+													variant="secondary"
+													className="absolute top-2 right-2"
+													onClick={() =>
+														updateField(
+															"images",
+															formData.images.filter((img) => img !== imageUrl),
+														)
+													}
+												>
+													Retirer
+												</Button>
+											</div>
+										))}
+									</div>
+								) : (
+									<p className="text-muted-foreground text-sm">
+										Aucune image ajoutée pour l'instant.
+									</p>
+								)}
+							</div>
+						</div>
+					</div>
+
+					{/* Genres */}
+					<div className="space-y-6">
+						<div className="flex items-center gap-2 font-semibold text-lg">
+							<Music className="h-5 w-5 text-primary" />
+							<span>Genres musicaux</span>
+						</div>
+
+						<div className="space-y-4">
+							<div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+								{MUSIC_GENRES.map((genre) => (
+									<div key={genre} className="flex items-center space-x-2">
+										<Checkbox
+											id={`${id}-genre-${genre}`}
+											checked={formData.selectedGenres.includes(genre)}
+											onCheckedChange={(checked) => {
+												if (checked) {
+													updateField("selectedGenres", [
+														...formData.selectedGenres,
+														genre,
+													]);
+												} else {
+													updateField(
+														"selectedGenres",
+														formData.selectedGenres.filter((g) => g !== genre),
+													);
+												}
+											}}
+										/>
+										<Label
+											htmlFor={`${id}-genre-${genre}`}
+											className="cursor-pointer font-normal text-sm"
+										>
+											{genre}
+										</Label>
+									</div>
+								))}
+							</div>
+						</div>
+					</div>
+
+					{/* Bio & Details */}
+					<div className="space-y-6">
+						<div className="flex items-center gap-2 font-semibold text-lg">
+							<FileText className="h-5 w-5 text-primary" />
+							<span>Présentation</span>
+						</div>
+
+						<div className="space-y-2">
+							<Label htmlFor={`${id}-bio`}>Biographie courte</Label>
+							<Textarea
+								id={`${id}-bio`}
+								value={formData.bio}
+								onChange={(e) => updateField("bio", e.target.value)}
+								placeholder="Racontez votre histoire..."
+								rows={4}
+							/>
+						</div>
+					</div>
+
+					{/* Technical & Fees */}
+					<div className="space-y-6">
+						<div className="flex items-center gap-2 font-semibold text-lg">
+							<Sparkles className="h-5 w-5 text-primary" />
+							<span>Technique & Tarifs</span>
+						</div>
+
+						<div className="space-y-4">
+							<div className="space-y-2">
+								<Label htmlFor={`${id}-tech`}>
+									Besoins techniques (fiche technique simplifiée)
+								</Label>
+								<Textarea
+									id={`${id}-tech`}
+									value={formData.techRequirements}
+									onChange={(e) =>
+										updateField("techRequirements", e.target.value)
+									}
+									placeholder="Ex: 2 micros, 1 ampli basse, batterie fournie..."
+									rows={3}
+								/>
+							</div>
+
+							<div className="grid gap-4 md:grid-cols-2">
+								<div className="space-y-2">
+									<Label htmlFor={`${id}-feeMin`}>Cachet minimum (€)</Label>
+									<div className="relative">
+										<Euro className="absolute top-2.5 left-2.5 h-4 w-4 text-muted-foreground" />
+										<Input
+											id={`${id}-feeMin`}
+											type="number"
+											min={0}
+											className="pl-9"
+											value={formData.feeMin ?? ""}
+											onChange={(e) =>
+												updateField(
+													"feeMin",
+													e.target.value
+														? Number.parseInt(e.target.value, 10)
+														: null,
+												)
+											}
+											placeholder="0"
+										/>
+									</div>
+								</div>
+								<div className="space-y-2">
+									<Label htmlFor={`${id}-feeMax`}>Cachet souhaité (€)</Label>
+									<div className="relative">
+										<Euro className="absolute top-2.5 left-2.5 h-4 w-4 text-muted-foreground" />
+										<Input
+											id={`${id}-feeMax`}
+											type="number"
+											min={0}
+											className="pl-9"
+											value={formData.feeMax ?? ""}
+											onChange={(e) =>
+												updateField(
+													"feeMax",
+													e.target.value
+														? Number.parseInt(e.target.value, 10)
+														: null,
+												)
+											}
+											placeholder="0"
+										/>
+									</div>
+									{errors.feeMax && (
+										<p className="text-destructive text-sm">{errors.feeMax}</p>
+									)}
+								</div>
+							</div>
+							<div className="flex items-center space-x-2">
+								<Checkbox
+									id={`${id}-isNegotiable`}
+									checked={formData.isNegotiable}
+									onCheckedChange={(checked) =>
+										updateField("isNegotiable", checked === true)
+									}
+								/>
+								<Label
+									htmlFor={`${id}-isNegotiable`}
+									className="cursor-pointer font-normal text-sm"
+								>
+									Cachet négociable
+								</Label>
 							</div>
 						</div>
 					</div>

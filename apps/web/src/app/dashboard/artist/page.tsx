@@ -1,30 +1,47 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Mic2 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
-import { queryClient, trpc } from "@/utils/trpc";
+import { trpc } from "@/utils/trpc";
 import { ArtistForm } from "./artist-form";
+
+type ArtistPageItem = {
+	id: string;
+	stageName: string;
+	city?: string | null;
+	postalCode?: string | null;
+	photoUrl?: string | null;
+	bannerUrl?: string | null;
+	bio?: string | null;
+	website?: string | null;
+	socialLinks?: Record<string, string> | null;
+	techRequirements?: string | null;
+	feeMin?: number | null;
+	feeMax?: number | null;
+	isNegotiable?: boolean | null;
+	genres: { id: string; name: string }[];
+	images?: string[] | null;
+};
 
 function ArtistPageContent() {
 	const searchParams = useSearchParams();
 	const editId = searchParams.get("id");
 	const router = useRouter();
+	const queryClient = useQueryClient();
 
 	const { data: session, isPending: sessionPending } = authClient.useSession();
 
 	// Fetch all artists for this user
-	const {
-		data: artists,
-		isLoading,
-		error,
-	} = useQuery({
+	const artistsQuery = useQuery({
 		...trpc.artist.myArtists.queryOptions(),
 		enabled: !!session?.user,
 	});
+	const artists = artistsQuery.data as ArtistPageItem[] | undefined;
+	const { isLoading, error } = artistsQuery;
 
 	if (sessionPending || isLoading) {
 		return (
@@ -58,10 +75,10 @@ function ArtistPageContent() {
 	// 1. If editId is provided, find that artist to edit.
 	// 2. If no editId, we show "Create New" form.
 	// (The Dashboard handles the list view now).
+	const artistItems = artists ?? [];
 
 	const artistToEdit = editId
-		? // eslint-disable-next-line @typescript-eslint/no-explicit-any
-			(artists as any[])?.find((a) => a.id === editId)
+		? artistItems.find((artist) => artist.id === editId)
 		: undefined;
 
 	// If ID provided but not found?
@@ -88,12 +105,12 @@ function ArtistPageContent() {
 						<h1 className="mb-2 font-bold text-3xl">
 							{artistToEdit
 								? `Modifier ${artistToEdit.stageName}`
-								: "Nouveau projet artistique"}
+								: "Nouveau profil artiste"}
 						</h1>
 						<p className="text-lg text-muted-foreground">
 							{artistToEdit
 								? "Mettez à jour vos informations."
-								: "Créez une fiche pour votre groupe ou projet solo pour démarcher des lieux."}
+								: "Créez une fiche artiste pour démarcher des lieux."}
 						</p>
 					</div>
 				</div>
@@ -108,21 +125,30 @@ function ArtistPageContent() {
 							? {
 									id: artistToEdit.id,
 									stageName: artistToEdit.stageName,
+									city: artistToEdit.city ?? "",
+									postalCode: artistToEdit.postalCode ?? "",
 									photoUrl: artistToEdit.photoUrl ?? "",
+									bannerUrl: artistToEdit.bannerUrl ?? "",
 									bio: artistToEdit.bio ?? "",
 									website: artistToEdit.website ?? "",
+									socialLinks: artistToEdit.socialLinks as Record<
+										string,
+										string
+									> | null,
 									techRequirements: artistToEdit.techRequirements ?? "",
 									feeMin: artistToEdit.feeMin ?? undefined,
 									feeMax: artistToEdit.feeMax ?? undefined,
+									isNegotiable: artistToEdit.isNegotiable ?? false,
 									genres: artistToEdit.genres,
+									images: artistToEdit.images ?? [],
 								}
 							: undefined
 					}
-					onSuccess={() => {
+					onSuccess={(artistId) => {
 						queryClient.invalidateQueries();
-						if (!editId) {
-							// If created, go back to dashboard to see it in list?
-							// Or stay here?
+						if (!editId && artistId) {
+							router.push(`/artist/${artistId}`);
+						} else if (!editId) {
 							router.push("/dashboard");
 						}
 					}}

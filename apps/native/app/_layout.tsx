@@ -97,6 +97,13 @@ export default function RootLayout() {
 								name="modal"
 								options={{ title: "Modale", presentation: "modal" }}
 							/>
+							<Stack.Screen
+								name="verify-email"
+								options={{
+									title: "Vérification e-mail",
+									headerBackTitle: "Retour",
+								}}
+							/>
 						</Stack>
 					</GestureHandlerRootView>
 				</ThemeProvider>

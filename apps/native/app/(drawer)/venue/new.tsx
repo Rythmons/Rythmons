@@ -1,0 +1,702 @@
+import { Ionicons } from "@expo/vector-icons";
+import { Picker } from "@react-native-picker/picker";
+import { MUSIC_GENRES } from "@rythmons/validation";
+import { useMutation } from "@tanstack/react-query";
+import { router, useLocalSearchParams } from "expo-router";
+import { useState } from "react";
+import {
+	ActivityIndicator,
+	Alert,
+	Image,
+	KeyboardAvoidingView,
+	Platform,
+	ScrollView,
+	TouchableOpacity,
+	View,
+} from "react-native";
+import { Container } from "@/components/container";
+import { AddressAutocomplete } from "@/components/ui/address-autocomplete";
+import { ImageUpload } from "@/components/ui/image-upload";
+import { Input } from "@/components/ui/input";
+import { Text, Title } from "@/components/ui/typography";
+import { authClient } from "@/lib/auth-client";
+import { useContextualBackNavigation } from "@/lib/use-contextual-back-navigation";
+import { queryClient, trpc } from "@/utils/trpc";
+
+const VENUE_TYPES = [
+	{ value: "BAR", label: "Bar" },
+	{ value: "CLUB", label: "Club / Discothèque" },
+	{ value: "CONCERT_HALL", label: "Salle de concert" },
+	{ value: "FESTIVAL", label: "Festival" },
+	{ value: "CAFE", label: "Café-concert" },
+	{ value: "RESTAURANT", label: "Restaurant" },
+	{ value: "CULTURAL_CENTER", label: "Centre culturel" },
+	{ value: "THEATER", label: "Théâtre" },
+	{ value: "OPEN_AIR", label: "Plein air" },
+	{ value: "OTHER", label: "Autre" },
+] as const;
+
+type VenueType = (typeof VENUE_TYPES)[number]["value"];
+
+const PAYMENT_TYPES = [
+	{ value: "FIXED_FEE", label: "Cachet fixe" },
+	{ value: "PERCENTAGE", label: "% Entrées" },
+	{ value: "HAT", label: "Au chapeau" },
+	{ value: "NEGOTIABLE", label: "Négociable" },
+] as const;
+
+type PaymentType = (typeof PAYMENT_TYPES)[number]["value"];
+
+interface FormData {
+	name: string;
+	address: string;
+	city: string;
+	postalCode: string;
+	country: string;
+	venueType: VenueType;
+	capacity: string;
+	description: string;
+	photoUrl: string;
+	logoUrl: string;
+	paymentPolicy: string;
+	techInfo: string;
+	images: string[];
+	selectedGenres: string[];
+	paymentTypes: PaymentType[];
+	budgetMin: string;
+	budgetMax: string;
+}
+
+export default function NewVenueScreen() {
+	const params = useLocalSearchParams<{ backTo?: string }>();
+	const backTo = Array.isArray(params.backTo)
+		? params.backTo[0]
+		: params.backTo;
+	const { data: session, isPending: sessionPending } = authClient.useSession();
+	const handleBack = useContextualBackNavigation(backTo ?? "/(drawer)/venue");
+
+	const [formData, setFormData] = useState<FormData>({
+		name: "",
+		address: "",
+		city: "",
+		postalCode: "",
+		country: "France",
+		venueType: "BAR",
+		capacity: "",
+		description: "",
+		photoUrl: "",
+		logoUrl: "",
+		paymentPolicy: "",
+		techInfo: "",
+		images: [],
+		selectedGenres: [],
+		paymentTypes: [],
+		budgetMin: "",
+		budgetMax: "",
+	});
+	const [isSaving, setIsSaving] = useState(false);
+	const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>(
+		{},
+	);
+
+	const createMutation = useMutation(trpc.venue.create.mutationOptions());
+
+	const updateField = <K extends keyof FormData>(
+		key: K,
+		value: FormData[K],
+	) => {
+		setFormData((prev) => ({ ...prev, [key]: value }));
+		if (errors[key]) {
+			setErrors((prev) => ({ ...prev, [key]: undefined }));
+		}
+	};
+
+	const validateForm = (): boolean => {
+		const newErrors: Partial<Record<keyof FormData, string>> = {};
+
+		if (!formData.name || formData.name.length < 2) {
+			newErrors.name = "Le nom doit contenir au moins 2 caractères";
+		}
+		if (!formData.address || formData.address.length < 5) {
+			newErrors.address = "L'adresse est requise";
+		}
+		if (!formData.city || formData.city.length < 2) {
+			newErrors.city = "La ville est requise";
+		}
+		if (!formData.postalCode || !/^\d{5}$/.test(formData.postalCode)) {
+			newErrors.postalCode = "Code postal invalide";
+		}
+
+		setErrors(newErrors);
+		return Object.keys(newErrors).length === 0;
+	};
+
+	const handleSave = async () => {
+		if (!validateForm()) {
+			Alert.alert("Erreur", "Veuillez corriger les erreurs dans le formulaire");
+			return;
+		}
+
+		setIsSaving(true);
+		try {
+			const { selectedGenres, ...restData } = formData;
+			const submitData = {
+				...restData,
+				capacity: formData.capacity
+					? Number.parseInt(formData.capacity, 10)
+					: null,
+				description: formData.description || null,
+				photoUrl: formData.photoUrl || null,
+				logoUrl: formData.logoUrl || null,
+				paymentPolicy: formData.paymentPolicy || null,
+				techInfo: formData.techInfo || null,
+				genreNames: selectedGenres,
+				paymentTypes: formData.paymentTypes,
+				budgetMin: formData.budgetMin
+					? Number.parseInt(formData.budgetMin, 10)
+					: null,
+				budgetMax: formData.budgetMax
+					? Number.parseInt(formData.budgetMax, 10)
+					: null,
+			};
+
+			const createdVenue = await createMutation.mutateAsync(submitData);
+			Alert.alert("Succès", "Lieu créé avec succès !");
+
+			await queryClient.invalidateQueries();
+			router.replace({
+				pathname: "/(drawer)/venue/[id]",
+				params: backTo
+					? { id: createdVenue.id, backTo }
+					: { id: createdVenue.id },
+			} as any);
+		} catch (error) {
+			const message =
+				error instanceof Error ? error.message : "Erreur lors de la sauvegarde";
+			Alert.alert("Erreur", message);
+		} finally {
+			setIsSaving(false);
+		}
+	};
+
+	const removeImage = (url: string) => {
+		updateField(
+			"images",
+			formData.images.filter((img) => img !== url),
+		);
+	};
+
+	if (sessionPending) {
+		return (
+			<Container>
+				<View className="flex-1 items-center justify-center">
+					<ActivityIndicator size="large" />
+					<Text className="mt-2 text-muted-foreground">Chargement...</Text>
+				</View>
+			</Container>
+		);
+	}
+
+	if (!session?.user) {
+		return (
+			<Container>
+				<View className="flex-1 items-center justify-center p-4">
+					<Text className="mb-4 text-center text-foreground">
+						Vous devez être connecté pour voir cette page.
+					</Text>
+					<TouchableOpacity
+						className="rounded-lg bg-primary px-4 py-2"
+						onPress={handleBack}
+					>
+						<Text className="font-medium text-primary-foreground">
+							Se connecter
+						</Text>
+					</TouchableOpacity>
+				</View>
+			</Container>
+		);
+	}
+
+	return (
+		<Container>
+			<KeyboardAvoidingView
+				behavior={Platform.OS === "ios" ? "padding" : "height"}
+				className="flex-1"
+			>
+				<ScrollView className="flex-1 p-4">
+					{/* Header */}
+					<View className="mb-6 rounded-xl bg-primary/10 p-4">
+						<View className="flex-row items-center gap-3">
+							<TouchableOpacity className="mr-2" onPress={handleBack}>
+								<Ionicons name="arrow-back" size={24} color="#7c3aed" />
+							</TouchableOpacity>
+							<View className="rounded-lg bg-primary/20 p-2">
+								<Ionicons name="business" size={24} color="#7c3aed" />
+							</View>
+							<View className="flex-1">
+								<Title className="text-foreground text-lg">
+									Créer votre lieu
+								</Title>
+								<Text className="text-muted-foreground text-sm">
+									Remplissez les informations pour recevoir des propositions
+								</Text>
+							</View>
+						</View>
+					</View>
+
+					{/* Form */}
+					<View className="space-y-6">
+						{/* Basic Info Section */}
+						<View className="rounded-xl border border-border bg-card p-4">
+							<View className="mb-4 flex-row items-center gap-2">
+								<Ionicons name="information-circle" size={20} color="#7c3aed" />
+								<Text className="font-sans-bold text-foreground">
+									Informations générales
+								</Text>
+							</View>
+
+							<View className="space-y-4">
+								<View>
+									<Text className="mb-1 font-sans-medium text-foreground text-sm">
+										Nom du lieu *
+									</Text>
+									<Input
+										className={`rounded-lg border p-3 text-foreground ${
+											errors.name ? "border-red-500" : "border-border"
+										} bg-background`}
+										value={formData.name}
+										onChangeText={(v) => updateField("name", v)}
+										placeholder="Ex: Le Petit Journal"
+										placeholderTextColor="#666"
+									/>
+									{errors.name && (
+										<Text className="mt-1 text-red-500 text-xs">
+											{errors.name}
+										</Text>
+									)}
+								</View>
+
+								<View>
+									<Text className="mb-1 font-sans-medium text-foreground text-sm">
+										Type de lieu *
+									</Text>
+									<View className="rounded-lg border border-border bg-background">
+										<Picker
+											selectedValue={formData.venueType}
+											onValueChange={(v) => updateField("venueType", v)}
+											style={{ color: "#fff" }}
+										>
+											{VENUE_TYPES.map((type) => (
+												<Picker.Item
+													key={type.value}
+													label={type.label}
+													value={type.value}
+												/>
+											))}
+										</Picker>
+									</View>
+								</View>
+							</View>
+						</View>
+
+						{/* Address Section */}
+						<View className="rounded-xl border border-border bg-card p-4">
+							<View className="mb-4 flex-row items-center gap-2">
+								<Ionicons name="location" size={20} color="#7c3aed" />
+								<Text className="font-sans-bold text-foreground">Adresse</Text>
+							</View>
+
+							<View className="space-y-4">
+								<AddressAutocomplete
+									value={formData.address}
+									onChange={(address, city, postalCode) => {
+										updateField("address", address);
+										updateField("city", city);
+										updateField("postalCode", postalCode);
+									}}
+									error={errors.address}
+									disabled={isSaving}
+								/>
+
+								<View className="flex-row gap-3">
+									<View className="flex-1">
+										<Text className="mb-1 font-sans-medium text-foreground text-sm">
+											Ville *
+										</Text>
+										<Input
+											className={`rounded-lg border p-3 text-foreground ${
+												errors.city ? "border-red-500" : "border-border"
+											} bg-background`}
+											value={formData.city}
+											onChangeText={(v) => updateField("city", v)}
+											placeholder="Paris"
+											placeholderTextColor="#666"
+										/>
+										{errors.city && (
+											<Text className="mt-1 text-red-500 text-xs">
+												{errors.city}
+											</Text>
+										)}
+									</View>
+
+									<View className="w-28">
+										<Text className="mb-1 font-sans-medium text-foreground text-sm">
+											Code postal *
+										</Text>
+										<Input
+											className={`rounded-lg border p-3 text-foreground ${
+												errors.postalCode ? "border-red-500" : "border-border"
+											} bg-background`}
+											value={formData.postalCode}
+											onChangeText={(v) => updateField("postalCode", v)}
+											placeholder="75001"
+											placeholderTextColor="#666"
+											maxLength={5}
+											keyboardType="numeric"
+										/>
+									</View>
+								</View>
+							</View>
+						</View>
+
+						{/* Capacity Section */}
+						<View className="rounded-xl border border-border bg-card p-4">
+							<View className="mb-4 flex-row items-center gap-2">
+								<Ionicons name="people" size={20} color="#7c3aed" />
+								<Text className="font-sans-bold text-foreground">Capacité</Text>
+							</View>
+
+							<View>
+								<Text className="mb-1 font-sans-medium text-foreground text-sm">
+									Capacité d'accueil
+								</Text>
+								<Input
+									className="rounded-lg border border-border bg-background p-3 text-foreground"
+									value={formData.capacity}
+									onChangeText={(v: string) => updateField("capacity", v)}
+									placeholder="200"
+									placeholderTextColor="#666"
+									keyboardType="numeric"
+								/>
+								<Text className="mt-1 text-muted-foreground text-xs">
+									Optionnel - Nombre de personnes
+								</Text>
+							</View>
+						</View>
+
+						{/* Music Genres Section */}
+						<View className="rounded-xl border border-border bg-card p-4">
+							<View className="mb-4 flex-row items-center gap-2">
+								<Ionicons name="musical-notes" size={20} color="#7c3aed" />
+								<Text className="font-sans-bold text-foreground">
+									Genres musicaux programmés
+								</Text>
+							</View>
+
+							<Text className="mb-3 text-muted-foreground text-sm">
+								Sélectionnez les genres que vous programmez habituellement
+							</Text>
+
+							<View className="flex-row flex-wrap gap-2">
+								{MUSIC_GENRES.map((genre) => {
+									const isSelected = formData.selectedGenres.includes(genre);
+									return (
+										<TouchableOpacity
+											key={genre}
+											onPress={() => {
+												if (isSelected) {
+													updateField(
+														"selectedGenres",
+														formData.selectedGenres.filter((g) => g !== genre),
+													);
+												} else {
+													updateField("selectedGenres", [
+														...formData.selectedGenres,
+														genre,
+													]);
+												}
+											}}
+											className={`rounded-full px-3 py-2 ${
+												isSelected
+													? "bg-primary"
+													: "border border-border bg-background"
+											}`}
+										>
+											<Text
+												className={`text-sm ${
+													isSelected
+														? "font-sans-medium text-primary-foreground"
+														: "text-foreground"
+												}`}
+											>
+												{genre}
+											</Text>
+										</TouchableOpacity>
+									);
+								})}
+							</View>
+
+							{formData.selectedGenres.length > 0 && (
+								<Text className="mt-3 text-muted-foreground text-xs">
+									{formData.selectedGenres.length} genre(s) sélectionné(s)
+								</Text>
+							)}
+						</View>
+
+						{/* Description Section */}
+						<View className="rounded-xl border border-border bg-card p-4">
+							<View className="mb-4 flex-row items-center gap-2">
+								<Ionicons name="document-text" size={20} color="#7c3aed" />
+								<Text className="font-sans-bold text-foreground">
+									Description
+								</Text>
+							</View>
+
+							<Input
+								className="min-h-[100px] rounded-lg border border-border bg-background p-3 text-foreground"
+								value={formData.description}
+								onChangeText={(v) => updateField("description", v)}
+								placeholder="Décrivez votre lieu, son ambiance, son histoire..."
+								placeholderTextColor="#666"
+								multiline
+								textAlignVertical="top"
+							/>
+						</View>
+
+						<View className="rounded-xl border border-border bg-card p-4">
+							<View className="mb-4 flex-row items-center gap-2">
+								<Ionicons name="checkmark-done" size={20} color="#7c3aed" />
+								<Text className="font-sans-bold text-foreground">
+									Rémunération & Accueil
+								</Text>
+							</View>
+
+							<View className="space-y-4">
+								<View>
+									<Text className="mb-2 font-sans-medium text-foreground text-sm">
+										Types de rémunération
+									</Text>
+									<View className="flex-row flex-wrap gap-2">
+										{PAYMENT_TYPES.map((type) => {
+											const isSelected = formData.paymentTypes.includes(
+												type.value as PaymentType,
+											);
+											return (
+												<TouchableOpacity
+													key={type.value}
+													onPress={() => {
+														if (isSelected) {
+															updateField(
+																"paymentTypes",
+																formData.paymentTypes.filter(
+																	(t) => t !== type.value,
+																),
+															);
+														} else {
+															updateField("paymentTypes", [
+																...formData.paymentTypes,
+																type.value as PaymentType,
+															]);
+														}
+													}}
+													className={`rounded-full px-3 py-2 ${
+														isSelected
+															? "bg-primary"
+															: "border border-border bg-background"
+													}`}
+												>
+													<Text
+														className={`text-sm ${
+															isSelected
+																? "font-sans-medium text-primary-foreground"
+																: "text-foreground"
+														}`}
+													>
+														{type.label}
+													</Text>
+												</TouchableOpacity>
+											);
+										})}
+									</View>
+								</View>
+
+								<View className="flex-row gap-3">
+									<View className="flex-1">
+										<Text className="mb-1 font-sans-medium text-foreground text-sm">
+											Budget min (€)
+										</Text>
+										<Input
+											className="rounded-lg border border-border bg-background p-3 text-foreground"
+											value={formData.budgetMin}
+											onChangeText={(v) => updateField("budgetMin", v)}
+											placeholder="Ex: 50"
+											placeholderTextColor="#666"
+											keyboardType="numeric"
+										/>
+									</View>
+									<View className="flex-1">
+										<Text className="mb-1 font-sans-medium text-foreground text-sm">
+											Budget max (€)
+										</Text>
+										<Input
+											className="rounded-lg border border-border bg-background p-3 text-foreground"
+											value={formData.budgetMax}
+											onChangeText={(v) => updateField("budgetMax", v)}
+											placeholder="Ex: 500"
+											placeholderTextColor="#666"
+											keyboardType="numeric"
+										/>
+									</View>
+								</View>
+
+								<View>
+									<Text className="mb-1 font-sans-medium text-foreground text-sm">
+										Accueil & conditions
+									</Text>
+									<Input
+										className="min-h-[100px] rounded-lg border border-border bg-background p-3 text-foreground"
+										value={formData.paymentPolicy}
+										onChangeText={(v) => updateField("paymentPolicy", v)}
+										placeholder="Repas, horaires, hébergement, balance..."
+										placeholderTextColor="#666"
+										multiline
+										textAlignVertical="top"
+									/>
+								</View>
+								<View>
+									<Text className="mb-1 font-sans-medium text-foreground text-sm">
+										Technique & matériel
+									</Text>
+									<Input
+										className="min-h-[100px] rounded-lg border border-border bg-background p-3 text-foreground"
+										value={formData.techInfo}
+										onChangeText={(v) => updateField("techInfo", v)}
+										placeholder="Façade, console, micros, backline..."
+										placeholderTextColor="#666"
+										multiline
+										textAlignVertical="top"
+									/>
+								</View>
+							</View>
+						</View>
+
+						{/* Images Section */}
+						<View className="rounded-xl border border-border bg-card p-4">
+							<View className="mb-4 flex-row items-center gap-2">
+								<Ionicons name="image" size={20} color="#7c3aed" />
+								<Text className="font-sans-bold text-foreground">Visuels</Text>
+							</View>
+
+							<View className="space-y-4">
+								<View>
+									<Text className="mb-1 font-sans-medium text-foreground text-sm">
+										Photo principale (bannière)
+									</Text>
+									<ImageUpload
+										value={formData.photoUrl || undefined}
+										onChange={(url) => updateField("photoUrl", url)}
+										onRemove={() => updateField("photoUrl", "")}
+										label="Choisir une bannière (16:9)"
+										aspectRatio="video"
+										disabled={isSaving}
+									/>
+								</View>
+
+								<View>
+									<Text className="mb-1 font-sans-medium text-foreground text-sm">
+										Logo
+									</Text>
+									<View className="max-w-[220px]">
+										<ImageUpload
+											value={formData.logoUrl || undefined}
+											onChange={(url) => updateField("logoUrl", url)}
+											onRemove={() => updateField("logoUrl", "")}
+											label="Choisir un logo (1:1)"
+											aspectRatio="square"
+											disabled={isSaving}
+										/>
+									</View>
+								</View>
+
+								<View className="rounded-lg border border-border bg-background p-3">
+									<Text className="mb-2 font-sans-medium text-foreground text-sm">
+										Galerie
+									</Text>
+									<ImageUpload
+										label="Ajouter une image"
+										onChange={(url) => {
+											if (formData.images.includes(url)) {
+												Alert.alert("Info", "Cette image est déjà ajoutée.");
+												return;
+											}
+											updateField("images", [...formData.images, url]);
+										}}
+										aspectRatio="square"
+										disabled={isSaving}
+									/>
+
+									{formData.images.length > 0 ? (
+										<ScrollView
+											horizontal
+											showsHorizontalScrollIndicator={false}
+											className="mt-3"
+										>
+											<View className="flex-row gap-3">
+												{formData.images.map((url) => (
+													<View
+														key={url}
+														className="overflow-hidden rounded-lg border border-border bg-background"
+													>
+														<Image
+															source={{ uri: url }}
+															className="h-24 w-24"
+															resizeMode="cover"
+														/>
+														<TouchableOpacity
+															className="absolute top-1 right-1 rounded-full bg-black/60 p-1"
+															onPress={() => removeImage(url)}
+														>
+															<Ionicons name="trash" size={14} color="white" />
+														</TouchableOpacity>
+													</View>
+												))}
+											</View>
+										</ScrollView>
+									) : (
+										<Text className="mt-2 text-muted-foreground text-xs">
+											Aucune image ajoutée.
+										</Text>
+									)}
+								</View>
+							</View>
+						</View>
+
+						{/* Save Button */}
+						<TouchableOpacity
+							className="flex-row items-center justify-center rounded-xl bg-primary p-4"
+							onPress={handleSave}
+							disabled={isSaving}
+						>
+							{isSaving ? (
+								<ActivityIndicator color="white" style={{ marginRight: 8 }} />
+							) : (
+								<Ionicons
+									name="save-outline"
+									size={20}
+									color="white"
+									style={{ marginRight: 8 }}
+								/>
+							)}
+							<Text className="font-sans-bold text-primary-foreground">
+								{isSaving ? "Création en cours..." : "Créer ce lieu"}
+							</Text>
+						</TouchableOpacity>
+
+						{/* Spacer for scroll */}
+						<View className="h-8" />
+					</View>
+				</ScrollView>
+			</KeyboardAvoidingView>
+		</Container>
+	);
+}

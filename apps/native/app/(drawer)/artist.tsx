@@ -76,7 +76,12 @@ export default function ArtistListScreen() {
 
 					<TouchableOpacity
 						className="rounded-xl bg-primary p-3"
-						onPress={() => router.push("/artist/new")}
+						onPress={() =>
+							router.push({
+								pathname: "/(drawer)/artist/new",
+								params: { backTo: "/(drawer)/artist" },
+							} as any)
+						}
 					>
 						<Ionicons name="add" size={22} color="white" />
 					</TouchableOpacity>
@@ -93,7 +98,12 @@ export default function ArtistListScreen() {
 						</Text>
 						<TouchableOpacity
 							className="flex-row items-center justify-center rounded-lg bg-primary p-3"
-							onPress={() => router.push("/artist/new")}
+							onPress={() =>
+								router.push({
+									pathname: "/(drawer)/artist/new",
+									params: { backTo: "/(drawer)/artist" },
+								} as any)
+							}
 						>
 							<Ionicons
 								name="create-outline"
@@ -117,7 +127,12 @@ export default function ArtistListScreen() {
 								<TouchableOpacity
 									key={artist.id}
 									className="overflow-hidden rounded-xl border border-border bg-card"
-									onPress={() => router.push(`/artist/${artist.id}`)}
+									onPress={() =>
+										router.push({
+											pathname: "/(drawer)/artist/[id]",
+											params: { id: artist.id, backTo: "/(drawer)/artist" },
+										} as any)
+									}
 								>
 									{artist.bannerUrl ? (
 										<Image
@@ -170,19 +185,6 @@ export default function ArtistListScreen() {
 								</TouchableOpacity>
 							);
 						})}
-
-						<TouchableOpacity
-							className="mt-4 flex-row items-center justify-center rounded-xl border border-border bg-background p-4"
-							onPress={() => artistsQuery.refetch()}
-						>
-							<Ionicons
-								name="refresh"
-								size={18}
-								color="#9ca3af"
-								style={{ marginRight: 8 }}
-							/>
-							<Text className="text-muted-foreground">Rafraîchir</Text>
-						</TouchableOpacity>
 					</View>
 				)}
 

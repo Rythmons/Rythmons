@@ -1,11 +1,14 @@
 // @ts-nocheck
 "use client";
 
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { MUSIC_GENRES } from "@rythmons/validation";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
 	Camera,
 	Euro,
+	ExternalLink,
 	FileText,
+	Headphones,
 	Image as ImageIcon,
 	Loader2,
 	Mic2,
@@ -27,12 +30,22 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { authClient } from "@/lib/auth-client";
-import { queryClient, trpc } from "@/utils/trpc";
+import { trpc } from "@/utils/trpc";
+
+interface SocialLinks {
+	spotify: string;
+	youtube: string;
+	soundcloud: string;
+	bandcamp: string;
+	deezer: string;
+	appleMusic: string;
+}
 
 interface EditFormData {
 	stageName: string;
 	bio: string;
 	website: string;
+	socialLinks: SocialLinks;
 	techRequirements: string;
 	feeMin: number | null;
 	feeMax: number | null;
@@ -47,6 +60,7 @@ export default function ArtistProfilePage() {
 	const artistId = params.id as string;
 	const { data: session } = authClient.useSession();
 	const router = useRouter();
+	const queryClient = useQueryClient();
 
 	const handleFollow = useCallback(() => {
 		if (!session?.user) {
@@ -71,17 +85,13 @@ export default function ArtistProfilePage() {
 		enabled: !!artistId,
 	});
 
-	const { data: availableGenres = [] } = useQuery(
-		trpc.venue.getAllGenres.queryOptions(),
-	);
-
 	// Get the correct query key
 	const artistQueryOptions = trpc.artist.getById.queryOptions({ id: artistId });
 
 	const updateMutation = useMutation({
 		...trpc.artist.update.mutationOptions(),
-		onSuccess: (updatedArtist: any) => {
-			queryClient.setQueryData(artistQueryOptions.queryKey, (oldData: any) => {
+		onSuccess: (updatedArtist) => {
+			queryClient.setQueryData(artistQueryOptions.queryKey, (oldData) => {
 				if (!oldData) return updatedArtist;
 				return {
 					...oldData,
@@ -93,10 +103,10 @@ export default function ArtistProfilePage() {
 			toast.success("Modifications enregistrées !");
 			setIsEditMode(false);
 		},
-		onError: (err: any) => {
+		onError: (err) => {
 			toast.error(err.message || "Erreur lors de la sauvegarde");
 		},
-	} as any);
+	});
 
 	// Check if current user is the owner
 	const isOwner = session?.user?.id === artist?.user?.id;
@@ -104,16 +114,25 @@ export default function ArtistProfilePage() {
 	// Initialize form data when entering edit mode
 	const enterEditMode = useCallback(() => {
 		if (!artist) return;
+		const sl = (artist.socialLinks as Record<string, string>) || {};
 		setFormData({
 			stageName: artist.stageName,
 			bio: artist.bio || "",
 			website: artist.website || "",
+			socialLinks: {
+				spotify: sl.spotify || "",
+				youtube: sl.youtube || "",
+				soundcloud: sl.soundcloud || "",
+				bandcamp: sl.bandcamp || "",
+				deezer: sl.deezer || "",
+				appleMusic: sl.appleMusic || "",
+			},
 			techRequirements: artist.techRequirements || "",
 			feeMin: artist.feeMin ?? null,
 			feeMax: artist.feeMax ?? null,
 			photoUrl: artist.photoUrl || "",
 			bannerUrl: artist.bannerUrl || "",
-			genreNames: artist.genres?.map((g: any) => g.name) || [],
+			genreNames: artist.genres?.map((g) => g.name) || [],
 			images: artist.images || [],
 		});
 		setIsEditMode(true);
@@ -139,6 +158,7 @@ export default function ArtistProfilePage() {
 				stageName: formData.stageName,
 				bio: formData.bio || null,
 				website: formData.website || null,
+				socialLinks: formData.socialLinks,
 				techRequirements: formData.techRequirements || null,
 				feeMin: formData.feeMin,
 				feeMax: formData.feeMax,
@@ -147,7 +167,7 @@ export default function ArtistProfilePage() {
 				genreNames: formData.genreNames,
 				images: formData.images,
 			},
-		} as any);
+		});
 	}, [artist, formData, updateMutation]);
 
 	const handleImageChange = useCallback(
@@ -204,18 +224,29 @@ export default function ArtistProfilePage() {
 	const displayData =
 		isEditMode && formData
 			? formData
-			: {
-					stageName: artist.stageName,
-					bio: artist.bio || "",
-					website: artist.website || "",
-					techRequirements: artist.techRequirements || "",
-					feeMin: artist.feeMin ?? null,
-					feeMax: artist.feeMax ?? null,
-					photoUrl: artist.photoUrl || "",
-					bannerUrl: artist.bannerUrl || "",
-					genreNames: artist.genres?.map((g: any) => g.name) || [],
-					images: artist.images || [],
-				};
+			: (() => {
+					const sl = (artist.socialLinks as Record<string, string>) || {};
+					return {
+						stageName: artist.stageName,
+						bio: artist.bio || "",
+						website: artist.website || "",
+						socialLinks: {
+							spotify: sl.spotify || "",
+							youtube: sl.youtube || "",
+							soundcloud: sl.soundcloud || "",
+							bandcamp: sl.bandcamp || "",
+							deezer: sl.deezer || "",
+							appleMusic: sl.appleMusic || "",
+						},
+						techRequirements: artist.techRequirements || "",
+						feeMin: artist.feeMin ?? null,
+						feeMax: artist.feeMax ?? null,
+						photoUrl: artist.photoUrl || "",
+						bannerUrl: artist.bannerUrl || "",
+						genreNames: artist.genres?.map((g) => g.name) || [],
+						images: artist.images || [],
+					};
+				})();
 
 	return (
 		<div className="min-h-screen">
@@ -291,6 +322,7 @@ export default function ArtistProfilePage() {
 							{/* Cover Image (Banner) */}
 							<div className="group relative aspect-video w-full bg-zinc-900/50">
 								{displayData.bannerUrl ? (
+									/* biome-ignore lint/performance/noImgElement: profile media uses remote upload URLs */
 									<img
 										src={displayData.bannerUrl}
 										alt="Couverture"
@@ -316,6 +348,7 @@ export default function ArtistProfilePage() {
 							<div className="relative -mt-12 mb-3">
 								<div className="group relative h-24 w-24 overflow-hidden rounded-full border-4 border-black bg-zinc-900 shadow-xl">
 									{displayData.photoUrl ? (
+										/* biome-ignore lint/performance/noImgElement: profile media uses remote upload URLs */
 										<img
 											src={displayData.photoUrl}
 											alt={displayData.stageName}
@@ -388,7 +421,7 @@ export default function ArtistProfilePage() {
 
 							{isEditMode ? (
 								<div className="max-h-48 space-y-2 overflow-y-auto">
-									{availableGenres.map((genre) => {
+									{MUSIC_GENRES.map((genre) => {
 										const isSelected = formData?.genreNames.includes(genre);
 										return (
 											<div key={genre} className="flex items-center space-x-2">
@@ -509,6 +542,7 @@ export default function ArtistProfilePage() {
 										key={img}
 										className="group relative aspect-square overflow-hidden rounded-lg border border-white/10 bg-black/50"
 									>
+										{/* biome-ignore lint/performance/noImgElement: profile media uses remote upload URLs */}
 										<img
 											src={img}
 											alt={`Galerie ${i + 1}`}
@@ -559,11 +593,14 @@ export default function ArtistProfilePage() {
 							)}
 						</div>
 
-						{/* Links & Tech */}
-						<div className="grid gap-6 lg:grid-cols-2">
-							<div className="rounded-xl bg-black/20 p-6">
-								<h2 className="mb-4 font-semibold text-white text-xl">Liens</h2>
-								{isEditMode ? (
+						{/* Music Links */}
+						<div className="rounded-xl bg-black/20 p-6">
+							<h2 className="mb-4 flex items-center gap-2 font-semibold text-white text-xl">
+								<Headphones className="h-5 w-5" />
+								Écouter
+							</h2>
+							{isEditMode ? (
+								<div className="space-y-4">
 									<div className="space-y-2">
 										<Label className="text-white/50">Site web</Label>
 										<Input
@@ -571,52 +608,144 @@ export default function ArtistProfilePage() {
 											onChange={(e) =>
 												updateFormField("website", e.target.value)
 											}
-											placeholder="https://..."
+											placeholder="https://monsite.com"
 										/>
 									</div>
-								) : displayData.website ? (
-									<Button
-										asChild
-										variant="secondary"
-										className="bg-white/10 text-white hover:bg-white/15"
-									>
-										<a
-											href={displayData.website}
-											target="_blank"
-											rel="noopener noreferrer"
-										>
-											Ouvrir le site
-										</a>
-									</Button>
-								) : (
-									<p className="text-sm text-white/30 italic">Aucun lien</p>
-								)}
-							</div>
+									<div className="grid gap-3 md:grid-cols-2">
+										{(
+											[
+												[
+													"spotify",
+													"Spotify",
+													"https://open.spotify.com/artist/...",
+												],
+												["youtube", "YouTube", "https://youtube.com/@..."],
+												[
+													"soundcloud",
+													"SoundCloud",
+													"https://soundcloud.com/...",
+												],
+												["bandcamp", "Bandcamp", "https://....bandcamp.com"],
+												[
+													"deezer",
+													"Deezer",
+													"https://www.deezer.com/artist/...",
+												],
+												[
+													"appleMusic",
+													"Apple Music",
+													"https://music.apple.com/artist/...",
+												],
+											] as [keyof SocialLinks, string, string][]
+										).map(([key, label, placeholder]) => (
+											<div key={key} className="space-y-1">
+												<Label className="text-sm text-white/50">{label}</Label>
+												<Input
+													value={formData?.socialLinks?.[key] || ""}
+													onChange={(e) =>
+														updateFormField("socialLinks", {
+															...(formData?.socialLinks || ({} as SocialLinks)),
+															[key]: e.target.value,
+														})
+													}
+													placeholder={placeholder}
+												/>
+											</div>
+										))}
+									</div>
+								</div>
+							) : (
+								(() => {
+									const links = [
+										{
+											key: "website",
+											label: "Site web",
+											url: displayData.website,
+										},
+										{
+											key: "spotify",
+											label: "Spotify",
+											url: displayData.socialLinks?.spotify,
+										},
+										{
+											key: "youtube",
+											label: "YouTube",
+											url: displayData.socialLinks?.youtube,
+										},
+										{
+											key: "soundcloud",
+											label: "SoundCloud",
+											url: displayData.socialLinks?.soundcloud,
+										},
+										{
+											key: "bandcamp",
+											label: "Bandcamp",
+											url: displayData.socialLinks?.bandcamp,
+										},
+										{
+											key: "deezer",
+											label: "Deezer",
+											url: displayData.socialLinks?.deezer,
+										},
+										{
+											key: "appleMusic",
+											label: "Apple Music",
+											url: displayData.socialLinks?.appleMusic,
+										},
+									].filter((l) => l.url);
 
-							<div className="rounded-xl bg-black/20 p-6">
-								<h2 className="mb-4 font-semibold text-white text-xl">
-									Technique
-								</h2>
-								{isEditMode ? (
-									<Textarea
-										value={formData?.techRequirements || ""}
-										onChange={(e) =>
-											updateFormField("techRequirements", e.target.value)
-										}
-										placeholder="Ex: 2 micros, DI, retours..."
-										rows={5}
-										className="w-full"
-									/>
-								) : (
-									<p className="whitespace-pre-wrap text-white/70 leading-relaxed">
-										{displayData.techRequirements || (
-											<span className="text-white/30 italic">
-												Aucune fiche technique.
-											</span>
-										)}
-									</p>
-								)}
-							</div>
+									return links.length > 0 ? (
+										<div className="flex flex-wrap gap-2">
+											{links.map((link) => (
+												<Button
+													key={link.key}
+													asChild
+													variant="secondary"
+													size="sm"
+													className="bg-white/10 text-white hover:bg-white/15"
+												>
+													<a
+														href={link.url}
+														target="_blank"
+														rel="noopener noreferrer"
+													>
+														<ExternalLink className="mr-2 h-3.5 w-3.5" />
+														{link.label}
+													</a>
+												</Button>
+											))}
+										</div>
+									) : (
+										<p className="text-sm text-white/30 italic">Aucun lien</p>
+									);
+								})()
+							)}
+						</div>
+
+						{/* Technique */}
+						<div className="rounded-xl bg-black/20 p-6">
+							<h2 className="mb-4 font-semibold text-white text-xl">
+								Technique
+							</h2>
+							{isEditMode ? (
+								<Textarea
+									value={formData?.techRequirements || ""}
+									onChange={(e) =>
+										updateFormField("techRequirements", e.target.value)
+									}
+									placeholder="Ex: 2 micros, DI, retours..."
+									rows={5}
+									className="w-full"
+								/>
+							) : (
+								<p className="whitespace-pre-wrap text-white/70 leading-relaxed">
+									{displayData.techRequirements || (
+										<span className="text-white/30 italic">
+											Aucune fiche technique.
+										</span>
+									)}
+								</p>
+							)}
 						</div>
 					</main>
 				</div>

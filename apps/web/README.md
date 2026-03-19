@@ -30,7 +30,7 @@ BETTER_AUTH_URL="http://localhost:3000"
 BETTER_AUTH_SECRET="your-secret-key-here"
 
 # CORS (pour l'app mobile uniquement)
-CORS_ORIGIN="exp://,mybettertapp://"
+CORS_ORIGIN="exp://,rythmons://
 ```
 
 ## 🗄️ Database
@@ -39,14 +39,40 @@ CORS_ORIGIN="exp://,mybettertapp://"
 # Générer le client Prisma
 pnpm db:generate
 
+# Appliquer les migrations committees
+pnpm db:deploy
+
 # Pousser le schéma vers la DB
 pnpm db:push
+
+# Pousser le schéma puis seed en une seule commande
+pnpm db:setup
 
 # Lancer Prisma Studio
 pnpm db:studio
 
 # Créer une migration
 pnpm db:migrate
+
+# Seed de demo locale
+pnpm db:seed
+```
+
+Workflow recommande pour les changements de schema :
+
+1. Modifiez `packages/db/prisma/schema.prisma`.
+2. Lancez `pnpm db:migrate` pour generer une migration versionnee.
+3. Committez le contenu de `packages/db/prisma/migrations/`.
+4. Laissez le deploy executer `pnpm db:deploy` avant le build.
+
+Gardez `pnpm db:push` pour initialiser une base locale ou pour du prototypage rapide. Ne l'utilisez pas comme mecanisme principal pour la production.
+
+Le seed cree des comptes de demo reutilisables :
+
+```text
+demo.artist@rythmons.local / Rythmons123!
+demo.organizer@rythmons.local / Rythmons123!
+demo.both@rythmons.local / Rythmons123!
 ```
 
 ## 💻 Développement
@@ -151,7 +177,7 @@ function MyComponent() {
 L'API est compatible avec l'application mobile Expo via :
 - CORS configuré pour les routes `/api` et `/trpc`
 - Better Auth Expo plugin
-- Support des schemes personnalisés (exp://, mybettertapp://)
+- Support des schemes personnalisés (exp://, rythmons://)
 
 ## 🎨 UI Components
 
@@ -179,7 +205,9 @@ Voir [MIGRATION_FULLSTACK.md](../../docs/MIGRATION_FULLSTACK.md) pour plus de d�
   "db:push": "prisma db push",
   "db:studio": "prisma studio",
   "db:generate": "prisma generate",
-  "db:migrate": "prisma migrate dev"
+  "db:migrate": "prisma migrate dev",
+  "db:seed": "prisma db seed",
+  "db:setup": "prisma db push && prisma db seed"
 }
 ```
 

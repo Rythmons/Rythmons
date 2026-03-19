@@ -1,3 +1,4 @@
+export { getDevVerificationPreview } from "./dev-email-preview";
 export type { Session } from "./types";
 export type * from "./utils";
 
@@ -7,8 +8,9 @@ import { expo } from "@better-auth/expo";
 import { db } from "@rythmons/db";
 import { type BetterAuthOptions, betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
+import { saveDevVerificationPreview } from "./dev-email-preview";
 import { sendMail } from "./email/mailer";
-import { resetPasswordTemplate } from "./email/templates";
+import { resetPasswordTemplate, verifyEmailTemplate } from "./email/templates";
 import { parseCorsOrigins } from "./utils";
 
 const trustedOriginsFromEnv = parseCorsOrigins(process.env.CORS_ORIGIN || "");
@@ -40,7 +42,7 @@ const resolvedBaseURL = isVercelPreview
 		process.env.NEXT_PUBLIC_APP_URL ||
 		vercelDeploymentUrl;
 
-const trustedOrigins = [...trustedOriginsFromEnv, "mybettertapp://", "exp://"];
+const trustedOrigins = [...trustedOriginsFromEnv, "rythmons://", "exp://"];
 
 const originCandidates = [
 	resolvedBaseURL,
@@ -85,6 +87,14 @@ export const auth = betterAuth<BetterAuthOptions>({
 	database: prismaAdapter(db, {
 		provider: "postgresql",
 	}),
+	user: {
+		additionalFields: {
+			role: {
+				type: "string",
+				input: true,
+			},
+		},
+	},
 	baseURL: resolvedBaseURL,
 	trustedOrigins: async (request) => {
 		const dynamicOrigins = [...trustedOrigins];
@@ -107,8 +117,37 @@ export const auth = betterAuth<BetterAuthOptions>({
 
 		return dynamicOrigins;
 	},
+	emailVerification: {
+		sendVerificationEmail: async ({ user, url }, _request) => {
+			saveDevVerificationPreview(user.email, url);
+
+			try {
+				await sendMail({
+					to: user.email,
+					subject: "Vérifiez votre adresse e-mail - Rythmons",
+					html: verifyEmailTemplate({
+						name: user.name ?? undefined,
+						verifyUrl: url,
+					}),
+				});
+			} catch (error) {
+				console.error("[auth] Failed to send verification email", error);
+				if (process.env.VERCEL_ENV !== "production") {
+					console.info(
+						`[auth] Dev verification link for ${user.email}: ${url}`,
+					);
+					return;
+				}
+
+				throw error;
+			}
+		},
+		sendOnSignUp: true,
+		autoSignInAfterVerification: true,
+	},
 	emailAndPassword: {
 		enabled: true,
+		requireEmailVerification: true,
 
 		sendResetPassword: async ({
 			user,

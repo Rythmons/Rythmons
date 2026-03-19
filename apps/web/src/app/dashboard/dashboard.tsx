@@ -474,7 +474,7 @@ export default function Dashboard({ session }: { session: Session }) {
 								<div>
 									<h2 className="font-semibold text-white text-xl">Artistes</h2>
 									<p className="text-sm text-white/50">
-										{artists?.length || 0} projet(s) géré(s)
+										{artists?.length || 0} profil(s) artiste(s)
 									</p>
 								</div>
 							</div>
@@ -484,7 +484,7 @@ export default function Dashboard({ session }: { session: Session }) {
 								className="border-white/20 text-white hover:bg-white/10"
 							>
 								<Link href={"/dashboard/artist" as any}>
-									<Plus className="mr-2 h-4 w-4" /> Nouveau projet
+									<Plus className="mr-2 h-4 w-4" /> Ajouter un profil artiste
 								</Link>
 							</Button>
 						</div>
@@ -494,7 +494,7 @@ export default function Dashboard({ session }: { session: Session }) {
 									<Link
 										key={artist.id}
 										href={`/artist/${artist.id}` as any}
-										className="group relative overflow-hidden rounded-2xl border border-white/10 bg-black/30 backdrop-blur-sm transition-all duration-300 hover:scale-[1.02] hover:border-secondary/50 hover:shadow-secondary/10 hover:shadow-xl"
+										className="group relative overflow-hidden rounded-2xl border border-white/10 bg-black/30 backdrop-blur-sm transition-all duration-300 hover:scale-[1.02] hover:border-primary/50 hover:shadow-primary/10 hover:shadow-xl"
 									>
 										{/* Cover/Photo */}
 										<div className="relative aspect-video overflow-hidden">
@@ -505,7 +505,7 @@ export default function Dashboard({ session }: { session: Session }) {
 													className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
 												/>
 											) : (
-												<div className="h-full w-full bg-gradient-to-br from-secondary/20 to-accent/20" />
+												<div className="h-full w-full bg-gradient-to-br from-primary/20 to-secondary/20" />
 											)}
 											<div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
 										</div>
@@ -536,7 +536,7 @@ export default function Dashboard({ session }: { session: Session }) {
 										</div>
 
 										{/* Hover overlay */}
-										<div className="absolute inset-0 flex items-center justify-center bg-secondary/10 opacity-0 transition-opacity group-hover:opacity-100">
+										<div className="absolute inset-0 flex items-center justify-center bg-primary/10 opacity-0 transition-opacity group-hover:opacity-100">
 											<span className="rounded-full bg-white/20 px-4 py-2 font-medium text-sm text-white backdrop-blur-sm">
 												Voir le profil
 											</span>
@@ -547,10 +547,12 @@ export default function Dashboard({ session }: { session: Session }) {
 								{/* Add new artist card */}
 								<Link
 									href={"/dashboard/artist" as any}
-									className="flex min-h-[200px] flex-col items-center justify-center rounded-2xl border-2 border-white/20 border-dashed bg-white/5 p-8 text-white/50 transition-all duration-300 hover:border-secondary/50 hover:bg-secondary/5 hover:text-white"
+									className="flex min-h-[200px] flex-col items-center justify-center rounded-2xl border-2 border-white/20 border-dashed bg-white/5 p-8 text-white/50 transition-all duration-300 hover:border-primary/50 hover:bg-primary/5 hover:text-white"
 								>
 									<Plus className="mb-2 h-10 w-10" />
-									<span className="font-medium text-sm">Nouveau projet</span>
+									<span className="font-medium text-sm">
+										Ajouter un profil artiste
+									</span>
 								</Link>
 							</div>
 						) : (
@@ -561,7 +563,8 @@ export default function Dashboard({ session }: { session: Session }) {
 								</p>
 								<Button asChild>
 									<Link href={"/dashboard/artist" as any}>
-										<Plus className="mr-2 h-4 w-4" /> Créer mon premier projet
+										<Plus className="mr-2 h-4 w-4" /> Créer mon premier profil
+										artiste
 									</Link>
 								</Button>
 							</div>

@@ -10,7 +10,7 @@ import { Label } from "./ui/label";
 
 export default function ForgottenPassword({
 	onSwitchToSignIn,
-	// onSwitchToSignUp,
+	onSwitchToSignUp,
 }: {
 	onSwitchToSignIn: () => void;
 	onSwitchToSignUp: () => void;
@@ -109,12 +109,11 @@ export default function ForgottenPassword({
 			</form>
 
 			<div className="mt-4 text-center">
-				<Button
-					variant="link"
-					onClick={onSwitchToSignIn}
-					className="text-indigo-600 hover:text-indigo-800"
-				>
+				<Button variant="link" onClick={onSwitchToSignIn}>
 					Retour à la connexion
+				</Button>
+				<Button variant="link" onClick={onSwitchToSignUp}>
+					Créer un compte
 				</Button>
 			</div>
 		</div>
