@@ -4,6 +4,7 @@
 import { MUSIC_GENRES } from "@rythmons/validation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+	Calendar,
 	Camera,
 	Euro,
 	ExternalLink,
@@ -19,6 +20,7 @@ import {
 	Trash2,
 	X,
 } from "lucide-react";
+import Link from "next/link";
 import { notFound, useParams, useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
@@ -110,6 +112,11 @@ export default function ArtistProfilePage() {
 
 	// Check if current user is the owner
 	const isOwner = session?.user?.id === artist?.user?.id;
+
+	const { data: myVenues } = useQuery({
+		...trpc.venue.getMyVenues.queryOptions(),
+		enabled: !!session?.user && !isOwner,
+	});
 
 	// Initialize form data when entering edit mode
 	const enterEditMode = useCallback(() => {
@@ -251,6 +258,16 @@ export default function ArtistProfilePage() {
 	return (
 		<div className="min-h-screen">
 			<div className="container mx-auto px-4 py-8">
+				{session?.user && (
+					<p className="mb-4">
+						<Link
+							href="/dashboard"
+							className="text-muted-foreground text-sm hover:text-foreground"
+						>
+							← Tableau de bord
+						</Link>
+					</p>
+				)}
 				{/* Edit Mode Header */}
 				{isOwner && (
 					<div className="mb-6 flex items-center justify-between rounded-xl bg-black/20 p-4">
@@ -398,10 +415,24 @@ export default function ArtistProfilePage() {
 								)}
 
 								{/* Action Buttons */}
-								{!isOwner && (
-									<div className="mt-6 flex justify-center gap-3">
+								{!isOwner && session?.user && (
+									<div className="mt-6 flex flex-wrap justify-center gap-3">
+										{myVenues && myVenues.length > 0 && (
+											<Button
+												className="rounded-full bg-primary px-6 hover:bg-primary/90"
+												asChild
+											>
+												<Link
+													href={`/dashboard/bookings/propose?artistId=${artistId}`}
+												>
+													<Calendar className="mr-2 h-4 w-4" />
+													Proposer un booking
+												</Link>
+											</Button>
+										)}
 										<Button
-											className="rounded-full bg-secondary px-6 hover:bg-secondary/90"
+											variant="outline"
+											className="rounded-full px-6"
 											onClick={handleFollow}
 										>
 											<Plus className="mr-2 h-4 w-4" />

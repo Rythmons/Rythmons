@@ -2,7 +2,7 @@
 
 import type { Session } from "@rythmons/auth/types";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, Building2, Mic2, Plus } from "lucide-react";
+import { ArrowRight, Building2, Calendar, Mic2, Plus } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -18,7 +18,7 @@ import { trpc } from "@/utils/trpc";
 import { getVenueTypeLabel } from "@/utils/venue-labels";
 
 export default function Dashboard({ session }: { session: Session }) {
-	const router = useRouter();
+	const _router = useRouter();
 	console.log("Dashboard Session:", session.user);
 	const userRole = session.user.role;
 
@@ -283,9 +283,33 @@ export default function Dashboard({ session }: { session: Session }) {
 	return (
 		<div className="container mx-auto min-h-screen px-4 py-8">
 			{/* Header Section */}
-			<div className="mb-8">
-				<h1 className="font-display text-4xl text-white">Tableau de bord</h1>
-				<p className="text-white/60">Gérez vos activités et vos profils.</p>
+			<div className="mb-8 flex flex-wrap items-center justify-between gap-4">
+				<div>
+					<h1 className="font-display text-4xl text-white">Tableau de bord</h1>
+					<p className="text-white/60">Gérez vos activités et vos profils.</p>
+				</div>
+				<div className="flex gap-2">
+					<Button
+						variant="outline"
+						className="border-white/20 text-white hover:bg-white/10"
+						asChild
+					>
+						<Link href="/dashboard/bookings">
+							<Calendar className="mr-2 h-4 w-4" />
+							Propositions
+						</Link>
+					</Button>
+					<Button
+						variant="outline"
+						className="border-white/20 text-white hover:bg-white/10"
+						asChild
+					>
+						<Link href="/dashboard/calendar">
+							<Calendar className="mr-2 h-4 w-4" />
+							Calendrier
+						</Link>
+					</Button>
+				</div>
 			</div>
 
 			{/* Two Column Layout for Desktop */}
@@ -313,7 +337,7 @@ export default function Dashboard({ session }: { session: Session }) {
 								{venues.map((venue) => (
 									<Link
 										key={venue.id}
-										href={`/venue/${venue.id}` as any}
+										href={`/venue/${venue.id}`}
 										className="group relative overflow-hidden rounded-2xl border border-white/10 bg-black/30 backdrop-blur-sm transition-all duration-300 hover:scale-[1.02] hover:border-primary/50 hover:shadow-primary/10 hover:shadow-xl"
 									>
 										{/* Cover Image */}
@@ -427,7 +451,7 @@ export default function Dashboard({ session }: { session: Session }) {
 						</div>
 						{artists && artists.length > 0 ? (
 							<div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-								{(artists as any[]).map((artist) => (
+								{artists.map((artist) => (
 									<Link
 										key={artist.id}
 										href={`/artist/${artist.id}`}
@@ -437,7 +461,9 @@ export default function Dashboard({ session }: { session: Session }) {
 										<div className="relative aspect-video overflow-hidden">
 											{artist.bannerUrl || artist.photoUrl ? (
 												<img
-													src={artist.bannerUrl || artist.photoUrl}
+													src={
+														(artist.bannerUrl || artist.photoUrl) ?? undefined
+													}
 													alt=""
 													className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
 												/>

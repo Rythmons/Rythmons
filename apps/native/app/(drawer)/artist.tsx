@@ -80,7 +80,7 @@ export default function ArtistListScreen() {
 							router.push({
 								pathname: "/(drawer)/artist/new",
 								params: { backTo: "/(drawer)/artist" },
-							} as any)
+							} as never)
 						}
 					>
 						<Ionicons name="add" size={22} color="white" />
@@ -102,7 +102,7 @@ export default function ArtistListScreen() {
 								router.push({
 									pathname: "/(drawer)/artist/new",
 									params: { backTo: "/(drawer)/artist" },
-								} as any)
+								} as never)
 							}
 						>
 							<Ionicons
@@ -131,7 +131,7 @@ export default function ArtistListScreen() {
 										router.push({
 											pathname: "/(drawer)/artist/[id]",
 											params: { id: artist.id, backTo: "/(drawer)/artist" },
-										} as any)
+										} as never)
 									}
 								>
 									{artist.bannerUrl ? (

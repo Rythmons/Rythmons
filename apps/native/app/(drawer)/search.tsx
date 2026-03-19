@@ -20,6 +20,11 @@ import { Input } from "@/components/ui/input";
 import { SearchMap } from "@/components/ui/search-map";
 import { Text, Title } from "@/components/ui/typography";
 import { authClient } from "@/lib/auth-client";
+import {
+	getSearchState,
+	type PersistedSearchState,
+	setSearchState,
+} from "@/lib/search-state-storage";
 import { trpc } from "@/utils/trpc";
 import { getVenueTypeLabel } from "@/utils/venue-labels";
 
@@ -150,6 +155,54 @@ export default function VenueSearchScreen() {
 			setActiveTab("venues");
 		}
 	}, [canSearchArtists, canSearchVenues]);
+
+	// Restore last search state from storage on mount
+	const hasRestoredRef = useRef(false);
+	useEffect(() => {
+		if (!canUseSearch || hasRestoredRef.current) return;
+		hasRestoredRef.current = true;
+		getSearchState().then((s) => {
+			const tab: SearchTab =
+				s.activeTab === "artists" && canSearchArtists
+					? "artists"
+					: canSearchVenues
+						? "venues"
+						: canSearchArtists
+							? "artists"
+							: "venues";
+			setActiveTab(tab);
+			setViewMode(s.viewMode);
+			setCurrentPage(s.currentPage);
+			setSearch(s.search);
+			setCity(s.city);
+			setPostalCode(s.postalCode);
+			setSelectedGenres(s.selectedGenres);
+			setSelectedVenueType(s.selectedVenueType);
+			setBudgetMin(s.budgetMin);
+			setBudgetMax(s.budgetMax);
+			setFeeMin(s.feeMin);
+			setFeeMax(s.feeMax);
+			setRadiusKm(s.radiusKm);
+			setAppliedSearch(s.search);
+			setAppliedCity(s.city);
+			setAppliedPostalCode(s.postalCode);
+			setAppliedGenres(s.selectedGenres);
+			setAppliedVenueType(s.selectedVenueType);
+			setAppliedBudgetMin(s.budgetMin);
+			setAppliedBudgetMax(s.budgetMax);
+			setAppliedFeeMin(s.feeMin);
+			setAppliedFeeMax(s.feeMax);
+			setAppliedRadiusKm(s.radiusKm);
+			if (s.userCoords) {
+				setUseMyLocation(true);
+				setMyLocationCoords(s.userCoords);
+				setLocationStatus("success");
+				setAppliedUserCoords(s.userCoords);
+			} else {
+				setAppliedUserCoords(null);
+			}
+		});
+	}, [canSearchArtists, canSearchVenues, canUseSearch]);
 
 	const venueSearchInput = useMemo(
 		() => ({
@@ -339,19 +392,36 @@ export default function VenueSearchScreen() {
 	function applyFilters() {
 		setCurrentPage(1);
 		scrollToTop();
+		const nextCoords =
+			useMyLocation && myLocationCoords ? myLocationCoords : null;
 		setAppliedSearch(normalizedQuery);
 		setAppliedCity(city.trim());
 		setAppliedPostalCode(postalCode.trim());
 		setAppliedRadiusKm(radiusKm);
-		setAppliedUserCoords(
-			useMyLocation && myLocationCoords ? myLocationCoords : null,
-		);
+		setAppliedUserCoords(nextCoords);
 		setAppliedGenres(selectedGenres);
 		setAppliedVenueType(selectedVenueType);
 		setAppliedBudgetMin(budgetMin);
 		setAppliedBudgetMax(budgetMax);
 		setAppliedFeeMin(feeMin);
 		setAppliedFeeMax(feeMax);
+		const state: PersistedSearchState = {
+			activeTab,
+			viewMode,
+			currentPage: 1,
+			search: normalizedQuery,
+			city: city.trim(),
+			postalCode: postalCode.trim(),
+			selectedGenres,
+			selectedVenueType,
+			budgetMin,
+			budgetMax,
+			feeMin,
+			feeMax,
+			radiusKm,
+			userCoords: nextCoords,
+		};
+		void setSearchState(state);
 	}
 
 	function applyFiltersAndClose() {

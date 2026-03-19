@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
 export const metadata: Metadata = {
 	title: "Conditions générales d'utilisation — Rythmons",
@@ -7,6 +8,21 @@ export const metadata: Metadata = {
 export default function CguPage() {
 	return (
 		<main className="mx-auto max-w-3xl px-6 py-12">
+			<p className="mb-6">
+				<Link
+					href="/login"
+					className="text-muted-foreground text-sm hover:text-foreground"
+				>
+					← Retour à la connexion
+				</Link>
+				{" · "}
+				<Link
+					href="/"
+					className="text-muted-foreground text-sm hover:text-foreground"
+				>
+					Accueil
+				</Link>
+			</p>
 			<h1 className="mb-8 font-bold text-3xl">
 				Conditions générales d'utilisation
 			</h1>

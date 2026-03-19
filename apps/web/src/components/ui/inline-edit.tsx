@@ -87,8 +87,7 @@ export function InlineEditText({
 		return (
 			<div className="relative">
 				<InputComponent
-					// eslint-disable-next-line @typescript-eslint/no-explicit-any
-					ref={inputRef as any}
+					ref={inputRef as React.Ref<HTMLInputElement & HTMLTextAreaElement>}
 					type="text"
 					value={editValue}
 					onChange={(e) => setEditValue(e.target.value)}

@@ -38,12 +38,10 @@ function VenuePageContent() {
 	const isNewMode = searchParams.get("new") === "true";
 	useEffect(() => {
 		if (!isNewMode && !isLoading && venues && venues.length > 0) {
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			router.replace(
-				`/venue/${(venues as any[])[0].id}` as Parameters<
-					typeof router.replace
-				>[0],
-			);
+			const first = venues[0];
+			if (first && "id" in first) {
+				router.replace(`/venue/${first.id}`);
+			}
 		}
 	}, [isNewMode, isLoading, venues, router]);
 

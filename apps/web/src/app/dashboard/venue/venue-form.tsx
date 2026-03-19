@@ -3,8 +3,9 @@
 import { MUSIC_GENRES } from "@rythmons/validation";
 import { useMutation } from "@tanstack/react-query";
 import { Building2, FileText, Image, MapPin, Music, Users } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useId, useState as useReactState } from "react";
+import { useEffect, useId, useState as useReactState } from "react";
 import { toast } from "sonner";
 import { AddressAutocomplete } from "@/components/ui/address-autocomplete";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { useFormDraft } from "@/hooks/use-form-draft";
 import { trpc } from "@/utils/trpc";
 
 const VENUE_TYPES = [
@@ -102,6 +104,16 @@ export function VenueForm({ initialData, mode, onSuccess }: VenueFormProps) {
 		Partial<Record<keyof VenueFormData, string>>
 	>({});
 
+	const DRAFT_KEY = "rythmons:web:draft:venue-create";
+	const { draft, saveDraft, clearDraft, hasDraft } =
+		useFormDraft<VenueFormData>(DRAFT_KEY, { throttleMs: 2000 });
+
+	useEffect(() => {
+		if (mode === "create") {
+			saveDraft(formData);
+		}
+	}, [mode, formData, saveDraft]);
+
 	const createMutation = useMutation(trpc.venue.create.mutationOptions());
 	const updateMutation = useMutation(trpc.venue.update.mutationOptions());
 
@@ -183,6 +195,9 @@ export function VenueForm({ initialData, mode, onSuccess }: VenueFormProps) {
 				toast.success("Lieu mis à jour avec succès !");
 			}
 
+			if (mode === "create") {
+				clearDraft();
+			}
 			router.refresh();
 			onSuccess?.(resultVenueId);
 		} catch (error) {
@@ -207,6 +222,38 @@ export function VenueForm({ initialData, mode, onSuccess }: VenueFormProps) {
 
 	return (
 		<form onSubmit={handleSubmit} className="space-y-8">
+			{mode === "create" && hasDraft && draft && (
+				<div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-primary/30 bg-primary/5 p-4">
+					<p className="text-muted-foreground text-sm">
+						Un brouillon est disponible.
+					</p>
+					<div className="flex gap-2">
+						<Button
+							type="button"
+							variant="outline"
+							size="sm"
+							onClick={() => {
+								setFormData(draft);
+								clearDraft();
+								toast.success("Brouillon restauré");
+							}}
+						>
+							Restaurer
+						</Button>
+						<Button
+							type="button"
+							variant="ghost"
+							size="sm"
+							onClick={() => {
+								clearDraft();
+								toast.success("Brouillon ignoré");
+							}}
+						>
+							Ignorer
+						</Button>
+					</div>
+				</div>
+			)}
 			{/* Basic Information */}
 			<div className="space-y-6">
 				<div className="flex items-center gap-2 font-semibold text-lg">
@@ -593,13 +640,8 @@ export function VenueForm({ initialData, mode, onSuccess }: VenueFormProps) {
 							? "Créer mon lieu"
 							: "Enregistrer les modifications"}
 				</Button>
-				<Button
-					type="button"
-					variant="outline"
-					onClick={() => router.back()}
-					disabled={isLoading}
-				>
-					Annuler
+				<Button variant="outline" disabled={isLoading} asChild>
+					<Link href="/dashboard">Annuler</Link>
 				</Button>
 			</div>
 		</form>

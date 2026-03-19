@@ -300,7 +300,7 @@ export default function ArtistProfileScreen() {
 						try {
 							await deleteMutation.mutateAsync({ id: artistId });
 							await queryClient.invalidateQueries();
-							router.replace((backTo ?? "/(drawer)/artist") as any);
+							router.replace((backTo ?? "/(drawer)/artist") as never);
 						} catch (error) {
 							const message =
 								error instanceof Error

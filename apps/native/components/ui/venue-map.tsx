@@ -32,8 +32,12 @@ export function VenueMap({ address, city, onPress }: VenueMapProps) {
 		fetch(
 			`https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(query)}&limit=1`,
 		)
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			.then((res) => res.json() as Promise<{ features?: any[] }>)
+			.then(
+				(res) =>
+					res.json() as Promise<{
+						features?: Array<{ geometry?: { coordinates?: unknown } }>;
+					}>,
+			)
 			.then((data) => {
 				if (cancelled) return;
 				const feature = data.features?.[0];

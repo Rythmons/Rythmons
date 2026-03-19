@@ -4,7 +4,7 @@ import {
 	type Theme,
 	ThemeProvider,
 } from "@react-navigation/native";
-import { QueryClientProvider } from "@tanstack/react-query";
+import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -24,7 +24,7 @@ import { setAndroidNavigationBar } from "@/lib/android-navigation-bar";
 import { authClient } from "@/lib/auth-client";
 import { NAV_THEME } from "@/lib/constants";
 import { useColorScheme } from "@/lib/use-color-scheme";
-import { queryClient } from "@/utils/trpc";
+import { asyncStoragePersister, queryClient } from "@/utils/trpc";
 
 const LIGHT_THEME: Theme = {
 	...DefaultTheme,
@@ -78,7 +78,13 @@ export default function RootLayout() {
 	}
 	return (
 		<AuthProvider client={authClient}>
-			<QueryClientProvider client={queryClient}>
+			<PersistQueryClientProvider
+				client={queryClient}
+				persistOptions={{
+					persister: asyncStoragePersister,
+					maxAge: 24 * 60 * 60 * 1000,
+				}}
+			>
 				<ThemeProvider value={isDarkColorScheme ? DARK_THEME : LIGHT_THEME}>
 					<StatusBar style={isDarkColorScheme ? "light" : "dark"} />
 					<GestureHandlerRootView style={{ flex: 1 }}>
@@ -107,7 +113,7 @@ export default function RootLayout() {
 						</Stack>
 					</GestureHandlerRootView>
 				</ThemeProvider>
-			</QueryClientProvider>
+			</PersistQueryClientProvider>
 		</AuthProvider>
 	);
 }

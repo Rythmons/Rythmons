@@ -122,7 +122,7 @@ export default function DashboardScreen() {
 							<Text className="font-medium text-foreground">Mes lieux</Text>
 							<TouchableOpacity
 								className="rounded-md bg-primary px-3 py-2"
-								onPress={() => router.push("/(drawer)/venue" as any)}
+								onPress={() => router.push("/(drawer)/venue" as never)}
 							>
 								<Text className="font-medium text-primary-foreground">
 									{venues.length ? "Gérer" : "Créer"}
@@ -146,7 +146,7 @@ export default function DashboardScreen() {
 											router.push({
 												pathname: "/(drawer)/venue/[id]",
 												params: { id: venue.id, backTo: "/(tabs)/dashboard" },
-											} as any)
+											} as never)
 										}
 									>
 										<Text className="font-medium text-foreground">
@@ -174,7 +174,7 @@ export default function DashboardScreen() {
 									router.push({
 										pathname: "/(drawer)/artist/new",
 										params: { backTo: "/(tabs)/dashboard" },
-									} as any)
+									} as never)
 								}
 							>
 								<Text className="font-medium text-primary-foreground">
@@ -199,7 +199,7 @@ export default function DashboardScreen() {
 											router.push({
 												pathname: "/(drawer)/artist/[id]",
 												params: { id: artist.id, backTo: "/(tabs)/dashboard" },
-											} as any)
+											} as never)
 										}
 									>
 										<Text className="font-medium text-foreground">
@@ -218,7 +218,7 @@ export default function DashboardScreen() {
 
 								<TouchableOpacity
 									className="self-start rounded-md border border-border px-4 py-2"
-									onPress={() => router.push("/(drawer)/artist" as any)}
+									onPress={() => router.push("/(drawer)/artist" as never)}
 								>
 									<Text className="font-medium text-foreground">
 										Voir tous mes artistes

@@ -3,7 +3,7 @@ import { Picker } from "@react-native-picker/picker";
 import { MUSIC_GENRES } from "@rythmons/validation";
 import { useMutation } from "@tanstack/react-query";
 import { router, useLocalSearchParams } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
 	ActivityIndicator,
 	Alert,
@@ -21,6 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Text, Title } from "@/components/ui/typography";
 import { authClient } from "@/lib/auth-client";
 import { useContextualBackNavigation } from "@/lib/use-contextual-back-navigation";
+import { useFormDraft } from "@/lib/use-form-draft";
 import { queryClient, trpc } from "@/utils/trpc";
 
 const VENUE_TYPES = [
@@ -99,6 +100,14 @@ export default function NewVenueScreen() {
 		{},
 	);
 
+	const DRAFT_KEY = "rythmons:native:draft:venue-create";
+	const { draft, saveDraft, clearDraft, hasDraft, hasLoaded } =
+		useFormDraft<FormData>(DRAFT_KEY, { throttleMs: 2000 });
+
+	useEffect(() => {
+		saveDraft(formData);
+	}, [formData, saveDraft]);
+
 	const createMutation = useMutation(trpc.venue.create.mutationOptions());
 
 	const updateField = <K extends keyof FormData>(
@@ -161,6 +170,7 @@ export default function NewVenueScreen() {
 			};
 
 			const createdVenue = await createMutation.mutateAsync(submitData);
+			clearDraft();
 			Alert.alert("Succès", "Lieu créé avec succès !");
 
 			await queryClient.invalidateQueries();
@@ -169,7 +179,7 @@ export default function NewVenueScreen() {
 				params: backTo
 					? { id: createdVenue.id, backTo }
 					: { id: createdVenue.id },
-			} as any);
+			} as never);
 		} catch (error) {
 			const message =
 				error instanceof Error ? error.message : "Erreur lors de la sauvegarde";
@@ -243,6 +253,31 @@ export default function NewVenueScreen() {
 							</View>
 						</View>
 					</View>
+
+					{hasLoaded && hasDraft && draft && (
+						<View className="mb-4 flex-row flex-wrap items-center justify-between gap-2 rounded-lg border border-primary/30 bg-primary/5 p-4">
+							<Text className="flex-1 text-muted-foreground text-sm">
+								Un brouillon est disponible.
+							</Text>
+							<View className="flex-row gap-2">
+								<TouchableOpacity
+									className="rounded-lg border border-primary/50 bg-background px-3 py-2"
+									onPress={() => {
+										setFormData(draft);
+										clearDraft();
+									}}
+								>
+									<Text className="text-primary text-sm">Restaurer</Text>
+								</TouchableOpacity>
+								<TouchableOpacity
+									className="rounded-lg px-3 py-2"
+									onPress={() => clearDraft()}
+								>
+									<Text className="text-muted-foreground text-sm">Ignorer</Text>
+								</TouchableOpacity>
+							</View>
+						</View>
+					)}
 
 					{/* Form */}
 					<View className="space-y-6">

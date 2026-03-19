@@ -141,6 +141,7 @@ export const artistSearchSchema = z.object({
 	userLng: z.number().optional().nullable(),
 	feeMin: z.number().int().nonnegative().optional().nullable(),
 	feeMax: z.number().int().nonnegative().optional().nullable(),
+	availabilityDate: z.string().optional().nullable(),
 });
 
 export type ArtistSearchInput = z.infer<typeof artistSearchSchema>;
@@ -178,6 +179,7 @@ export const venueSearchSchema = z.object({
 	venueTypes: z.array(z.enum(venueTypeValues)).default([]),
 	budgetMin: z.number().int().nonnegative().optional().nullable(),
 	budgetMax: z.number().int().nonnegative().optional().nullable(),
+	availabilityDate: z.string().optional().nullable(),
 });
 
 export type VenueSearchInput = z.infer<typeof venueSearchSchema>;
