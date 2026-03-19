@@ -2,9 +2,9 @@
 
 import { useAuth } from "@rythmons/auth/client";
 import {
+	signUpRoleLabels,
+	signUpRoleValues,
 	type UserRole,
-	userRoleLabels,
-	userRoleValues,
 } from "@rythmons/validation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
@@ -104,7 +104,9 @@ export function ProfileForm({ user }: { user: User }) {
 			<div className="space-y-2">
 				<Label htmlFor={`${id}-role`}>Type de compte</Label>
 				<Select
-					value={role ?? "NONE"}
+					value={
+						role && (role === "ARTIST" || role === "ORGANIZER") ? role : "NONE"
+					}
 					onValueChange={(value) =>
 						setRole(value === "NONE" ? null : (value as UserRole))
 					}
@@ -114,9 +116,9 @@ export function ProfileForm({ user }: { user: User }) {
 					</SelectTrigger>
 					<SelectContent>
 						<SelectItem value="NONE">Je choisirai plus tard</SelectItem>
-						{userRoleValues.map((userRole) => (
-							<SelectItem key={userRole} value={userRole}>
-								{userRoleLabels[userRole]}
+						{signUpRoleValues.map((roleValue) => (
+							<SelectItem key={roleValue} value={roleValue}>
+								{signUpRoleLabels[roleValue]}
 							</SelectItem>
 						))}
 					</SelectContent>

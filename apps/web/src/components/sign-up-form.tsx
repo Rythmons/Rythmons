@@ -1,5 +1,5 @@
 import { useAuth, useSignUpForm } from "@rythmons/auth/client";
-import { signUpSchema } from "@rythmons/validation";
+import { signUpRoleLabels, signUpSchema } from "@rythmons/validation";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -104,6 +104,45 @@ export default function SignUpForm({
 										field.handleChange(nextValue);
 									}}
 								/>
+								{field.state.meta.errors.length > 0 && (
+									<p className="text-destructive text-sm">
+										{typeof field.state.meta.errors[0] === "object"
+											? (field.state.meta.errors[0] as { message: string })
+													.message
+											: String(field.state.meta.errors[0])}
+									</p>
+								)}
+							</div>
+						)}
+					</form.Field>
+				</div>
+
+				<div>
+					<form.Field name="role">
+						{(field) => (
+							<div className="space-y-2">
+								<Label htmlFor={field.name}>Type de compte</Label>
+								<select
+									id={field.name}
+									name={field.name}
+									value={field.state.value}
+									onBlur={field.handleBlur}
+									onChange={(e) =>
+										field.handleChange(e.target.value as "ARTIST" | "ORGANIZER")
+									}
+									className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+								>
+									{(
+										Object.entries(signUpRoleLabels) as [
+											keyof typeof signUpRoleLabels,
+											string,
+										][]
+									).map(([value, label]) => (
+										<option key={value} value={value}>
+											{label}
+										</option>
+									))}
+								</select>
 								{field.state.meta.errors.length > 0 && (
 									<p className="text-destructive text-sm">
 										{typeof field.state.meta.errors[0] === "object"
