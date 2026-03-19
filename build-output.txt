@@ -1,0 +1,111 @@
+
+> rythmons@ build C:\GitHub\Rythmons
+> turbo build
+
+turbo 2.5.8
+
+ÔÇó Packages in scope: @rythmons/api, @rythmons/auth, @rythmons/db, @rythmons/tsconfig, @rythmons/validation, native, web
+ÔÇó Running build in 7 packages
+ÔÇó Remote caching disabled
+@rythmons/validation:build: cache hit, replaying logs fa9df3eb84c69ab6
+@rythmons/validation:build: [?9001h[?1004h[?25l[2J[m[2;1H> @rythmons/validation@0.0.0 build C:\GitHub\Rythmons\packages\validation
+@rythmons/validation:build: > tsc --build[5;1H]0;C:\Users\Sofiane\AppData\Local\pnpm\pnpm.exe[?25h[?9001l[?1004l
+@rythmons/db:build: cache hit, replaying logs b7ad22b73274c042
+@rythmons/db:build: [?9001h[?1004h[?25l[2J[m[2;1H> @rythmons/db@0.0.0 build C:\GitHub\Rythmons\packages\db
+@rythmons/db:build: > prisma generate && tsc --build[5;1H]0;C:\Users\Sofiane\AppData\Local\pnpm\pnpm.exe[?25h[2mPrisma schema loaded from prisma\schema.prisma
+@rythmons/db:build: [22m
+@rythmons/db:build: Ô£ö Generated [1mPrisma Client[22m (v6.16.3)[2m to .\..\..\node_modules\@prisma\client[22m in 156ms
+@rythmons/db:build: 
+@rythmons/db:build: Start by importing your Prisma Client (See: https://pris.ly/d/importing-cl
+@rythmons/db:build: [8;74Hlient)
+@rythmons/db:build: 
+@rythmons/db:build: Tip: Want to turn off tips and other hints? https://pris.ly/tip-4-nohints [9;1H
+@rythmons/db:build: 
+@rythmons/db:build: [?9001l[?1004l
+@rythmons/auth:build: cache hit, replaying logs 39c6f418db69bfd2
+@rythmons/auth:build: [?9001h[?1004h[?25l[2J[m[2;1H> @rythmons/auth@0.0.0 build C:\GitHub\Rythmons\packages\auth
+@rythmons/auth:build: > tsc --build[5;1H]0;C:\Users\Sofiane\AppData\Local\pnpm\pnpm.exe[?25h[?9001l[?1004l
+@rythmons/api:build: cache hit, replaying logs 0eec38227be71c59
+@rythmons/api:build: [?9001h[?1004h[?25l[2J[m[2;1H> @rythmons/api@0.0.0 build C:\GitHub\Rythmons\packages\api
+@rythmons/api:build: > tsc --build[5;1H]0;C:\Users\Sofiane\AppData\Local\pnpm\pnpm.exe[?25h[?9001l[?1004l
+web:build: cache miss, executing 2041aafd477ac7c2
+web:build: 
+web:build: > web@0.1.0 build C:\GitHub\Rythmons\apps\web
+web:build: > prisma generate && next build
+web:build: 
+web:build: Loaded Prisma config from prisma.config.ts.
+web:build: 
+web:build: Prisma config detected, skipping environment variable loading.
+web:build: Prisma schema loaded from ..\..\packages\db\prisma\schema.prisma
+web:build: 
+web:build: Ô£ö Generated Prisma Client (v6.16.3) to .\..\..\node_modules\@prisma\client in 179ms
+web:build: 
+web:build: Start by importing your Prisma Client (See: https://pris.ly/d/importing-client)
+web:build: 
+web:build: Tip: Need your database queries to be 1000x faster? Accelerate offers you that and more: https://pris.ly/tip-2-accelerate
+web:build: 
+web:build: [baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+web:build:    Ôû▓ Next.js 16.0.10 (Turbopack)
+web:build:    - Environments: .env
+web:build: 
+web:build:  ÔÜá The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+web:build:    Creating an optimized production build ...
+web:build: [baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+web:build:  Ô£ô Compiled successfully in 9.6s
+web:build:    Running TypeScript ...
+web:build:  ÔÜá TypeScript project references are not fully supported. Attempting to build in incremental mode.
+web:build:    Collecting page data using 15 workers ...
+web:build: [baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+web:build: [baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+web:build: [baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+web:build: [baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+web:build: [baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+web:build: [baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+web:build: [baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+web:build: [baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+web:build: [baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+web:build: [baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+web:build: [baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+web:build: [baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+web:build: [baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+web:build: [baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+web:build: [baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+web:build:    Generating static pages using 15 workers (0/15) ...
+web:build: [baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+web:build:    Generating static pages using 15 workers (3/15) 
+web:build:    Generating static pages using 15 workers (7/15) 
+web:build:    Generating static pages using 15 workers (11/15) 
+web:build:  Ô£ô Generating static pages using 15 workers (15/15) in 2.2s
+web:build:    Finalizing page optimization ...
+web:build: 
+web:build: Route (app)
+web:build: Ôöî Ôùï /
+web:build: Ôö£ Ôùï /_not-found
+web:build: Ôö£ ãÆ /api/auth/[...all]
+web:build: Ôö£ ãÆ /api/dev/verification-link
+web:build: Ôö£ ãÆ /api/uploadthing
+web:build: Ôö£ ãÆ /artist/[id]
+web:build: Ôö£ Ôùï /cgu
+web:build: Ôö£ ãÆ /dashboard
+web:build: Ôö£ Ôùï /dashboard/artist
+web:build: Ôö£ ãÆ /dashboard/profile
+web:build: Ôö£ ãÆ /dashboard/search
+web:build: Ôö£ Ôùï /dashboard/venue
+web:build: Ôö£ Ôùï /login
+web:build: Ôö£ Ôùï /manifest.webmanifest
+web:build: Ôö£ Ôùï /reset-password
+web:build: Ôö£ ãÆ /trpc/[trpc]
+web:build: Ôö£ ãÆ /venue/[id]
+web:build: Ôöö Ôùï /verify-email
+web:build: 
+web:build: 
+web:build: ãÆ Proxy (Middleware)
+web:build: 
+web:build: Ôùï  (Static)   prerendered as static content
+web:build: ãÆ  (Dynamic)  server-rendered on demand
+web:build: 
+
+ Tasks:    5 successful, 5 total
+Cached:    4 cached, 5 total
+  Time:    32.373s 
+
