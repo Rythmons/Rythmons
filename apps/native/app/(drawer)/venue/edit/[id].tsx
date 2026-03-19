@@ -3,7 +3,7 @@ import { Picker } from "@react-native-picker/picker";
 import { MUSIC_GENRES } from "@rythmons/validation";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { router, useLocalSearchParams } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
 	ActivityIndicator,
 	Alert,
@@ -20,6 +20,7 @@ import { ImageUpload } from "@/components/ui/image-upload";
 import { Input } from "@/components/ui/input";
 import { Text, Title } from "@/components/ui/typography";
 import { authClient } from "@/lib/auth-client";
+import { useContextualBackNavigation } from "@/lib/use-contextual-back-navigation";
 import { queryClient, trpc } from "@/utils/trpc";
 
 const VENUE_TYPES = [
@@ -67,10 +68,32 @@ interface FormData {
 }
 
 export default function EditVenueScreen() {
-	const params = useLocalSearchParams<{ id: string }>();
+	const params = useLocalSearchParams<{
+		id: string;
+		backTo?: string;
+		parentBackTo?: string;
+	}>();
 	const venueId = Array.isArray(params.id) ? params.id[0] : params.id;
+	const backTo = Array.isArray(params.backTo)
+		? params.backTo[0]
+		: params.backTo;
+	const parentBackTo = Array.isArray(params.parentBackTo)
+		? params.parentBackTo[0]
+		: params.parentBackTo;
+	const detailHref = useMemo(() => {
+		if (!venueId) {
+			return backTo ?? "/(drawer)/venue";
+		}
+
+		if (parentBackTo) {
+			return `/(drawer)/venue/${venueId}?backTo=${encodeURIComponent(parentBackTo)}`;
+		}
+
+		return backTo ?? `/(drawer)/venue/${venueId}`;
+	}, [backTo, parentBackTo, venueId]);
 
 	const { data: session, isPending: sessionPending } = authClient.useSession();
+	const handleBack = useContextualBackNavigation(detailHref);
 	const {
 		data: venue,
 		isLoading: venueLoading,
@@ -110,6 +133,12 @@ export default function EditVenueScreen() {
 	// Populate form when venue data loads
 	useEffect(() => {
 		if (venue) {
+			const compatVenue = venue as unknown as {
+				budgetMin?: number | null;
+				budgetMax?: number | null;
+				paymentTypes?: PaymentType[];
+			};
+
 			setFormData({
 				name: venue.name,
 				address: venue.address,
@@ -125,9 +154,9 @@ export default function EditVenueScreen() {
 				techInfo: venue.techInfo ?? "",
 				images: venue.images ?? [],
 				selectedGenres: venue.genres?.map((g) => g.name) ?? [],
-				paymentTypes: (venue.paymentTypes as PaymentType[]) ?? [],
-				budgetMin: venue.budgetMin?.toString() ?? "",
-				budgetMax: venue.budgetMax?.toString() ?? "",
+				paymentTypes: compatVenue.paymentTypes ?? [],
+				budgetMin: compatVenue.budgetMin?.toString() ?? "",
+				budgetMax: compatVenue.budgetMax?.toString() ?? "",
 			});
 		}
 	}, [venue]);
@@ -201,7 +230,7 @@ export default function EditVenueScreen() {
 
 			await refetch();
 			await queryClient.invalidateQueries();
-			router.back();
+			router.replace(detailHref as any);
 		} catch (error) {
 			const message =
 				error instanceof Error ? error.message : "Erreur lors de la sauvegarde";
@@ -232,7 +261,7 @@ export default function EditVenueScreen() {
 						try {
 							await deleteMutation.mutateAsync({ id: venueId });
 							await queryClient.invalidateQueries();
-							router.replace("/(drawer)/venue");
+							router.replace((parentBackTo || "/(drawer)/venue") as any);
 						} catch (error) {
 							const message =
 								error instanceof Error
@@ -266,7 +295,7 @@ export default function EditVenueScreen() {
 					</Text>
 					<TouchableOpacity
 						className="rounded-lg bg-primary px-4 py-2"
-						onPress={() => router.replace("/")}
+						onPress={handleBack}
 					>
 						<Text className="font-medium text-primary-foreground">
 							Se connecter
@@ -287,7 +316,7 @@ export default function EditVenueScreen() {
 					{/* Header */}
 					<View className="mb-6 rounded-xl border border-border bg-card p-4">
 						<View className="flex-row items-center gap-3">
-							<TouchableOpacity className="mr-2" onPress={() => router.back()}>
+							<TouchableOpacity className="mr-2" onPress={handleBack}>
 								<Ionicons name="arrow-back" size={24} color="#7c3aed" />
 							</TouchableOpacity>
 							<View className="rounded-lg bg-primary/20 p-2">

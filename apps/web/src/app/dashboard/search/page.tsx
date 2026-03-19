@@ -17,6 +17,20 @@ async function canAccessVenueSearch(userId: string, role?: string | null) {
 	return artistCount > 0;
 }
 
+async function canAccessArtistSearch(userId: string, role?: string | null) {
+	if (role === "ORGANIZER" || role === "BOTH") {
+		return true;
+	}
+
+	const venueCount = await db.venue.count({
+		where: {
+			ownerId: userId,
+		},
+	});
+
+	return venueCount > 0;
+}
+
 export default async function VenueSearchPage() {
 	const session = await getServerSession();
 
@@ -24,14 +38,19 @@ export default async function VenueSearchPage() {
 		redirect("/login");
 	}
 
-	const hasArtistAccess = await canAccessVenueSearch(
-		session.data.user.id,
-		session.data.user.role,
-	);
+	const [canSearchVenues, canSearchArtists] = await Promise.all([
+		canAccessVenueSearch(session.data.user.id, session.data.user.role),
+		canAccessArtistSearch(session.data.user.id, session.data.user.role),
+	]);
 
-	if (!hasArtistAccess) {
+	if (!canSearchVenues && !canSearchArtists) {
 		redirect("/dashboard");
 	}
 
-	return <VenueSearch />;
+	return (
+		<VenueSearch
+			canSearchVenues={canSearchVenues}
+			canSearchArtists={canSearchArtists}
+		/>
+	);
 }

@@ -77,10 +77,10 @@ function VerifyEmailContent() {
 	return (
 		<div className="flex min-h-[60vh] items-center justify-center px-4">
 			<div className="w-full max-w-md space-y-6 text-center">
-				<div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-indigo-100 dark:bg-indigo-900/30">
+				<div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
 					<svg
 						xmlns="http://www.w3.org/2000/svg"
-						className="h-8 w-8 text-indigo-600 dark:text-indigo-400"
+						className="h-8 w-8 text-primary"
 						fill="none"
 						viewBox="0 0 24 24"
 						stroke="currentColor"
@@ -128,7 +128,7 @@ function VerifyEmailContent() {
 					<Button
 						variant="link"
 						onClick={() => router.push("/login")}
-						className="w-full text-indigo-600 hover:text-indigo-800"
+						className="w-full"
 					>
 						Retour à la connexion
 					</Button>

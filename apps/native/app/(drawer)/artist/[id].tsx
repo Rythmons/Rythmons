@@ -19,6 +19,7 @@ import { ImageUpload } from "@/components/ui/image-upload";
 import { Input } from "@/components/ui/input";
 import { Text, Title } from "@/components/ui/typography";
 import { authClient } from "@/lib/auth-client";
+import { useContextualBackNavigation } from "@/lib/use-contextual-back-navigation";
 import { queryClient, trpc } from "@/utils/trpc";
 
 interface SocialLinks {
@@ -100,10 +101,14 @@ function isValidUrl(value: string) {
 }
 
 export default function ArtistProfileScreen() {
-	const params = useLocalSearchParams<{ id: string }>();
+	const params = useLocalSearchParams<{ id: string; backTo?: string }>();
 	const artistId = Array.isArray(params.id) ? params.id[0] : params.id;
+	const backTo = Array.isArray(params.backTo)
+		? params.backTo[0]
+		: params.backTo;
 
 	const { data: session } = authClient.useSession();
+	const handleBack = useContextualBackNavigation(backTo ?? "/(drawer)/artist");
 
 	const {
 		data: artistData,
@@ -295,7 +300,7 @@ export default function ArtistProfileScreen() {
 						try {
 							await deleteMutation.mutateAsync({ id: artistId });
 							await queryClient.invalidateQueries();
-							router.replace("/(drawer)/artist");
+							router.replace((backTo ?? "/(drawer)/artist") as any);
 						} catch (error) {
 							const message =
 								error instanceof Error
@@ -351,7 +356,7 @@ export default function ArtistProfileScreen() {
 					</Text>
 					<TouchableOpacity
 						className="rounded-lg bg-primary px-4 py-2"
-						onPress={() => router.replace("/(drawer)/artist")}
+						onPress={handleBack}
 					>
 						<Text className="font-sans-medium text-primary-foreground">
 							Retour à la liste

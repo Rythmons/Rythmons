@@ -2,7 +2,7 @@
 "use client";
 
 import { MUSIC_GENRES } from "@rythmons/validation";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
 	Camera,
 	Euro,
@@ -30,7 +30,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { authClient } from "@/lib/auth-client";
-import { queryClient, trpc } from "@/utils/trpc";
+import { trpc } from "@/utils/trpc";
 
 interface SocialLinks {
 	spotify: string;
@@ -60,6 +60,7 @@ export default function ArtistProfilePage() {
 	const artistId = params.id as string;
 	const { data: session } = authClient.useSession();
 	const router = useRouter();
+	const queryClient = useQueryClient();
 
 	const handleFollow = useCallback(() => {
 		if (!session?.user) {

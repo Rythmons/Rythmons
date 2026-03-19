@@ -2,11 +2,11 @@
 
 import { useAuth } from "@rythmons/auth/client";
 import {
+	signUpRoleLabels,
+	signUpRoleValues,
 	type UserRole,
-	userRoleLabels,
-	userRoleValues,
 } from "@rythmons/validation";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useId, useState } from "react";
 import { toast } from "sonner";
@@ -20,7 +20,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import { queryClient, trpc } from "@/utils/trpc";
+import { trpc } from "@/utils/trpc";
 
 interface User {
 	name: string;
@@ -33,6 +33,7 @@ export function ProfileForm({ user }: { user: User }) {
 	const authClient = useAuth();
 	const router = useRouter();
 	const id = useId();
+	const queryClient = useQueryClient();
 	const [name, setName] = useState(user.name);
 	const [role, setRole] = useState<UserRole | null>(user.role ?? null);
 	const [isLoading, setIsLoading] = useState(false);
@@ -103,7 +104,9 @@ export function ProfileForm({ user }: { user: User }) {
 			<div className="space-y-2">
 				<Label htmlFor={`${id}-role`}>Type de compte</Label>
 				<Select
-					value={role ?? "NONE"}
+					value={
+						role && (role === "ARTIST" || role === "ORGANIZER") ? role : "NONE"
+					}
 					onValueChange={(value) =>
 						setRole(value === "NONE" ? null : (value as UserRole))
 					}
@@ -113,9 +116,9 @@ export function ProfileForm({ user }: { user: User }) {
 					</SelectTrigger>
 					<SelectContent>
 						<SelectItem value="NONE">Je choisirai plus tard</SelectItem>
-						{userRoleValues.map((userRole) => (
-							<SelectItem key={userRole} value={userRole}>
-								{userRoleLabels[userRole]}
+						{signUpRoleValues.map((roleValue) => (
+							<SelectItem key={roleValue} value={roleValue}>
+								{signUpRoleLabels[roleValue]}
 							</SelectItem>
 						))}
 					</SelectContent>

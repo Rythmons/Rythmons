@@ -1,12 +1,14 @@
 import { db, type Prisma, type VenueType } from "@rythmons/db";
-import { MUSIC_GENRES, venueSchema } from "@rythmons/validation";
+import {
+	MUSIC_GENRES,
+	type VenueSearchInput,
+	venueSchema,
+	venueSearchSchema,
+} from "@rythmons/validation";
 import { z } from "zod";
+import { geocodeAddress, haversineKm } from "../geocode";
 import { getColumnAvailability } from "../prisma-compat";
 import { protectedProcedure, publicProcedure, router } from "../trpc";
-
-const venueSearchSchema = z.object({
-	query: z.string().trim().max(100).default(""),
-});
 
 const venueCompatColumns = [
 	"paymentTypes",
@@ -42,6 +44,8 @@ function buildVenueSelect(
 		ownerId: true,
 		createdAt: true,
 		updatedAt: true,
+		latitude: true,
+		longitude: true,
 		...(compat.paymentTypes ? { paymentTypes: true } : {}),
 		...(compat.budgetMin ? { budgetMin: true } : {}),
 		...(compat.budgetMax ? { budgetMax: true } : {}),
@@ -102,6 +106,107 @@ function sanitizeVenueData<TVenueData extends Record<string, unknown>>(
 	return data;
 }
 
+function buildGenreSearchFilter(genreNames: string[]) {
+	if (genreNames.length === 0) {
+		return undefined;
+	}
+
+	return {
+		some: {
+			OR: genreNames.map((genreName) => ({
+				name: {
+					equals: genreName,
+					mode: "insensitive" as const,
+				},
+			})),
+		},
+	};
+}
+
+function buildVenueSearchWhere(
+	input: VenueSearchInput,
+): Prisma.VenueWhereInput | undefined {
+	const query = input.query.trim();
+	const city = input.city.trim();
+	const postalCode = input.postalCode.trim();
+	const andFilters: Prisma.VenueWhereInput[] = [];
+
+	if (query) {
+		andFilters.push({
+			OR: [
+				{ name: { contains: query, mode: "insensitive" } },
+				{ city: { contains: query, mode: "insensitive" } },
+				{ postalCode: { contains: query } },
+				{ address: { contains: query, mode: "insensitive" } },
+				{
+					owner: {
+						is: {
+							name: { contains: query, mode: "insensitive" },
+						},
+					},
+				},
+				{
+					genres: {
+						some: {
+							name: { contains: query, mode: "insensitive" },
+						},
+					},
+				},
+			],
+		});
+	}
+
+	const genreFilter = buildGenreSearchFilter(input.genreNames);
+	if (genreFilter) {
+		andFilters.push({ genres: genreFilter });
+	}
+
+	if (city && !input.radiusKm) {
+		andFilters.push({
+			city: {
+				contains: city,
+				mode: "insensitive",
+			},
+		});
+	}
+
+	if (postalCode && !input.radiusKm) {
+		andFilters.push({
+			postalCode: {
+				contains: postalCode,
+			},
+		});
+	}
+
+	if (input.venueTypes.length > 0) {
+		andFilters.push({
+			venueType: {
+				in: input.venueTypes,
+			},
+		});
+	}
+
+	if (input.budgetMin != null) {
+		andFilters.push({
+			OR: [{ budgetMax: { gte: input.budgetMin } }, { budgetMax: null }],
+		});
+	}
+
+	if (input.budgetMax != null) {
+		andFilters.push({
+			OR: [{ budgetMin: { lte: input.budgetMax } }, { budgetMin: null }],
+		});
+	}
+
+	if (andFilters.length === 0) {
+		return undefined;
+	}
+
+	return {
+		AND: andFilters,
+	};
+}
+
 export const venueRouter = router({
 	// Get the current user's venues
 	getMyVenues: protectedProcedure.query(async ({ ctx }) => {
@@ -136,40 +241,40 @@ export const venueRouter = router({
 	search: protectedProcedure
 		.input(venueSearchSchema)
 		.query(async ({ input }) => {
-			const query = input.query.trim();
 			const compat = await getVenueCompat(db);
 
 			const venues = await db.venue.findMany({
-				where: query
-					? {
-							OR: [
-								{ name: { contains: query, mode: "insensitive" } },
-								{ city: { contains: query, mode: "insensitive" } },
-								{ postalCode: { contains: query } },
-								{ address: { contains: query, mode: "insensitive" } },
-								{
-									owner: {
-										is: {
-											name: { contains: query, mode: "insensitive" },
-										},
-									},
-								},
-								{
-									genres: {
-										some: {
-											name: { contains: query, mode: "insensitive" },
-										},
-									},
-								},
-							],
-						}
-					: undefined,
+				where: buildVenueSearchWhere(input),
 				select: buildVenueSelect(compat, true),
 				orderBy: [{ name: "asc" }],
-				take: 24,
+				// Increase limit when radius filtering so we have enough records to filter from
+				take: input.radiusKm != null ? 500 : 24,
 			});
 
-			return venues.map((venue) => normalizeVenue(venue, compat));
+			const normalized = venues.map((venue) => normalizeVenue(venue, compat));
+
+			if (input.radiusKm != null) {
+				let ref: { lat: number; lng: number } | null = null;
+				if (input.userLat != null && input.userLng != null) {
+					ref = { lat: input.userLat, lng: input.userLng };
+				} else {
+					const locationQuery = [input.city.trim(), input.postalCode.trim()]
+						.filter(Boolean)
+						.join(" ");
+					ref = locationQuery ? await geocodeAddress(locationQuery) : null;
+				}
+				if (ref) {
+					return normalized.filter((v) => {
+						if (v.latitude == null || v.longitude == null) return false;
+						return (
+							haversineKm(ref.lat, ref.lng, v.latitude, v.longitude) <=
+							(input.radiusKm as number)
+						);
+					});
+				}
+			}
+
+			return normalized;
 		}),
 
 	// Create a new venue
@@ -217,6 +322,23 @@ export const venueRouter = router({
 				},
 				select: buildVenueSelect(compat, false),
 			});
+
+			// Geocode asynchronously after creation (fire-and-forget)
+			const geoQuery = [venueData.city, venueData.postalCode]
+				.filter(Boolean)
+				.join(" ");
+			if (geoQuery) {
+				geocodeAddress(geoQuery).then((coords) => {
+					if (coords) {
+						db.venue
+							.update({
+								where: { id: venue.id },
+								data: { latitude: coords.lat, longitude: coords.lng },
+							})
+							.catch(() => {});
+					}
+				});
+			}
 
 			return normalizeVenue(venue, compat);
 		}),
@@ -281,6 +403,23 @@ export const venueRouter = router({
 				},
 				select: buildVenueSelect(compat, false),
 			});
+
+			// Re-geocode if city or postal code changed
+			const geoQuery = [venueData.city, venueData.postalCode]
+				.filter(Boolean)
+				.join(" ");
+			if (geoQuery) {
+				geocodeAddress(geoQuery).then((coords) => {
+					if (coords) {
+						db.venue
+							.update({
+								where: { id: input.id },
+								data: { latitude: coords.lat, longitude: coords.lng },
+							})
+							.catch(() => {});
+					}
+				});
+			}
 
 			return normalizeVenue(updatedVenue, compat);
 		}),
