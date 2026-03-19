@@ -1,7 +1,7 @@
 // @ts-nocheck
 "use client";
 
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
 	BoomBox,
 	Camera,
@@ -22,7 +22,7 @@ import { ImageUpload } from "@/components/ui/image-upload";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { authClient } from "@/lib/auth-client";
-import { queryClient, trpc } from "@/utils/trpc";
+import { trpc } from "@/utils/trpc";
 
 interface EditFormData {
 	name: string;
@@ -37,6 +37,7 @@ interface EditFormData {
 export default function MediaProfilePage() {
 	const params = useParams();
 	const mediaId = params.id as string;
+	const queryClient = useQueryClient();
 	const { data: session } = authClient.useSession();
 
 	const [isEditMode, setIsEditMode] = useState(false);
