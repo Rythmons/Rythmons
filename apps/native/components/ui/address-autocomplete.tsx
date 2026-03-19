@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
 	ActivityIndicator,
 	ScrollView,
@@ -44,12 +44,16 @@ export function AddressAutocomplete({
 	const [suggestions, setSuggestions] = useState<AddressFeature[]>([]);
 	const [isLoading, setIsLoading] = useState(false);
 	const [isOpen, setIsOpen] = useState(false);
+	const abortRef = useRef<AbortController | null>(null);
 
-	// Sync query with external value
-	useEffect(() => {
-		if (value !== query) setQuery(value);
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [value, query]);
+	// Derived state: sync query with external value changes without a side-effect.
+	// Using a ref comparison during render avoids the infinite-loop that the
+	// previous effect + eslint-disable workaround was masking.
+	const prevValueRef = useRef(value);
+	if (prevValueRef.current !== value) {
+		prevValueRef.current = value;
+		setQuery(value);
+	}
 
 	const canSearch = useMemo(() => query.trim().length >= 3, [query]);
 
@@ -61,18 +65,25 @@ export function AddressAutocomplete({
 		}
 
 		const timer = setTimeout(async () => {
+			// Abort any in-flight request before starting a new one, preventing
+			// stale responses from overwriting fresher results.
+			abortRef.current?.abort();
+			abortRef.current = new AbortController();
 			setIsLoading(true);
 			try {
 				const response = await fetch(
 					`https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(query)}&limit=5&autocomplete=1`,
+					{ signal: abortRef.current.signal },
 				);
 				const data = (await response.json()) as { features?: AddressFeature[] };
 				const features = data.features ?? [];
 				setSuggestions(features);
 				setIsOpen(features.length > 0);
-			} catch {
-				setSuggestions([]);
-				setIsOpen(false);
+			} catch (err) {
+				if ((err as { name?: string }).name !== "AbortError") {
+					setSuggestions([]);
+					setIsOpen(false);
+				}
 			} finally {
 				setIsLoading(false);
 			}

@@ -39,7 +39,7 @@ This project was created with [Better-T-Stack](https://github.com/AmanVarshney01
     DATABASE_URL="postgresql://user:password@localhost:5432/rythmons"
     BETTER_AUTH_URL="http://localhost:3000"
     BETTER_AUTH_SECRET="replace-with-a-strong-secret"
-    CORS_ORIGIN="exp://,mybettertapp://"
+    CORS_ORIGIN="exp://,rythmons://"
     ```
 
 3. Set up the database schema:

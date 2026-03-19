@@ -5,6 +5,7 @@ import type {
 	ForgotPasswordInput,
 	SignInInput,
 	SignUpInput,
+	SignUpRole,
 } from "@rythmons/validation";
 import {
 	forgotPasswordSchema,
@@ -215,7 +216,8 @@ export function useSignUp(authClient: AuthClient) {
 					name: input.name,
 					email: input.email,
 					password: input.password,
-				},
+					role: input.role,
+				} as Parameters<AuthClient["signUp"]["email"]>[0],
 				{
 					...callbacks,
 					onError: (err) => {
@@ -342,6 +344,7 @@ export function useSignUpForm(callbacks?: AuthActionCallbacks) {
 			email: "",
 			password: "",
 			passwordConfirmation: "",
+			role: "ARTIST" as SignUpRole,
 			acceptedTerms: false,
 		},
 		validators: {

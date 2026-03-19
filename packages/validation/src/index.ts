@@ -131,6 +131,20 @@ export const artistSchema = z.object({
 
 export type ArtistInput = z.infer<typeof artistSchema>;
 
+export const artistSearchSchema = z.object({
+	query: z.string().trim().max(100).default(""),
+	genreNames: z.array(z.string().min(1)).default([]),
+	city: z.string().trim().max(100).default(""),
+	postalCode: z.string().trim().max(10).default(""),
+	radiusKm: z.number().int().positive().optional().nullable(),
+	userLat: z.number().optional().nullable(),
+	userLng: z.number().optional().nullable(),
+	feeMin: z.number().int().nonnegative().optional().nullable(),
+	feeMax: z.number().int().nonnegative().optional().nullable(),
+});
+
+export type ArtistSearchInput = z.infer<typeof artistSearchSchema>;
+
 export const venueSchema = z.object({
 	name: z.string().min(2, "Le nom doit contenir au moins 2 caractères"),
 	address: z.string().min(5, "L'adresse est requise"),
@@ -153,6 +167,21 @@ export const venueSchema = z.object({
 
 export type VenueInput = z.infer<typeof venueSchema>;
 
+export const venueSearchSchema = z.object({
+	query: z.string().trim().max(100).default(""),
+	genreNames: z.array(z.string().min(1)).default([]),
+	city: z.string().trim().max(100).default(""),
+	postalCode: z.string().trim().max(10).default(""),
+	radiusKm: z.number().int().positive().optional().nullable(),
+	userLat: z.number().optional().nullable(),
+	userLng: z.number().optional().nullable(),
+	venueTypes: z.array(z.enum(venueTypeValues)).default([]),
+	budgetMin: z.number().int().nonnegative().optional().nullable(),
+	budgetMax: z.number().int().nonnegative().optional().nullable(),
+});
+
+export type VenueSearchInput = z.infer<typeof venueSearchSchema>;
+
 // Sign-in validation schema
 export const signInSchema = z.object({
 	email: emailSchema,
@@ -161,12 +190,23 @@ export const signInSchema = z.object({
 
 export type SignInInput = z.infer<typeof signInSchema>;
 
+// Sign-up: account type (Artiste or Organisateur only)
+export const signUpRoleValues = ["ARTIST", "ORGANIZER"] as const;
+export const signUpRoleSchema = z.enum(signUpRoleValues);
+export type SignUpRole = z.infer<typeof signUpRoleSchema>;
+
+export const signUpRoleLabels: Record<SignUpRole, string> = {
+	ARTIST: "Artiste",
+	ORGANIZER: "Organisateur / Lieu",
+};
+
 // Sign-up validation schema
 export const signUpBaseSchema = z.object({
 	name: nameSchema,
 	email: emailSchema,
 	password: passwordSchema,
 	passwordConfirmation: z.string(),
+	role: signUpRoleSchema,
 	acceptedTerms: z.boolean(),
 });
 

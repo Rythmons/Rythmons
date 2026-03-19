@@ -23,6 +23,15 @@ body {
 	}
 }
 
+/* Hide scrollbars globally while preserving scroll behaviour */
+* {
+	scrollbar-width: none; /* Firefox */
+	-ms-overflow-style: none; /* IE/Edge */
+}
+*::-webkit-scrollbar {
+	display: none; /* Chrome / Safari / Opera */
+}
+
 :root {
 	/* Rythmons Brand Colors */
 	--brand-primary: #EA0D40;

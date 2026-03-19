@@ -143,7 +143,10 @@ export default function DashboardScreen() {
 										key={venue.id}
 										className="rounded-md border border-border bg-background p-3"
 										onPress={() =>
-											router.push(`/(drawer)/venue/${venue.id}` as any)
+											router.push({
+												pathname: "/(drawer)/venue/[id]",
+												params: { id: venue.id, backTo: "/(tabs)/dashboard" },
+											} as any)
 										}
 									>
 										<Text className="font-medium text-foreground">
@@ -167,7 +170,12 @@ export default function DashboardScreen() {
 							<Text className="font-medium text-foreground">Mes artistes</Text>
 							<TouchableOpacity
 								className="rounded-md bg-primary px-3 py-2"
-								onPress={() => router.push("/(drawer)/artist/new" as any)}
+								onPress={() =>
+									router.push({
+										pathname: "/(drawer)/artist/new",
+										params: { backTo: "/(tabs)/dashboard" },
+									} as any)
+								}
 							>
 								<Text className="font-medium text-primary-foreground">
 									Créer
@@ -188,7 +196,10 @@ export default function DashboardScreen() {
 										key={artist.id}
 										className="rounded-md border border-border bg-background p-3"
 										onPress={() =>
-											router.push(`/(drawer)/artist/${artist.id}` as any)
+											router.push({
+												pathname: "/(drawer)/artist/[id]",
+												params: { id: artist.id, backTo: "/(tabs)/dashboard" },
+											} as any)
 										}
 									>
 										<Text className="font-medium text-foreground">

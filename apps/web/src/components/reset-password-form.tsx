@@ -1,5 +1,7 @@
+"use client";
+
 import { useForm } from "@tanstack/react-form";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect } from "react";
 import { toast } from "sonner";
 import z from "zod";
@@ -11,6 +13,7 @@ import { Label } from "./ui/label";
 
 export default function ResetPasswordForm() {
 	const router = useRouter();
+	const searchParams = useSearchParams();
 	const { isPending, data: session } = authClient.useSession();
 
 	useEffect(() => {
@@ -30,8 +33,7 @@ export default function ResetPasswordForm() {
 				return;
 			}
 			// Get token from URL
-			const urlParams = new URLSearchParams(window.location.search);
-			const token = urlParams.get("token");
+			const token = searchParams.get("token");
 
 			if (!token) {
 				toast.error("Token de réinitialisation manquant ou invalide");

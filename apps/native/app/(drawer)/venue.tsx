@@ -67,7 +67,12 @@ export default function VenueListScreen() {
 
 					<TouchableOpacity
 						className="rounded-xl bg-primary p-3"
-						onPress={() => router.push("/(drawer)/venue/new" as any)}
+						onPress={() =>
+							router.push({
+								pathname: "/(drawer)/venue/new",
+								params: { backTo: "/(drawer)/venue" },
+							} as any)
+						}
 					>
 						<Ionicons name="add" size={22} color="white" />
 					</TouchableOpacity>
@@ -83,7 +88,12 @@ export default function VenueListScreen() {
 						</Text>
 						<TouchableOpacity
 							className="flex-row items-center justify-center rounded-lg bg-primary p-3"
-							onPress={() => router.push("/(drawer)/venue/new" as any)}
+							onPress={() =>
+								router.push({
+									pathname: "/(drawer)/venue/new",
+									params: { backTo: "/(drawer)/venue" },
+								} as any)
+							}
 						>
 							<Ionicons
 								name="business"
@@ -104,7 +114,10 @@ export default function VenueListScreen() {
 									key={venue.id}
 									className="overflow-hidden rounded-xl border border-border bg-card"
 									onPress={() =>
-										router.push(`/(drawer)/venue/${venue.id}` as any)
+										router.push({
+											pathname: "/(drawer)/venue/[id]",
+											params: { id: venue.id, backTo: "/(drawer)/venue" },
+										} as any)
 									}
 								>
 									{venue.photoUrl ? (

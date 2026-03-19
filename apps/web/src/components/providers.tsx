@@ -2,12 +2,22 @@
 
 import { AuthProvider } from "@rythmons/auth/client";
 import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
-import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+import dynamic from "next/dynamic";
+
+const ReactQueryDevtools =
+	process.env.NODE_ENV !== "production"
+		? dynamic(() =>
+				import("@tanstack/react-query-devtools").then(
+					(mod) => mod.ReactQueryDevtools,
+				),
+			)
+		: () => null;
+
 import { NextSSRPlugin } from "@uploadthing/react/next-ssr-plugin";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { authClient } from "@/lib/auth-client";
-import { queryClient as appQueryClient } from "@/utils/trpc";
+import { createAppQueryClient } from "@/utils/trpc";
 import { ThemeProvider } from "./theme-provider";
 import { Toaster } from "./ui/sonner";
 
@@ -50,6 +60,10 @@ export default function Providers({
 	children: React.ReactNode;
 	routerConfig?: React.ComponentProps<typeof NextSSRPlugin>["routerConfig"];
 }) {
+	// Create the QueryClient inside the component so each SSR request gets its
+	// own isolated cache — prevents data from one user leaking to another.
+	const [queryClient] = useState(() => createAppQueryClient());
+
 	return (
 		<ThemeProvider
 			attribute="class"
@@ -60,10 +74,10 @@ export default function Providers({
 		>
 			{routerConfig && <NextSSRPlugin routerConfig={routerConfig} />}
 			<AuthProvider client={authClient}>
-				<QueryClientProvider client={appQueryClient}>
+				<QueryClientProvider client={queryClient}>
 					<AuthCacheSync />
 					{children}
-					<ReactQueryDevtools />
+					{process.env.NODE_ENV !== "production" && <ReactQueryDevtools />}
 				</QueryClientProvider>
 			</AuthProvider>
 			<Toaster richColors />

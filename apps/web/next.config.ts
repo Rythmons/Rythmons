@@ -57,6 +57,14 @@ const nextConfig: NextConfig = {
 		remotePatterns: [
 			{
 				protocol: "https",
+				hostname: "api.dicebear.com",
+			},
+			{
+				protocol: "https",
+				hostname: "placehold.co",
+			},
+			{
+				protocol: "https",
 				hostname: "utfs.io",
 			},
 		],

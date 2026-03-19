@@ -8,18 +8,37 @@ type ArtistMenuItem = {
 	id: string;
 };
 
+type VenueMenuItem = {
+	id: string;
+};
+
 export default function TabLayout() {
 	const { data: session } = authClient.useSession();
 	const sessionRole = (
-		session?.user as { role?: "ARTIST" | "BOTH" | null } | undefined
+		session?.user as
+			| {
+					role?: "ARTIST" | "ORGANIZER" | "BOTH" | null;
+			  }
+			| undefined
 	)?.role;
 	const hasArtistRole = sessionRole === "ARTIST" || sessionRole === "BOTH";
+	const hasOrganizerRole =
+		sessionRole === "ORGANIZER" || sessionRole === "BOTH";
 	const { data: artists } = useQuery({
 		...trpc.artist.myArtists.queryOptions(),
 		enabled: Boolean(session?.user) && !hasArtistRole,
 	});
+	const { data: venues } = useQuery({
+		...trpc.venue.getMyVenues.queryOptions(),
+		enabled: Boolean(session?.user) && !hasOrganizerRole,
+	});
 	const canSearchVenues =
 		hasArtistRole || ((artists ?? []) as ArtistMenuItem[]).length > 0;
+	const canSearchArtists =
+		hasOrganizerRole || ((venues ?? []) as VenueMenuItem[]).length > 0;
+	const canUseSearch = canSearchVenues || canSearchArtists;
+	const canManageArtists = canSearchVenues;
+	const canManageVenues = canSearchArtists;
 
 	return (
 		<Tabs
@@ -62,6 +81,7 @@ export default function TabLayout() {
 				options={{
 					headerTitle: "Mes Artistes",
 					tabBarLabel: "Artistes",
+					href: canManageArtists ? undefined : null,
 					tabBarIcon: ({ color, size }) => (
 						<Ionicons name="musical-notes-outline" size={size} color={color} />
 					),
@@ -70,9 +90,9 @@ export default function TabLayout() {
 			<Tabs.Screen
 				name="search"
 				options={{
-					headerTitle: "Rechercher des lieux",
+					headerTitle: "Recherche",
 					tabBarLabel: "Recherche",
-					href: canSearchVenues ? undefined : null,
+					href: canUseSearch ? undefined : null,
 					tabBarIcon: ({ color, size }) => (
 						<Ionicons name="search-outline" size={size} color={color} />
 					),
@@ -83,6 +103,7 @@ export default function TabLayout() {
 				options={{
 					headerTitle: "Mon Lieu",
 					tabBarLabel: "Lieu",
+					href: canManageVenues ? undefined : null,
 					tabBarIcon: ({ color, size }) => (
 						<Ionicons name="business-outline" size={size} color={color} />
 					),

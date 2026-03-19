@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
 import { MUSIC_GENRES } from "@rythmons/validation";
 import { useMutation } from "@tanstack/react-query";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import {
 	ActivityIndicator,
@@ -20,6 +20,7 @@ import { ImageUpload } from "@/components/ui/image-upload";
 import { Input } from "@/components/ui/input";
 import { Text, Title } from "@/components/ui/typography";
 import { authClient } from "@/lib/auth-client";
+import { useContextualBackNavigation } from "@/lib/use-contextual-back-navigation";
 import { queryClient, trpc } from "@/utils/trpc";
 
 const VENUE_TYPES = [
@@ -67,7 +68,12 @@ interface FormData {
 }
 
 export default function NewVenueScreen() {
+	const params = useLocalSearchParams<{ backTo?: string }>();
+	const backTo = Array.isArray(params.backTo)
+		? params.backTo[0]
+		: params.backTo;
 	const { data: session, isPending: sessionPending } = authClient.useSession();
+	const handleBack = useContextualBackNavigation(backTo ?? "/(drawer)/venue");
 
 	const [formData, setFormData] = useState<FormData>({
 		name: "",
@@ -158,7 +164,12 @@ export default function NewVenueScreen() {
 			Alert.alert("Succès", "Lieu créé avec succès !");
 
 			await queryClient.invalidateQueries();
-			router.replace(`/(drawer)/venue/${createdVenue.id}`);
+			router.replace({
+				pathname: "/(drawer)/venue/[id]",
+				params: backTo
+					? { id: createdVenue.id, backTo }
+					: { id: createdVenue.id },
+			} as any);
 		} catch (error) {
 			const message =
 				error instanceof Error ? error.message : "Erreur lors de la sauvegarde";
@@ -195,7 +206,7 @@ export default function NewVenueScreen() {
 					</Text>
 					<TouchableOpacity
 						className="rounded-lg bg-primary px-4 py-2"
-						onPress={() => router.replace("/")}
+						onPress={handleBack}
 					>
 						<Text className="font-medium text-primary-foreground">
 							Se connecter
@@ -216,7 +227,7 @@ export default function NewVenueScreen() {
 					{/* Header */}
 					<View className="mb-6 rounded-xl bg-primary/10 p-4">
 						<View className="flex-row items-center gap-3">
-							<TouchableOpacity className="mr-2" onPress={() => router.back()}>
+							<TouchableOpacity className="mr-2" onPress={handleBack}>
 								<Ionicons name="arrow-back" size={24} color="#7c3aed" />
 							</TouchableOpacity>
 							<View className="rounded-lg bg-primary/20 p-2">

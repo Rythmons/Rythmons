@@ -1,17 +1,19 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Mic2 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
-import { queryClient, trpc } from "@/utils/trpc";
+import { trpc } from "@/utils/trpc";
 import { ArtistForm } from "./artist-form";
 
 type ArtistPageItem = {
 	id: string;
 	stageName: string;
+	city?: string | null;
+	postalCode?: string | null;
 	photoUrl?: string | null;
 	bannerUrl?: string | null;
 	bio?: string | null;
@@ -20,6 +22,7 @@ type ArtistPageItem = {
 	techRequirements?: string | null;
 	feeMin?: number | null;
 	feeMax?: number | null;
+	isNegotiable?: boolean | null;
 	genres: { id: string; name: string }[];
 	images?: string[] | null;
 };
@@ -28,6 +31,7 @@ function ArtistPageContent() {
 	const searchParams = useSearchParams();
 	const editId = searchParams.get("id");
 	const router = useRouter();
+	const queryClient = useQueryClient();
 
 	const { data: session, isPending: sessionPending } = authClient.useSession();
 
@@ -101,12 +105,12 @@ function ArtistPageContent() {
 						<h1 className="mb-2 font-bold text-3xl">
 							{artistToEdit
 								? `Modifier ${artistToEdit.stageName}`
-								: "Nouveau projet artistique"}
+								: "Nouveau profil artiste"}
 						</h1>
 						<p className="text-lg text-muted-foreground">
 							{artistToEdit
 								? "Mettez à jour vos informations."
-								: "Créez une fiche pour votre groupe ou projet solo pour démarcher des lieux."}
+								: "Créez une fiche artiste pour démarcher des lieux."}
 						</p>
 					</div>
 				</div>
@@ -121,6 +125,8 @@ function ArtistPageContent() {
 							? {
 									id: artistToEdit.id,
 									stageName: artistToEdit.stageName,
+									city: artistToEdit.city ?? "",
+									postalCode: artistToEdit.postalCode ?? "",
 									photoUrl: artistToEdit.photoUrl ?? "",
 									bannerUrl: artistToEdit.bannerUrl ?? "",
 									bio: artistToEdit.bio ?? "",
@@ -132,6 +138,7 @@ function ArtistPageContent() {
 									techRequirements: artistToEdit.techRequirements ?? "",
 									feeMin: artistToEdit.feeMin ?? undefined,
 									feeMax: artistToEdit.feeMax ?? undefined,
+									isNegotiable: artistToEdit.isNegotiable ?? false,
 									genres: artistToEdit.genres,
 									images: artistToEdit.images ?? [],
 								}

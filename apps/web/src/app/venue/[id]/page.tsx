@@ -1,7 +1,7 @@
 "use client";
 
 import { MUSIC_GENRES } from "@rythmons/validation";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
 	Building2,
 	Calendar,
@@ -38,7 +38,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { authClient } from "@/lib/auth-client";
-import { queryClient, trpc } from "@/utils/trpc";
+import { trpc } from "@/utils/trpc";
 import { getVenueTypeLabel } from "@/utils/venue-labels";
 
 const VenueMap = dynamic(() => import("@/components/ui/venue-map"), {
@@ -100,6 +100,7 @@ export default function VenueProfilePage() {
 	const venueId = params.id as string;
 	const { data: session } = authClient.useSession();
 	const router = useRouter();
+	const queryClient = useQueryClient();
 
 	const [isEditMode, setIsEditMode] = useState(false);
 	const [formData, setFormData] = useState<EditFormData | null>(null);
@@ -254,7 +255,7 @@ export default function VenueProfilePage() {
 					: "Erreur lors de la suppression";
 			toast.error(message);
 		}
-	}, [deleteMutation, router, venue]);
+	}, [deleteMutation, router, venue, queryClient]);
 
 	if (isLoading) {
 		return (

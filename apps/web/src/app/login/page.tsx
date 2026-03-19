@@ -15,7 +15,10 @@ export default function LoginPage() {
 				setShowSignIn(true);
 				setShowForgottenPassword(false);
 			}}
-			onSwitchToSignUp={() => setShowSignIn(false)}
+			onSwitchToSignUp={() => {
+				setShowForgottenPassword(false);
+				setShowSignIn(false);
+			}}
 		/>
 	) : showSignIn ? (
 		<SignInForm

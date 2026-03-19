@@ -42,7 +42,7 @@ const resolvedBaseURL = isVercelPreview
 		process.env.NEXT_PUBLIC_APP_URL ||
 		vercelDeploymentUrl;
 
-const trustedOrigins = [...trustedOriginsFromEnv, "mybettertapp://", "exp://"];
+const trustedOrigins = [...trustedOriginsFromEnv, "rythmons://", "exp://"];
 
 const originCandidates = [
 	resolvedBaseURL,
@@ -87,6 +87,14 @@ export const auth = betterAuth<BetterAuthOptions>({
 	database: prismaAdapter(db, {
 		provider: "postgresql",
 	}),
+	user: {
+		additionalFields: {
+			role: {
+				type: "string",
+				input: true,
+			},
+		},
+	},
 	baseURL: resolvedBaseURL,
 	trustedOrigins: async (request) => {
 		const dynamicOrigins = [...trustedOrigins];

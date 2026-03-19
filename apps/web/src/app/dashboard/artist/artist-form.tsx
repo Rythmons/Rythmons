@@ -8,6 +8,7 @@ import {
 	FileText,
 	Headphones,
 	Image as ImageIcon,
+	MapPin,
 	Mic2,
 	Music,
 	Sparkles,
@@ -27,6 +28,8 @@ import { UploadDropzone } from "@/utils/uploadthing";
 
 interface ArtistFormData {
 	stageName: string;
+	city: string;
+	postalCode: string;
 	photoUrl: string;
 	bannerUrl: string;
 	bio: string;
@@ -35,6 +38,7 @@ interface ArtistFormData {
 	techRequirements: string;
 	feeMin: number | null;
 	feeMax: number | null;
+	isNegotiable: boolean;
 	selectedGenres: string[];
 	images: string[];
 }
@@ -69,6 +73,8 @@ export function ArtistForm({ initialData, mode, onSuccess }: ArtistFormProps) {
 
 	const [formData, setFormData] = useReactState<ArtistFormData>({
 		stageName: initialData?.stageName ?? "",
+		city: initialData?.city ?? "",
+		postalCode: initialData?.postalCode ?? "",
 		photoUrl: initialData?.photoUrl ?? "",
 		bannerUrl: initialData?.bannerUrl ?? "",
 		bio: initialData?.bio ?? "",
@@ -77,6 +83,7 @@ export function ArtistForm({ initialData, mode, onSuccess }: ArtistFormProps) {
 		techRequirements: initialData?.techRequirements ?? "",
 		feeMin: initialData?.feeMin ?? null,
 		feeMax: initialData?.feeMax ?? null,
+		isNegotiable: initialData?.isNegotiable ?? false,
 		selectedGenres: initialData?.genres?.map((g) => g.name) ?? [],
 		images: initialData?.images ?? [],
 	});
@@ -113,6 +120,12 @@ export function ArtistForm({ initialData, mode, onSuccess }: ArtistFormProps) {
 		) {
 			newErrors.feeMax = "Le cachet max doit être supérieur ou égal au minimum";
 		}
+		if (
+			formData.postalCode.trim() !== "" &&
+			!/^\d{5}$/.test(formData.postalCode.trim())
+		) {
+			newErrors.postalCode = "Le code postal doit contenir 5 chiffres";
+		}
 
 		setErrors(newErrors);
 		return Object.keys(newErrors).length === 0;
@@ -147,8 +160,13 @@ export function ArtistForm({ initialData, mode, onSuccess }: ArtistFormProps) {
 			) as ArtistSocialLinks;
 			const submitData = {
 				...restData,
+				city: formData.city.trim() || null,
+				postalCode: formData.postalCode.trim()
+					? formData.postalCode.trim()
+					: null,
 				feeMin: formData.feeMin ?? null,
 				feeMax: formData.feeMax ?? null,
+				isNegotiable: formData.isNegotiable,
 				bio: formData.bio || null,
 				website: formData.website || null,
 				socialLinks: normalizedSocialLinks,
@@ -284,6 +302,46 @@ export function ArtistForm({ initialData, mode, onSuccess }: ArtistFormProps) {
 										)}
 									</div>
 								</div>
+							</div>
+						</div>
+					</div>
+
+					{/* Localisation */}
+					<div className="space-y-6">
+						<div className="flex items-center gap-2 font-semibold text-lg">
+							<MapPin className="h-5 w-5 text-primary" />
+							<span>Localisation</span>
+						</div>
+						<div className="grid gap-4 md:grid-cols-2">
+							<div className="space-y-2">
+								<Label htmlFor={`${id}-city`}>Ville</Label>
+								<Input
+									id={`${id}-city`}
+									value={formData.city}
+									onChange={(e) => updateField("city", e.target.value)}
+									placeholder="Ex: Paris"
+								/>
+							</div>
+							<div className="space-y-2">
+								<Label htmlFor={`${id}-postalCode`}>Code postal</Label>
+								<Input
+									id={`${id}-postalCode`}
+									value={formData.postalCode}
+									onChange={(e) =>
+										updateField(
+											"postalCode",
+											e.target.value.replace(/\D/g, "").slice(0, 5),
+										)
+									}
+									placeholder="75001"
+									maxLength={5}
+									aria-invalid={!!errors.postalCode}
+								/>
+								{errors.postalCode && (
+									<p className="text-destructive text-sm">
+										{errors.postalCode}
+									</p>
+								)}
 							</div>
 						</div>
 					</div>
@@ -626,6 +684,21 @@ export function ArtistForm({ initialData, mode, onSuccess }: ArtistFormProps) {
 										<p className="text-destructive text-sm">{errors.feeMax}</p>
 									)}
 								</div>
+							</div>
+							<div className="flex items-center space-x-2">
+								<Checkbox
+									id={`${id}-isNegotiable`}
+									checked={formData.isNegotiable}
+									onCheckedChange={(checked) =>
+										updateField("isNegotiable", checked === true)
+									}
+								/>
+								<Label
+									htmlFor={`${id}-isNegotiable`}
+									className="cursor-pointer font-normal text-sm"
+								>
+									Cachet négociable
+								</Label>
 							</div>
 						</div>
 					</div>
