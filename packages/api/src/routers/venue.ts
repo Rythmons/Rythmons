@@ -251,7 +251,7 @@ export const venueRouter = router({
 				take: input.radiusKm != null ? 500 : 24,
 			});
 
-			const normalized = venues.map((venue) => normalizeVenue(venue, compat));
+			let normalized = venues.map((venue) => normalizeVenue(venue, compat));
 
 			if (input.radiusKm != null) {
 				let ref: { lat: number; lng: number } | null = null;
@@ -264,13 +264,42 @@ export const venueRouter = router({
 					ref = locationQuery ? await geocodeAddress(locationQuery) : null;
 				}
 				if (ref) {
-					return normalized.filter((v) => {
+					normalized = normalized.filter((v) => {
 						if (v.latitude == null || v.longitude == null) return false;
 						return (
 							haversineKm(ref.lat, ref.lng, v.latitude, v.longitude) <=
 							(input.radiusKm as number)
 						);
 					});
+				}
+			}
+
+			// US15: filter by availability date — only venues with at least one OPEN slot on that day
+			if (input.availabilityDate?.trim()) {
+				const dayStart = new Date(
+					`${input.availabilityDate.trim()}T00:00:00.000Z`,
+				);
+				const dayEnd = new Date(
+					`${input.availabilityDate.trim()}T23:59:59.999Z`,
+				);
+				if (!Number.isNaN(dayStart.getTime())) {
+					const openSlots = await db.availabilitySlot.findMany({
+						where: {
+							ownerType: "VENUE",
+							type: "OPEN",
+							startDate: { lte: dayEnd },
+							endDate: { gte: dayStart },
+							ownerId: {
+								in: normalized.map((v) => v.id as string),
+							},
+						},
+						select: { ownerId: true },
+						distinct: ["ownerId"],
+					});
+					const openVenueIds = new Set(
+						openSlots.map((s) => s.ownerId as string),
+					);
+					normalized = normalized.filter((v) => openVenueIds.has(v.id));
 				}
 			}
 

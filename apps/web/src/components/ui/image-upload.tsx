@@ -1,7 +1,7 @@
 "use client";
 
 import { useDropzone } from "@uploadthing/react";
-import { Crop, FileIcon, Loader2, Pencil, Trash2, Upload } from "lucide-react";
+import { Crop, Loader2, Pencil, Trash2, Upload } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 import { generateClientDropzoneAccept } from "uploadthing/client";
 import { cn } from "@/lib/utils";
@@ -37,7 +37,7 @@ export function ImageUpload({
 	const [pendingImage, setPendingImage] = useState<string | null>(null);
 	const [pendingFile, setPendingFile] = useState<File | null>(null);
 
-	const { startUpload, routeConfig } = useUploadThing("imageUploader", {
+	const { startUpload } = useUploadThing("imageUploader", {
 		onClientUploadComplete: (res) => {
 			if (res?.[0]) {
 				const url = res[0].url || res[0].serverData?.url;
@@ -114,14 +114,13 @@ export function ImageUpload({
 		}
 	}, [value]);
 
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	const { getRootProps, getInputProps, isDragActive } = (useDropzone as any)({
+	const { getRootProps, getInputProps, isDragActive } = useDropzone({
 		onDrop,
 		accept: generateClientDropzoneAccept(["image"]),
 		maxFiles: 1,
 		disabled: isUploading,
 		noClick: true,
-	});
+	} as Parameters<typeof useDropzone>[0]);
 
 	const inputRef = useRef<HTMLInputElement>(null);
 
@@ -136,9 +135,13 @@ export function ImageUpload({
 			// Handle dropzone ref (it's usually a callback)
 			if (typeof dropzoneRef === "function") {
 				(dropzoneRef as (instance: HTMLInputElement | null) => void)(element);
-				// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			} else if (dropzoneRef) {
-				(dropzoneRef as any).current = element;
+			} else if (
+				dropzoneRef &&
+				typeof dropzoneRef === "object" &&
+				"current" in dropzoneRef
+			) {
+				(dropzoneRef as React.RefObject<HTMLInputElement | null>).current =
+					element;
 			}
 
 			// Handle our ref

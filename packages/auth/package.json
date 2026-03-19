@@ -11,7 +11,8 @@
 		"./types": "./src/types.ts"
 	},
 	"scripts": {
-		"build": "tsc --build"
+		"build": "tsc --build",
+		"check-types": "tsc --noEmit"
 	},
 	"dependencies": {
 		"@better-auth/expo": "^1.3.13",

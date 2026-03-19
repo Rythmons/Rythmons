@@ -124,6 +124,7 @@ export function VenueSearch({
 	const appliedBudgetMax = searchParams.get("bmax") ?? "";
 	const appliedFeeMin = searchParams.get("fmin") ?? "";
 	const appliedFeeMax = searchParams.get("fmax") ?? "";
+	const appliedAvailabilityDate = searchParams.get("date") ?? "";
 	const appliedLatRaw = searchParams.get("lat");
 	const appliedLngRaw = searchParams.get("lng");
 	const appliedLat =
@@ -147,6 +148,9 @@ export function VenueSearch({
 	const [budgetMax, setBudgetMax] = useState(appliedBudgetMax);
 	const [feeMin, setFeeMin] = useState(appliedFeeMin);
 	const [feeMax, setFeeMax] = useState(appliedFeeMax);
+	const [availabilityDate, setAvailabilityDate] = useState(
+		appliedAvailabilityDate,
+	);
 	const [radiusKm, setRadiusKm] = useState<string>(appliedRadiusKm);
 	const [useMyLocation, setUseMyLocation] = useState(appliedUserCoords != null);
 	const [myLocationCoords, setMyLocationCoords] = useState<{
@@ -159,6 +163,37 @@ export function VenueSearch({
 	const [showAllGenres, setShowAllGenres] = useState(false);
 	const normalizedQuery = searchParams.get("q")?.trim() ?? "";
 	const requestedPage = Number.parseInt(searchParams.get("page") ?? "1", 10);
+
+	// Keep draft filter state in sync with URL when searchParams change (e.g. back/forward)
+	useEffect(() => {
+		setCity(appliedCity);
+		setPostalCode(appliedPostalCode);
+		setSelectedGenres(
+			appliedGenresRaw ? appliedGenresRaw.split(",").filter(Boolean) : [],
+		);
+		setSelectedVenueType(appliedVenueType);
+		setBudgetMin(appliedBudgetMin);
+		setBudgetMax(appliedBudgetMax);
+		setFeeMin(appliedFeeMin);
+		setFeeMax(appliedFeeMax);
+		setAvailabilityDate(appliedAvailabilityDate);
+		setRadiusKm(appliedRadiusKm);
+		setUseMyLocation(appliedUserCoords != null);
+		setMyLocationCoords(appliedUserCoords);
+		setLocationStatus(appliedUserCoords != null ? "success" : "idle");
+	}, [
+		appliedCity,
+		appliedPostalCode,
+		appliedGenresRaw,
+		appliedVenueType,
+		appliedBudgetMin,
+		appliedBudgetMax,
+		appliedFeeMin,
+		appliedFeeMax,
+		appliedAvailabilityDate,
+		appliedRadiusKm,
+		appliedUserCoords,
+	]);
 	const currentPage =
 		Number.isFinite(requestedPage) && requestedPage > 0 ? requestedPage : 1;
 	const showFilters = searchParams.get("filters") === "1";
@@ -179,6 +214,9 @@ export function VenueSearch({
 					: [appliedVenueType as (typeof venueTypeValues)[number]],
 			budgetMin: parseOptionalNumber(appliedBudgetMin),
 			budgetMax: parseOptionalNumber(appliedBudgetMax),
+			availabilityDate: appliedAvailabilityDate.trim()
+				? appliedAvailabilityDate.trim()
+				: undefined,
 		}),
 		[
 			normalizedQuery,
@@ -191,6 +229,7 @@ export function VenueSearch({
 			appliedVenueType,
 			appliedBudgetMin,
 			appliedBudgetMax,
+			appliedAvailabilityDate,
 		],
 	);
 
@@ -206,6 +245,9 @@ export function VenueSearch({
 			userLng: appliedUserCoords?.lng,
 			feeMin: parseOptionalNumber(appliedFeeMin),
 			feeMax: parseOptionalNumber(appliedFeeMax),
+			availabilityDate: appliedAvailabilityDate.trim()
+				? appliedAvailabilityDate.trim()
+				: undefined,
 		}),
 		[
 			normalizedQuery,
@@ -217,6 +259,7 @@ export function VenueSearch({
 			appliedUserCoords?.lng,
 			appliedFeeMin,
 			appliedFeeMax,
+			appliedAvailabilityDate,
 		],
 	);
 
@@ -262,7 +305,8 @@ export function VenueSearch({
 		budgetMin !== appliedBudgetMin ||
 		budgetMax !== appliedBudgetMax ||
 		feeMin !== appliedFeeMin ||
-		feeMax !== appliedFeeMax;
+		feeMax !== appliedFeeMax ||
+		availabilityDate !== appliedAvailabilityDate;
 
 	const resultLabel =
 		hasSearchError && !hasResults
@@ -403,6 +447,7 @@ export function VenueSearch({
 		setBudgetMax("");
 		setFeeMin("");
 		setFeeMax("");
+		setAvailabilityDate("");
 		updateRouteSearchParams((params) => {
 			params.delete("q");
 			params.delete("city");
@@ -414,6 +459,7 @@ export function VenueSearch({
 			params.delete("bmax");
 			params.delete("fmin");
 			params.delete("fmax");
+			params.delete("date");
 			params.delete("lat");
 			params.delete("lng");
 			params.delete("filters");
@@ -468,6 +514,11 @@ export function VenueSearch({
 			} else {
 				params.delete("fmax");
 			}
+			if (availabilityDate.trim()) {
+				params.set("date", availabilityDate.trim());
+			} else {
+				params.delete("date");
+			}
 			if (useMyLocation && myLocationCoords) {
 				params.set("lat", String(myLocationCoords.lat));
 				params.set("lng", String(myLocationCoords.lng));
@@ -486,6 +537,7 @@ export function VenueSearch({
 		postalCode.trim().length > 0 ||
 		radiusKm !== "none" ||
 		useMyLocation ||
+		availabilityDate.trim().length > 0 ||
 		selectedGenres.length > 0 ||
 		(activeTab === "venues"
 			? selectedVenueType !== "all" ||
@@ -499,6 +551,9 @@ export function VenueSearch({
 		...(appliedPostalCode ? [`CP: ${appliedPostalCode}`] : []),
 		...(appliedUserCoords != null ? ["Ma position"] : []),
 		...(appliedRadiusKm !== "none" ? [`Rayon: ${appliedRadiusKm} km`] : []),
+		...(appliedAvailabilityDate
+			? [`Disponible le: ${appliedAvailabilityDate}`]
+			: []),
 		...(appliedGenresRaw ? appliedGenresRaw.split(",") : []),
 		...(activeTab === "venues"
 			? [
@@ -529,6 +584,14 @@ export function VenueSearch({
 
 	return (
 		<div className="container mx-auto max-w-6xl px-4 py-5">
+			<p className="mb-4">
+				<Link
+					href={"/dashboard" as Route}
+					className="text-muted-foreground text-sm hover:text-foreground"
+				>
+					← Retour au tableau de bord
+				</Link>
+			</p>
 			<div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
 				<div className="flex flex-wrap gap-2">
 					{canSearchVenues && canSearchArtists ? (
@@ -1006,6 +1069,25 @@ export function VenueSearch({
 										</p>
 									) : null}
 								</div>
+							</div>
+
+							<div className="mt-5 space-y-2">
+								<Label htmlFor="search-availability-date">
+									{activeTab === "venues"
+										? "Lieu disponible le (date)"
+										: "Artiste disponible le (date)"}
+								</Label>
+								<Input
+									id="search-availability-date"
+									type="date"
+									value={availabilityDate}
+									onChange={(e) => setAvailabilityDate(e.target.value)}
+								/>
+								<p className="text-muted-foreground text-xs">
+									{activeTab === "venues"
+										? "Ne garder que les lieux ayant au moins un créneau ouvert ce jour."
+										: "Exclure les artistes indisponibles ou déjà bookés ce jour."}
+								</p>
 							</div>
 
 							{activeTab === "venues" ? (

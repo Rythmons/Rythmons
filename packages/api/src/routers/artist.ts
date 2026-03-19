@@ -250,9 +250,7 @@ export const artistRouter = router({
 				take: input.radiusKm != null ? 500 : 24,
 			});
 
-			const normalized = artists.map((artist) =>
-				normalizeArtist(artist, compat),
-			);
+			let normalized = artists.map((artist) => normalizeArtist(artist, compat));
 
 			if (input.radiusKm != null) {
 				let ref: { lat: number; lng: number } | null = null;
@@ -265,13 +263,42 @@ export const artistRouter = router({
 					ref = locationQuery ? await geocodeAddress(locationQuery) : null;
 				}
 				if (ref) {
-					return normalized.filter((a) => {
+					normalized = normalized.filter((a) => {
 						if (a.latitude == null || a.longitude == null) return false;
 						return (
 							haversineKm(ref.lat, ref.lng, a.latitude, a.longitude) <=
 							(input.radiusKm as number)
 						);
 					});
+				}
+			}
+
+			// US20: filter by availability date — exclude artists with UNAVAILABLE or BOOKED on that day
+			if (input.availabilityDate?.trim()) {
+				const dayStart = new Date(
+					`${input.availabilityDate.trim()}T00:00:00.000Z`,
+				);
+				const dayEnd = new Date(
+					`${input.availabilityDate.trim()}T23:59:59.999Z`,
+				);
+				if (!Number.isNaN(dayStart.getTime())) {
+					const blockingSlots = await ctx.db.availabilitySlot.findMany({
+						where: {
+							ownerType: "ARTIST",
+							type: { in: ["UNAVAILABLE", "BOOKED"] },
+							startDate: { lte: dayEnd },
+							endDate: { gte: dayStart },
+							ownerId: {
+								in: normalized.map((a) => a.id as string),
+							},
+						},
+						select: { ownerId: true },
+						distinct: ["ownerId"],
+					});
+					const blockedArtistIds = new Set(
+						blockingSlots.map((s) => s.ownerId as string),
+					);
+					normalized = normalized.filter((a) => !blockedArtistIds.has(a.id));
 				}
 			}
 

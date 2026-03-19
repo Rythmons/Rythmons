@@ -230,7 +230,7 @@ export default function EditVenueScreen() {
 
 			await refetch();
 			await queryClient.invalidateQueries();
-			router.replace(detailHref as any);
+			router.replace(detailHref as never);
 		} catch (error) {
 			const message =
 				error instanceof Error ? error.message : "Erreur lors de la sauvegarde";
@@ -261,7 +261,7 @@ export default function EditVenueScreen() {
 						try {
 							await deleteMutation.mutateAsync({ id: venueId });
 							await queryClient.invalidateQueries();
-							router.replace((parentBackTo || "/(drawer)/venue") as any);
+							router.replace((parentBackTo || "/(drawer)/venue") as never);
 						} catch (error) {
 							const message =
 								error instanceof Error

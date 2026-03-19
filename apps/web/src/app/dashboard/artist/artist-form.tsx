@@ -13,16 +13,17 @@ import {
 	Music,
 	Sparkles,
 } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useId, useState as useReactState } from "react";
+import { useEffect, useId, useState as useReactState } from "react";
 import { toast } from "sonner";
-
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { useFormDraft } from "@/hooks/use-form-draft";
 import { trpc } from "@/utils/trpc";
 import { UploadDropzone } from "@/utils/uploadthing";
 
@@ -92,6 +93,16 @@ export function ArtistForm({ initialData, mode, onSuccess }: ArtistFormProps) {
 	const [errors, setErrors] = useReactState<
 		Partial<Record<keyof ArtistFormData, string>>
 	>({});
+
+	const DRAFT_KEY = "rythmons:web:draft:artist-create";
+	const { draft, saveDraft, clearDraft, hasDraft } =
+		useFormDraft<ArtistFormData>(DRAFT_KEY, { throttleMs: 2000 });
+
+	useEffect(() => {
+		if (mode === "create") {
+			saveDraft(formData);
+		}
+	}, [mode, formData, saveDraft]);
 
 	const createMutation = useMutation(trpc.artist.create.mutationOptions());
 	const updateMutation = useMutation(trpc.artist.update.mutationOptions());
@@ -179,6 +190,7 @@ export function ArtistForm({ initialData, mode, onSuccess }: ArtistFormProps) {
 
 			if (mode === "create") {
 				const createdArtist = await createMutation.mutateAsync(submitData);
+				clearDraft();
 				toast.success("Profil artiste créé avec succès !");
 				onSuccess?.(createdArtist.id);
 			} else {
@@ -213,6 +225,38 @@ export function ArtistForm({ initialData, mode, onSuccess }: ArtistFormProps) {
 
 	return (
 		<form onSubmit={handleSubmit} className="space-y-8">
+			{mode === "create" && hasDraft && draft && (
+				<div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-primary/30 bg-primary/5 p-4">
+					<p className="text-muted-foreground text-sm">
+						Un brouillon est disponible.
+					</p>
+					<div className="flex gap-2">
+						<Button
+							type="button"
+							variant="outline"
+							size="sm"
+							onClick={() => {
+								setFormData(draft);
+								clearDraft();
+								toast.success("Brouillon restauré");
+							}}
+						>
+							Restaurer
+						</Button>
+						<Button
+							type="button"
+							variant="ghost"
+							size="sm"
+							onClick={() => {
+								clearDraft();
+								toast.success("Brouillon ignoré");
+							}}
+						>
+							Ignorer
+						</Button>
+					</div>
+				</div>
+			)}
 			{/* Basic Information */}
 			<div className="space-y-6">
 				<div className="flex items-center gap-2 font-semibold text-lg">
@@ -714,13 +758,8 @@ export function ArtistForm({ initialData, mode, onSuccess }: ArtistFormProps) {
 							? "Créer mon profil"
 							: "Enregistrer"}
 				</Button>
-				<Button
-					type="button"
-					variant="outline"
-					onClick={() => router.back()}
-					disabled={isLoading}
-				>
-					Annuler
+				<Button variant="outline" disabled={isLoading} asChild>
+					<Link href="/dashboard">Annuler</Link>
 				</Button>
 			</div>
 		</form>

@@ -19,6 +19,7 @@ import {
 	X,
 } from "lucide-react";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { notFound, useParams, useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
@@ -143,6 +144,11 @@ export default function VenueProfilePage() {
 
 	// Check if current user is the owner
 	const isOwner = session?.user?.id === venue?.owner?.id;
+
+	const { data: myArtists } = useQuery({
+		...trpc.artist.myArtists.queryOptions(),
+		enabled: !!session?.user && !isOwner,
+	});
 
 	// Initialize form data when entering edit mode
 	const enterEditMode = useCallback(() => {
@@ -304,6 +310,16 @@ export default function VenueProfilePage() {
 	return (
 		<div className="min-h-screen">
 			<div className="container mx-auto px-4 py-8">
+				{session?.user && (
+					<p className="mb-4">
+						<Link
+							href="/dashboard"
+							className="text-muted-foreground text-sm hover:text-foreground"
+						>
+							← Tableau de bord
+						</Link>
+					</p>
+				)}
 				{/* Edit Mode Header */}
 				{isOwner && (
 					<div className="mb-6 flex items-center justify-between rounded-xl bg-black/20 p-4">
@@ -488,9 +504,22 @@ export default function VenueProfilePage() {
 								</p>
 
 								{/* Action Buttons */}
-								{!isOwner && (
-									<div className="mt-6 flex justify-center gap-3">
-										<Button className="rounded-full bg-primary px-6 hover:bg-primary/90">
+								{!isOwner && session?.user && (
+									<div className="mt-6 flex flex-wrap justify-center gap-3">
+										{myArtists && myArtists.length > 0 && (
+											<Button
+												className="rounded-full bg-primary px-6 hover:bg-primary/90"
+												asChild
+											>
+												<Link
+													href={`/dashboard/bookings/propose?venueId=${venueId}`}
+												>
+													<Calendar className="mr-2 h-4 w-4" />
+													Proposer un booking
+												</Link>
+											</Button>
+										)}
+										<Button variant="outline" className="rounded-full px-6">
 											<Plus className="mr-2 h-4 w-4" />
 											Suivre
 										</Button>

@@ -22,6 +22,7 @@ model User {
   role          UserRole?
   artists       Artist[]
   venues        Venue[]
+  createdBookings Booking[]
 
   @@unique([email])
   @@map("user")
@@ -87,7 +88,7 @@ model Artist {
   socialLinks      Json?    @default("{}")
   genres           Genre[]
   images           String[] @default([])
-  
+
   techRequirements String?
   feeMin           Int?
   feeMax           Int?
@@ -97,6 +98,8 @@ model Artist {
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  bookings Booking[]
 
   @@map("artist")
 }
@@ -145,9 +148,11 @@ model Venue {
   genres        Genre[]
   latitude      Float?
   longitude     Float?
-  
+
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+
+  bookings Booking[]
 
   @@map("venue")
 }
@@ -159,11 +164,68 @@ enum PaymentType {
   NEGOTIABLE
 }
 
+enum BookingStatus {
+  PENDING
+  ACCEPTED
+  REFUSED
+  CANCELLED
+}
+
+enum AvailabilityOwnerType {
+  ARTIST
+  VENUE
+}
+
+enum SlotType {
+  UNAVAILABLE
+  OPEN
+  BOOKED
+}
+
+model Booking {
+  id                String        @id @default(cuid()) @map("_id")
+  artistId          String
+  venueId           String
+  proposedDate      DateTime
+  proposedFee       Int?
+  status            BookingStatus @default(PENDING)
+  initialMessage    String?       @db.Text
+  createdByUserId   String
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  artist    Artist   @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  venue     Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  createdBy User     @relation(fields: [createdByUserId], references: [id], onDelete: Cascade)
+
+  availabilitySlots AvailabilitySlot[]
+
+  @@map("booking")
+}
+
+model AvailabilitySlot {
+  id         String                 @id @default(cuid()) @map("_id")
+  ownerType AvailabilityOwnerType
+  ownerId   String
+  startDate DateTime
+  endDate   DateTime
+  type      SlotType
+  bookingId String?
+  createdAt DateTime               @default(now())
+  updatedAt DateTime               @updatedAt
+
+  booking Booking? @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+
+  @@index([ownerType, ownerId])
+  @@index([ownerType, ownerId, startDate, endDate])
+  @@map("availability_slot")
+}
+
 model Genre {
   id        String   @id @default(cuid()) @map("_id")
   name      String   @unique
   venues    Venue[]
   artists   Artist[]
-  
+
   @@map("genre")
 }

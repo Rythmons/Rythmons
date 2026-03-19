@@ -246,7 +246,7 @@ export default function VenueProfileScreen() {
 											backTo: `/(drawer)/venue/${venue.id}`,
 											parentBackTo: backTo ?? "",
 										},
-									} as any)
+									} as never)
 								}
 							>
 								<Ionicons

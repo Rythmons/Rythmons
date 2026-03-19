@@ -199,7 +199,7 @@ export default function NewArtistScreen() {
 			router.replace({
 				pathname: "/(drawer)/artist/[id]",
 				params: backTo ? { id: created.id, backTo } : { id: created.id },
-			} as any);
+			} as never);
 		} catch (error) {
 			const message =
 				error instanceof Error ? error.message : "Erreur lors de la création";
