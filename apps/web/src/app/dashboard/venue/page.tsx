@@ -28,7 +28,9 @@ function VenuePageContent() {
 	useEffect(() => {
 		if (editId && !isLoading) {
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			router.replace(`/venue/${editId}` as any);
+			router.replace(
+				`/venue/${editId}` as Parameters<typeof router.replace>[0],
+			);
 		}
 	}, [editId, isLoading, router]);
 
@@ -37,7 +39,11 @@ function VenuePageContent() {
 	useEffect(() => {
 		if (!isNewMode && !isLoading && venues && venues.length > 0) {
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			router.replace(`/venue/${(venues as any[])[0].id}` as any);
+			router.replace(
+				`/venue/${(venues as any[])[0].id}` as Parameters<
+					typeof router.replace
+				>[0],
+			);
 		}
 	}, [isNewMode, isLoading, venues, router]);
 
@@ -101,7 +107,9 @@ function VenuePageContent() {
 						queryClient.invalidateQueries();
 						if (venueId) {
 							// eslint-disable-next-line @typescript-eslint/no-explicit-any
-							router.push(`/venue/${venueId}` as any);
+							router.push(
+								`/venue/${venueId}` as Parameters<typeof router.push>[0],
+							);
 						} else {
 							router.push("/dashboard");
 						}
