@@ -87,6 +87,14 @@ export const auth = betterAuth<BetterAuthOptions>({
 	database: prismaAdapter(db, {
 		provider: "postgresql",
 	}),
+	user: {
+		additionalFields: {
+			role: {
+				type: "string",
+				input: true,
+			},
+		},
+	},
 	baseURL: resolvedBaseURL,
 	trustedOrigins: async (request) => {
 		const dynamicOrigins = [...trustedOrigins];

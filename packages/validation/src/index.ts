@@ -190,12 +190,23 @@ export const signInSchema = z.object({
 
 export type SignInInput = z.infer<typeof signInSchema>;
 
+// Sign-up: account type (Artiste or Organisateur only)
+export const signUpRoleValues = ["ARTIST", "ORGANIZER"] as const;
+export const signUpRoleSchema = z.enum(signUpRoleValues);
+export type SignUpRole = z.infer<typeof signUpRoleSchema>;
+
+export const signUpRoleLabels: Record<SignUpRole, string> = {
+	ARTIST: "Artiste",
+	ORGANIZER: "Organisateur / Lieu",
+};
+
 // Sign-up validation schema
 export const signUpBaseSchema = z.object({
 	name: nameSchema,
 	email: emailSchema,
 	password: passwordSchema,
 	passwordConfirmation: z.string(),
+	role: signUpRoleSchema,
 	acceptedTerms: z.boolean(),
 });
 
