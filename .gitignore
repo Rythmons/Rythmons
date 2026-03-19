@@ -3,6 +3,7 @@ node_modules
 .alchemy
 .env
 docs/
+build-output.txt
 repomix-output.txt
 repomix-output.xml
 .vercel
