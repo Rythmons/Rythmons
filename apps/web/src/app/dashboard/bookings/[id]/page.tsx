@@ -1,13 +1,32 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Calendar, Loader2 } from "lucide-react";
+import { Calendar } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { authClient } from "@/lib/auth-client";
 import { trpc } from "@/utils/trpc";
+
+function BookingDetailSkeleton() {
+	return (
+		<div className="container mx-auto max-w-2xl py-12">
+			<div className="rounded-xl border bg-card p-6 shadow-sm">
+				<div className="space-y-4">
+					<Skeleton className="h-7 w-64" />
+					<Skeleton className="h-4 w-full max-w-md" />
+					<Skeleton className="h-4 w-48" />
+					<div className="flex gap-2 pt-4">
+						<Skeleton className="h-10 w-24" />
+						<Skeleton className="h-10 w-24" />
+					</div>
+				</div>
+			</div>
+		</div>
+	);
+}
 
 const STATUS_LABELS: Record<string, string> = {
 	PENDING: "En attente",
@@ -63,28 +82,21 @@ export default function BookingDetailPage() {
 	});
 
 	if (sessionPending || !session?.user) {
-		return (
-			<div className="container mx-auto max-w-2xl py-12 text-center">
-				<Loader2 className="mx-auto h-8 w-8 animate-spin text-muted-foreground" />
-			</div>
-		);
+		return <BookingDetailSkeleton />;
 	}
 
 	if (isLoading || !booking) {
-		return (
-			<div className="container mx-auto max-w-2xl py-12 text-center">
-				{error ? (
-					<>
-						<p className="text-destructive">{error.message}</p>
-						<Button asChild className="mt-4">
-							<Link href="/dashboard/bookings">Retour aux propositions</Link>
-						</Button>
-					</>
-				) : (
-					<Loader2 className="mx-auto h-8 w-8 animate-spin text-muted-foreground" />
-				)}
-			</div>
-		);
+		if (error) {
+			return (
+				<div className="container mx-auto max-w-2xl py-12 text-center">
+					<p className="text-destructive">{error.message}</p>
+					<Button asChild className="mt-4">
+						<Link href="/dashboard/bookings">Retour aux propositions</Link>
+					</Button>
+				</div>
+			);
+		}
+		return <BookingDetailSkeleton />;
 	}
 
 	const myUserId = session.user.id;

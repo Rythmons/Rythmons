@@ -13,6 +13,7 @@ import {
 	TouchableOpacity,
 	View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Container } from "@/components/container";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { Input } from "@/components/ui/input";
@@ -75,6 +76,9 @@ export default function NewArtistScreen() {
 		: params.backTo;
 	const { data: session, isPending: sessionPending } = authClient.useSession();
 	const handleBack = useContextualBackNavigation(backTo ?? "/(drawer)/artist");
+	const insets = useSafeAreaInsets();
+	const keyboardVerticalOffset = insets.top;
+	const contentPaddingBottom = insets.bottom + 220;
 
 	const createMutation = useMutation(trpc.artist.create.mutationOptions());
 
@@ -242,10 +246,24 @@ export default function NewArtistScreen() {
 	return (
 		<Container>
 			<KeyboardAvoidingView
-				behavior={Platform.OS === "ios" ? "padding" : "height"}
+				behavior="padding"
 				className="flex-1"
+				keyboardVerticalOffset={
+					Platform.OS === "ios" ? keyboardVerticalOffset : 0
+				}
 			>
-				<ScrollView className="flex-1 p-4">
+				<ScrollView
+					className="flex-1"
+					contentContainerStyle={{
+						flexGrow: 1,
+						paddingTop: 16,
+						paddingBottom: contentPaddingBottom,
+						paddingHorizontal: 16,
+					}}
+					keyboardShouldPersistTaps="handled"
+					keyboardDismissMode="interactive"
+					contentInsetAdjustmentBehavior="always"
+				>
 					<View className="mb-6">
 						<View className="mb-3 flex-row items-center gap-3">
 							<TouchableOpacity className="mr-1" onPress={handleBack}>

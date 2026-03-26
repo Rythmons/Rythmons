@@ -392,12 +392,18 @@ export default function CalendarPage() {
 						))}
 					</div>
 					<div className="grid grid-cols-7 gap-px bg-muted/30">
-						{Array.from({ length: padStart }, (_, i) => (
-							<div
-								key={`pad-${year}-${month}-${i}`}
-								className="min-h-[80px] bg-background"
-							/>
-						))}
+						{Array.from({ length: padStart }, (_, i) => {
+							// Padding cells represent the days of the previous month.
+							// Use a stable key derived from the actual date (not the index)
+							// to avoid React/Biome warnings and potential state mismatches.
+							const padDate = new Date(year, month, 1 - padStart + i);
+							return (
+								<div
+									key={dayKey(padDate)}
+									className="min-h-[80px] bg-background"
+								/>
+							);
+						})}
 						{days.map((day) => {
 							const slot = getSlotForDay(day);
 							const isBooked = slot?.type === "BOOKED";

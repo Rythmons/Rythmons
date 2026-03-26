@@ -4,6 +4,7 @@ import { router } from "expo-router";
 import {
 	ActivityIndicator,
 	Image,
+	RefreshControl,
 	ScrollView,
 	TouchableOpacity,
 	View,
@@ -17,7 +18,12 @@ import { getVenueTypeLabel } from "@/utils/venue-labels";
 export default function VenueListScreen() {
 	const { data: session, isPending: sessionPending } = authClient.useSession();
 
-	const { data: venues = [], isLoading } = useQuery({
+	const {
+		data: venues = [],
+		isLoading,
+		refetch,
+		isFetching,
+	} = useQuery({
 		...trpc.venue.getMyVenues.queryOptions(),
 		enabled: Boolean(session?.user),
 	});
@@ -56,7 +62,15 @@ export default function VenueListScreen() {
 
 	return (
 		<Container>
-			<ScrollView className="flex-1 p-4">
+			<ScrollView
+				className="flex-1 p-4"
+				refreshControl={
+					<RefreshControl
+						refreshing={isFetching && !isLoading}
+						onRefresh={() => refetch()}
+					/>
+				}
+			>
 				<View className="mb-6 flex-row items-center justify-between">
 					<View className="flex-1 pr-3">
 						<Title className="text-2xl text-foreground">Mes lieux</Title>

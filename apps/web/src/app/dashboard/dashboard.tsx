@@ -3,6 +3,7 @@
 import type { Session } from "@rythmons/auth/types";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, Building2, Calendar, Mic2, Plus } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -14,12 +15,58 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { trpc } from "@/utils/trpc";
+
+function DashboardSkeleton() {
+	return (
+		<div className="container mx-auto min-h-screen px-4 py-8">
+			<div className="mb-8 flex flex-wrap items-center justify-between gap-4">
+				<div>
+					<Skeleton className="mb-2 h-9 w-48" />
+					<Skeleton className="h-5 w-64" />
+				</div>
+				<div className="flex gap-2">
+					<Skeleton className="h-10 w-32" />
+					<Skeleton className="h-10 w-28" />
+				</div>
+			</div>
+			<div className="grid gap-8 lg:grid-cols-2">
+				<section className="rounded-2xl bg-black/20 p-6">
+					<div className="mb-6 flex items-center gap-3">
+						<Skeleton className="h-10 w-10 rounded-xl" />
+						<div>
+							<Skeleton className="mb-1 h-6 w-24" />
+							<Skeleton className="h-4 w-20" />
+						</div>
+					</div>
+					<div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+						<Skeleton className="aspect-video w-full rounded-2xl" />
+						<Skeleton className="aspect-video w-full rounded-2xl" />
+					</div>
+				</section>
+				<section className="rounded-2xl bg-black/20 p-6">
+					<div className="mb-6 flex items-center gap-3">
+						<Skeleton className="h-10 w-10 rounded-xl" />
+						<div>
+							<Skeleton className="mb-1 h-6 w-28" />
+							<Skeleton className="h-4 w-24" />
+						</div>
+					</div>
+					<div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+						<Skeleton className="aspect-video w-full rounded-2xl" />
+						<Skeleton className="aspect-video w-full rounded-2xl" />
+					</div>
+				</section>
+			</div>
+		</div>
+	);
+}
+
 import { getVenueTypeLabel } from "@/utils/venue-labels";
 
 export default function Dashboard({ session }: { session: Session }) {
 	const _router = useRouter();
-	console.log("Dashboard Session:", session.user);
 	const userRole = session.user.role;
 
 	// Fetch Venues (Always fetch if we don't know the role yet, or if organizer)
@@ -37,11 +84,7 @@ export default function Dashboard({ session }: { session: Session }) {
 	const isLoading = venuesLoading || artistsLoading;
 
 	if (isLoading) {
-		return (
-			<div className="p-8 text-center text-muted-foreground">
-				Chargement de votre espace...
-			</div>
-		);
+		return <DashboardSkeleton />;
 	}
 
 	const hasVenues = venues && venues.length > 0;
@@ -343,10 +386,12 @@ export default function Dashboard({ session }: { session: Session }) {
 										{/* Cover Image */}
 										<div className="relative aspect-video overflow-hidden">
 											{venue.photoUrl ? (
-												<img
+												<Image
 													src={venue.photoUrl}
 													alt=""
-													className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
+													fill
+													unoptimized
+													className="h-full w-full object-cover transition-transform duration-ui group-hover:scale-110"
 												/>
 											) : (
 												<div className="h-full w-full bg-gradient-to-br from-primary/20 to-secondary/20" />
@@ -355,11 +400,13 @@ export default function Dashboard({ session }: { session: Session }) {
 
 											{/* Logo overlay */}
 											<div className="absolute bottom-0 left-4 translate-y-1/2">
-												<div className="h-16 w-16 overflow-hidden rounded-xl border-4 border-black/50 bg-black/50 backdrop-blur-sm">
+												<div className="relative h-16 w-16 overflow-hidden rounded-xl border-4 border-black/50 bg-black/50 backdrop-blur-sm">
 													{venue.logoUrl ? (
-														<img
+														<Image
 															src={venue.logoUrl}
 															alt=""
+															fill
+															unoptimized
 															className="h-full w-full object-contain"
 														/>
 													) : (
@@ -460,12 +507,14 @@ export default function Dashboard({ session }: { session: Session }) {
 										{/* Cover/Photo */}
 										<div className="relative aspect-video overflow-hidden">
 											{artist.bannerUrl || artist.photoUrl ? (
-												<img
-													src={
-														(artist.bannerUrl || artist.photoUrl) ?? undefined
-													}
+												<Image
+													// This branch is only rendered when at least one of them
+													// is a truthy string, but TS can't fully narrow the type.
+													src={(artist.bannerUrl ?? artist.photoUrl) as string}
 													alt=""
-													className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
+													fill
+													unoptimized
+													className="h-full w-full object-cover transition-transform duration-ui group-hover:scale-110"
 												/>
 											) : (
 												<div className="h-full w-full bg-gradient-to-br from-primary/20 to-secondary/20" />
@@ -478,9 +527,11 @@ export default function Dashboard({ session }: { session: Session }) {
 											<div className="flex items-center gap-3">
 												<div className="h-12 w-12 overflow-hidden rounded-full border-2 border-white/20 bg-black/50">
 													{artist.photoUrl ? (
-														<img
+														<Image
 															src={artist.photoUrl}
 															alt=""
+															fill
+															unoptimized
 															className="h-full w-full object-cover"
 														/>
 													) : (

@@ -4,7 +4,13 @@ import type { TRPCClientErrorLike } from "@trpc/client";
 import type { inferRouterOutputs } from "@trpc/server";
 import type { TRPCQueryKey } from "@trpc/tanstack-react-query";
 import { router } from "expo-router";
-import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import {
+	RefreshControl,
+	ScrollView,
+	Text,
+	TouchableOpacity,
+	View,
+} from "react-native";
 import { Container } from "@/components/container";
 import { Loader } from "@/components/loader";
 import { authClient } from "@/lib/auth-client";
@@ -83,10 +89,24 @@ export default function DashboardScreen() {
 
 	const venues = (venuesQuery.data ?? []) as VenueListItem[];
 	const artists = (artistsQuery.data ?? []) as ArtistListItem[];
+	const isRefreshing =
+		privateDataQuery.isFetching ||
+		venuesQuery.isFetching ||
+		artistsQuery.isFetching;
+	const handleRefresh = () => {
+		void privateDataQuery.refetch();
+		void venuesQuery.refetch();
+		void artistsQuery.refetch();
+	};
 
 	return (
 		<Container>
-			<ScrollView className="flex-1">
+			<ScrollView
+				className="flex-1"
+				refreshControl={
+					<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />
+				}
+			>
 				<View className="gap-6 px-4 py-8">
 					<View className="rounded-lg border border-border bg-card p-4">
 						<Text className="mb-1 font-semibold text-foreground text-lg">

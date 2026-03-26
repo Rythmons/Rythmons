@@ -15,7 +15,9 @@ import {
 	Montserrat_500Medium,
 	Montserrat_700Bold,
 } from "@expo-google-fonts/montserrat";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AuthProvider } from "@rythmons/auth/client";
+import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister";
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect, useRef, useState } from "react";
@@ -24,7 +26,7 @@ import { setAndroidNavigationBar } from "@/lib/android-navigation-bar";
 import { authClient } from "@/lib/auth-client";
 import { NAV_THEME } from "@/lib/constants";
 import { useColorScheme } from "@/lib/use-color-scheme";
-import { asyncStoragePersister, queryClient } from "@/utils/trpc";
+import { queryClient } from "@/utils/trpc";
 
 const LIGHT_THEME: Theme = {
 	...DefaultTheme,
@@ -46,6 +48,25 @@ export default function RootLayout() {
 	const hasMounted = useRef(false);
 	const { colorScheme, isDarkColorScheme } = useColorScheme();
 	const [isColorSchemeLoaded, setIsColorSchemeLoaded] = useState(false);
+
+	const [persister, setPersister] = useState(() => {
+		// Fallback to in-memory persistence to avoid crashes when the native
+		// AsyncStorage module isn't available at startup.
+		const memory = new Map<string, string>();
+		return createAsyncStoragePersister({
+			key: "rythmons:react-query-cache",
+			throttleTime: 2000,
+			storage: {
+				getItem: async (key: string) => memory.get(key) ?? null,
+				setItem: async (key: string, value: string) => {
+					memory.set(key, value);
+				},
+				removeItem: async (key: string) => {
+					memory.delete(key);
+				},
+			},
+		});
+	});
 
 	const [loaded, error] = useFonts({
 		"Montserrat-Regular": Montserrat_400Regular,
@@ -73,6 +94,28 @@ export default function RootLayout() {
 		hasMounted.current = true;
 	}, []);
 
+	useEffect(() => {
+		// Upgrade the persister to AsyncStorage only if it is usable.
+		// When the native module is missing, AsyncStorage.getItem throws.
+		(async () => {
+			if (Platform.OS === "web") return;
+			try {
+				await AsyncStorage.getItem("rythmons:async-storage:probe");
+				setPersister(
+					createAsyncStoragePersister({
+						storage: AsyncStorage,
+						key: "rythmons:react-query-cache",
+						throttleTime: 2000,
+					}),
+				);
+			} catch {
+				// Keep in-memory persister.
+			}
+		})().catch(() => {
+			// Keep in-memory persister.
+		});
+	}, []);
+
 	if (!isColorSchemeLoaded || !loaded) {
 		return null;
 	}
@@ -81,7 +124,7 @@ export default function RootLayout() {
 			<PersistQueryClientProvider
 				client={queryClient}
 				persistOptions={{
-					persister: asyncStoragePersister,
+					persister,
 					maxAge: 24 * 60 * 60 * 1000,
 				}}
 			>

@@ -16,9 +16,25 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { authClient } from "@/lib/auth-client";
 import { trpc } from "@/utils/trpc";
+
+function ProposePageSkeleton() {
+	return (
+		<div className="container mx-auto max-w-lg py-12">
+			<div className="space-y-6">
+				<Skeleton className="h-8 w-48" />
+				<Skeleton className="h-10 w-full" />
+				<Skeleton className="h-10 w-full" />
+				<Skeleton className="h-10 w-full" />
+				<Skeleton className="h-24 w-full" />
+				<Skeleton className="h-10 w-32" />
+			</div>
+		</div>
+	);
+}
 
 function ProposeContent() {
 	const searchParams = useSearchParams();
@@ -71,11 +87,7 @@ function ProposeContent() {
 	});
 
 	if (sessionPending || !session?.user) {
-		return (
-			<div className="container mx-auto max-w-lg py-12 text-center">
-				<Loader2 className="mx-auto h-8 w-8 animate-spin text-muted-foreground" />
-			</div>
-		);
+		return <ProposePageSkeleton />;
 	}
 
 	if (!venueId && !artistId) {

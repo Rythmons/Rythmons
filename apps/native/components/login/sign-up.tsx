@@ -13,9 +13,10 @@ import { GoogleAuthButton } from "../google-auth-button";
 
 type Props = {
 	onSwitchToSignIn: () => void;
+	onInputFocus?: () => void;
 };
 
-export function SignUp({ onSwitchToSignIn }: Props) {
+export function SignUp({ onSwitchToSignIn, onInputFocus }: Props) {
 	const router = useRouter();
 	const [emailValue, setEmailValue] = useState("");
 	const { form, isLoading } = useSignUpForm({
@@ -54,6 +55,7 @@ export function SignUp({ onSwitchToSignIn }: Props) {
 							value={field.state.value}
 							onChangeText={field.handleChange}
 							onBlur={field.handleBlur}
+							onFocus={onInputFocus}
 							placeholderTextColor="#9CA3AF"
 						/>
 						{field.state.meta.errors.length > 0 && (
@@ -79,6 +81,7 @@ export function SignUp({ onSwitchToSignIn }: Props) {
 								field.handleChange(value);
 							}}
 							onBlur={field.handleBlur}
+							onFocus={onInputFocus}
 							placeholderTextColor="#9CA3AF"
 							keyboardType="email-address"
 							autoCapitalize="none"
@@ -103,6 +106,7 @@ export function SignUp({ onSwitchToSignIn }: Props) {
 							value={field.state.value}
 							onChangeText={field.handleChange}
 							onBlur={field.handleBlur}
+							onFocus={onInputFocus}
 							placeholderTextColor="#9CA3AF"
 							secureTextEntry
 						/>
@@ -137,6 +141,7 @@ export function SignUp({ onSwitchToSignIn }: Props) {
 							value={field.state.value}
 							onChangeText={field.handleChange}
 							onBlur={field.handleBlur}
+							onFocus={onInputFocus}
 							placeholderTextColor="#9CA3AF"
 							secureTextEntry
 						/>
