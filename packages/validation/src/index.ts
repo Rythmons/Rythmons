@@ -21,6 +21,11 @@ export const nameSchema = z
 	.string()
 	.min(2, "Le nom doit contenir au moins 2 caractères");
 
+/** Normalise un code postal (trim + suppression des espaces) pour accepter la saisie brute. */
+export function normalizePostalCode(value: string): string {
+	return value.replace(/\s/g, "").trim();
+}
+
 const optionalUrlSchema = z
 	.union([z.string().url("URL invalide"), z.literal("")])
 	.optional();
@@ -112,7 +117,11 @@ export const artistSchema = z.object({
 	city: z.string().optional().nullable(),
 	postalCode: z
 		.string()
-		.regex(/^\d{5}$/, "Code postal invalide (5 chiffres)")
+		.transform((s) => normalizePostalCode(s))
+		.refine(
+			(s) => s === "" || /^\d{5}$/.test(s),
+			"Code postal invalide (5 chiffres)",
+		)
 		.optional()
 		.nullable()
 		.or(z.literal("")),
@@ -150,7 +159,10 @@ export const venueSchema = z.object({
 	name: z.string().min(2, "Le nom doit contenir au moins 2 caractères"),
 	address: z.string().min(5, "L'adresse est requise"),
 	city: z.string().min(2, "La ville est requise"),
-	postalCode: z.string().regex(/^\d{5}$/, "Code postal invalide (5 chiffres)"),
+	postalCode: z
+		.string()
+		.transform((s) => normalizePostalCode(s))
+		.refine((s) => /^\d{5}$/.test(s), "Code postal invalide (5 chiffres)"),
 	country: z.string().default("France"),
 	venueType: z.enum(venueTypeValues),
 	capacity: z.number().int().positive().optional().nullable(),

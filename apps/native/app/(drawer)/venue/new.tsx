@@ -9,11 +9,11 @@ import {
 	Alert,
 	Image,
 	KeyboardAvoidingView,
-	Platform,
 	ScrollView,
 	TouchableOpacity,
 	View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Container } from "@/components/container";
 import { AddressAutocomplete } from "@/components/ui/address-autocomplete";
 import { ImageUpload } from "@/components/ui/image-upload";
@@ -75,6 +75,9 @@ export default function NewVenueScreen() {
 		: params.backTo;
 	const { data: session, isPending: sessionPending } = authClient.useSession();
 	const handleBack = useContextualBackNavigation(backTo ?? "/(drawer)/venue");
+	const insets = useSafeAreaInsets();
+	const keyboardVerticalOffset = insets.top;
+	const contentPaddingBottom = insets.bottom + 220;
 
 	const [formData, setFormData] = useState<FormData>({
 		name: "",
@@ -230,10 +233,22 @@ export default function NewVenueScreen() {
 	return (
 		<Container>
 			<KeyboardAvoidingView
-				behavior={Platform.OS === "ios" ? "padding" : "height"}
+				behavior="padding"
 				className="flex-1"
+				keyboardVerticalOffset={keyboardVerticalOffset}
 			>
-				<ScrollView className="flex-1 p-4">
+				<ScrollView
+					className="flex-1"
+					contentContainerStyle={{
+						flexGrow: 1,
+						paddingTop: 16,
+						paddingBottom: contentPaddingBottom,
+						paddingHorizontal: 16,
+					}}
+					keyboardShouldPersistTaps="handled"
+					keyboardDismissMode="interactive"
+					contentInsetAdjustmentBehavior="always"
+				>
 					{/* Header */}
 					<View className="mb-6 rounded-xl bg-primary/10 p-4">
 						<View className="flex-row items-center gap-3">

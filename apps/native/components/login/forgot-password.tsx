@@ -11,9 +11,14 @@ import {
 type Props = {
 	onSwitchToSignUp: () => void;
 	onSwitchToSignIn: () => void;
+	onInputFocus?: () => void;
 };
 
-export function ForgotPassword({ onSwitchToSignUp, onSwitchToSignIn }: Props) {
+export function ForgotPassword({
+	onSwitchToSignUp,
+	onSwitchToSignIn,
+	onInputFocus,
+}: Props) {
 	const [message, setMessage] = useState<string | null>(null);
 	const [error, setError] = useState<string | null>(null);
 
@@ -52,6 +57,7 @@ export function ForgotPassword({ onSwitchToSignUp, onSwitchToSignIn }: Props) {
 								field.handleChange(value);
 							}}
 							onBlur={field.handleBlur}
+							onFocus={onInputFocus}
 							placeholderTextColor="#9CA3AF"
 							keyboardType="email-address"
 							autoCapitalize="none"

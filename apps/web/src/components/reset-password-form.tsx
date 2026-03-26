@@ -101,6 +101,7 @@ export default function ResetPasswordForm() {
 									id={field.name}
 									name={field.name}
 									type="password"
+									autoComplete="new-password"
 									value={field.state.value}
 									onBlur={field.handleBlur}
 									onChange={(e) => field.handleChange(e.target.value)}
@@ -123,6 +124,7 @@ export default function ResetPasswordForm() {
 									id={field.name}
 									name={field.name}
 									type="password"
+									autoComplete="new-password"
 									value={field.state.value}
 									onBlur={field.handleBlur}
 									onChange={(e) => field.handleChange(e.target.value)}

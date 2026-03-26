@@ -47,6 +47,10 @@ body {
 
 	--radius: 0.625rem;
 
+	/* UI animation charter: keep transitions 150–300ms for perceived speed */
+	--duration-ui: 150ms;
+	--duration-ui-slow: 300ms;
+
 	/* Light Mode - Clean with brand accents */
 	--background: oklch(0.99 0 0);
 	--foreground: oklch(0.12 0.02 320);
@@ -151,6 +155,8 @@ body {
 }
 
 @theme inline {
+	--animate-duration-ui: var(--duration-ui);
+	--animate-duration-ui-slow: var(--duration-ui-slow);
 	--radius-sm: calc(var(--radius) - 4px);
 	--radius-md: calc(var(--radius) - 2px);
 	--radius-lg: var(--radius);

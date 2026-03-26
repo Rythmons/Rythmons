@@ -1,12 +1,38 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Mic2 } from "lucide-react";
+import { Mic2 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { authClient } from "@/lib/auth-client";
 import { trpc } from "@/utils/trpc";
+
+function ArtistPageSkeleton() {
+	return (
+		<div className="container mx-auto max-w-4xl py-8">
+			<div className="mb-8 h-32 rounded-xl bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-8">
+				<div className="flex items-start gap-4">
+					<Skeleton className="h-14 w-14 rounded-xl" />
+					<div className="flex-1 space-y-2">
+						<Skeleton className="h-8 w-64" />
+						<Skeleton className="h-5 w-96 max-w-full" />
+					</div>
+				</div>
+			</div>
+			<div className="rounded-xl border bg-card p-8 shadow-sm">
+				<div className="space-y-6">
+					<Skeleton className="h-10 w-full" />
+					<Skeleton className="h-10 w-full" />
+					<Skeleton className="h-24 w-full" />
+					<Skeleton className="h-10 w-32" />
+				</div>
+			</div>
+		</div>
+	);
+}
+
 import { ArtistForm } from "./artist-form";
 
 type ArtistPageItem = {
@@ -44,14 +70,7 @@ function ArtistPageContent() {
 	const { isLoading, error } = artistsQuery;
 
 	if (sessionPending || isLoading) {
-		return (
-			<div className="container mx-auto max-w-4xl py-8">
-				<div className="flex items-center justify-center py-20">
-					<Loader2 className="h-8 w-8 animate-spin text-primary" />
-					<span className="ml-2 text-muted-foreground">Chargement...</span>
-				</div>
-			</div>
-		);
+		return <ArtistPageSkeleton />;
 	}
 
 	if (error) {
@@ -160,16 +179,7 @@ function ArtistPageContent() {
 
 export default function ArtistPage() {
 	return (
-		<Suspense
-			fallback={
-				<div className="container mx-auto max-w-4xl py-8">
-					<div className="flex items-center justify-center py-20">
-						<Loader2 className="h-8 w-8 animate-spin text-primary" />
-						<span className="ml-2 text-muted-foreground">Chargement...</span>
-					</div>
-				</div>
-			}
-		>
+		<Suspense fallback={<ArtistPageSkeleton />}>
 			<ArtistPageContent />
 		</Suspense>
 	);

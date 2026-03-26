@@ -14,6 +14,7 @@ import {
 	TouchableOpacity,
 	View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Container } from "@/components/container";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { Input } from "@/components/ui/input";
@@ -109,6 +110,9 @@ export default function ArtistProfileScreen() {
 
 	const { data: session } = authClient.useSession();
 	const handleBack = useContextualBackNavigation(backTo ?? "/(drawer)/artist");
+	const insets = useSafeAreaInsets();
+	const keyboardVerticalOffset = insets.top;
+	const contentPaddingBottom = insets.bottom + 220;
 
 	const {
 		data: artistData,
@@ -286,32 +290,25 @@ export default function ArtistProfileScreen() {
 		}
 	};
 
-	const handleDelete = () => {
+	const handleDelete = async () => {
 		if (!artistId) return;
-		Alert.alert(
-			"Supprimer l’artiste",
-			"Cette action est irréversible. Voulez-vous continuer ?",
-			[
-				{ text: "Annuler", style: "cancel" },
+		try {
+			await deleteMutation.mutateAsync({ id: artistId });
+			await queryClient.invalidateQueries();
+			Alert.alert("Artiste supprimé", "", [
 				{
-					text: "Supprimer",
-					style: "destructive",
-					onPress: async () => {
-						try {
-							await deleteMutation.mutateAsync({ id: artistId });
-							await queryClient.invalidateQueries();
-							router.replace((backTo ?? "/(drawer)/artist") as never);
-						} catch (error) {
-							const message =
-								error instanceof Error
-									? error.message
-									: "Erreur lors de la suppression";
-							Alert.alert("Erreur", message);
-						}
-					},
+					text: "OK",
+					onPress: () =>
+						router.replace((backTo ?? "/(drawer)/artist") as never),
 				},
-			],
-		);
+			]);
+		} catch (error) {
+			const message =
+				error instanceof Error
+					? error.message
+					: "Erreur lors de la suppression";
+			Alert.alert("Erreur", message);
+		}
 	};
 
 	const handleOpenWebsite = async () => {
@@ -374,10 +371,24 @@ export default function ArtistProfileScreen() {
 	return (
 		<Container>
 			<KeyboardAvoidingView
-				behavior={Platform.OS === "ios" ? "padding" : "height"}
+				behavior="padding"
 				className="flex-1"
+				keyboardVerticalOffset={
+					Platform.OS === "ios" ? keyboardVerticalOffset : 0
+				}
 			>
-				<ScrollView className="flex-1">
+				<ScrollView
+					className="flex-1"
+					contentContainerStyle={{
+						flexGrow: 1,
+						paddingTop: 16,
+						paddingBottom: contentPaddingBottom,
+						paddingHorizontal: 16,
+					}}
+					keyboardShouldPersistTaps="handled"
+					keyboardDismissMode="interactive"
+					contentInsetAdjustmentBehavior="always"
+				>
 					{artist.bannerUrl ? (
 						<Image
 							source={{ uri: artist.bannerUrl }}

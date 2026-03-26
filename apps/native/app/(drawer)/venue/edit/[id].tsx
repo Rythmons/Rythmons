@@ -14,6 +14,7 @@ import {
 	TouchableOpacity,
 	View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Container } from "@/components/container";
 import { AddressAutocomplete } from "@/components/ui/address-autocomplete";
 import { ImageUpload } from "@/components/ui/image-upload";
@@ -94,6 +95,9 @@ export default function EditVenueScreen() {
 
 	const { data: session, isPending: sessionPending } = authClient.useSession();
 	const handleBack = useContextualBackNavigation(detailHref);
+	const insets = useSafeAreaInsets();
+	const keyboardVerticalOffset = insets.top;
+	const contentPaddingBottom = insets.bottom + 220;
 	const {
 		data: venue,
 		isLoading: venueLoading,
@@ -247,32 +251,25 @@ export default function EditVenueScreen() {
 		);
 	};
 
-	const handleDelete = () => {
+	const handleDelete = async () => {
 		if (!venueId) return;
-		Alert.alert(
-			"Supprimer le lieu",
-			"Cette action est irréversible. Voulez-vous continuer ?",
-			[
-				{ text: "Annuler", style: "cancel" },
+		try {
+			await deleteMutation.mutateAsync({ id: venueId });
+			await queryClient.invalidateQueries();
+			Alert.alert("Lieu supprimé", "", [
 				{
-					text: "Supprimer",
-					style: "destructive",
-					onPress: async () => {
-						try {
-							await deleteMutation.mutateAsync({ id: venueId });
-							await queryClient.invalidateQueries();
-							router.replace((parentBackTo || "/(drawer)/venue") as never);
-						} catch (error) {
-							const message =
-								error instanceof Error
-									? error.message
-									: "Erreur lors de la suppression";
-							Alert.alert("Erreur", message);
-						}
-					},
+					text: "OK",
+					onPress: () =>
+						router.replace((parentBackTo || "/(drawer)/venue") as never),
 				},
-			],
-		);
+			]);
+		} catch (error) {
+			const message =
+				error instanceof Error
+					? error.message
+					: "Erreur lors de la suppression";
+			Alert.alert("Erreur", message);
+		}
 	};
 
 	if (sessionPending || venueLoading) {
@@ -309,10 +306,24 @@ export default function EditVenueScreen() {
 	return (
 		<Container>
 			<KeyboardAvoidingView
-				behavior={Platform.OS === "ios" ? "padding" : "height"}
+				behavior="padding"
 				className="flex-1"
+				keyboardVerticalOffset={
+					Platform.OS === "ios" ? keyboardVerticalOffset : 0
+				}
 			>
-				<ScrollView className="flex-1 p-4">
+				<ScrollView
+					className="flex-1"
+					contentContainerStyle={{
+						flexGrow: 1,
+						paddingTop: 16,
+						paddingBottom: contentPaddingBottom,
+						paddingHorizontal: 16,
+					}}
+					keyboardShouldPersistTaps="handled"
+					keyboardDismissMode="interactive"
+					contentInsetAdjustmentBehavior="always"
+				>
 					{/* Header */}
 					<View className="mb-6 rounded-xl border border-border bg-card p-4">
 						<View className="flex-row items-center gap-3">

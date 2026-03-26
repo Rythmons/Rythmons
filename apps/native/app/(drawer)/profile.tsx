@@ -10,10 +10,13 @@ import { useEffect, useState } from "react";
 import {
 	ActivityIndicator,
 	Alert,
+	KeyboardAvoidingView,
+	Platform,
 	ScrollView,
 	TouchableOpacity,
 	View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Container } from "@/components/container";
 import { Input } from "@/components/ui/input";
 import { Text, Title } from "@/components/ui/typography";
@@ -27,6 +30,9 @@ export default function ProfileScreen() {
 	const [name, setName] = useState(session?.user?.name || "");
 	const [role, setRole] = useState<UserRole | null>(sessionRole ?? null);
 	const [isSaving, setIsSaving] = useState(false);
+	const insets = useSafeAreaInsets();
+	const keyboardVerticalOffset = insets.top;
+	const contentPaddingBottom = insets.bottom + 220;
 	const updateRoleMutation = useMutation(
 		trpc.account.updateRole.mutationOptions(),
 	);
@@ -114,127 +120,150 @@ export default function ProfileScreen() {
 
 	return (
 		<Container>
-			<ScrollView className="flex-1 p-4">
-				<Title className="mb-6 text-2xl text-foreground">Mon Profil</Title>
+			<KeyboardAvoidingView
+				behavior="padding"
+				className="flex-1"
+				keyboardVerticalOffset={
+					Platform.OS === "ios" ? keyboardVerticalOffset : 0
+				}
+			>
+				<ScrollView
+					className="flex-1"
+					contentContainerStyle={{
+						flexGrow: 1,
+						paddingTop: 16,
+						paddingBottom: contentPaddingBottom,
+						paddingHorizontal: 16,
+					}}
+					keyboardShouldPersistTaps="handled"
+					keyboardDismissMode="interactive"
+					contentInsetAdjustmentBehavior="always"
+				>
+					<Title className="mb-6 text-2xl text-foreground">Mon Profil</Title>
 
-				<View className="mb-6 space-y-4">
-					<View>
-						<Text className="mb-1 font-sans-medium text-foreground text-sm">
-							Email
-						</Text>
-						<View className="rounded-lg border border-border bg-muted p-3">
-							<Text className="text-muted-foreground">
-								{session.user.email}
+					<View className="mb-6 space-y-4">
+						<View>
+							<Text className="mb-1 font-sans-medium text-foreground text-sm">
+								Email
+							</Text>
+							<View className="rounded-lg border border-border bg-muted p-3">
+								<Text className="text-muted-foreground">
+									{session.user.email}
+								</Text>
+							</View>
+							<Text className="mt-1 text-muted-foreground text-xs">
+								L'email ne peut pas être modifié.
 							</Text>
 						</View>
-						<Text className="mt-1 text-muted-foreground text-xs">
-							L'email ne peut pas être modifié.
-						</Text>
-					</View>
 
-					<View>
-						<Text className="mb-1 font-sans-medium text-foreground text-sm">
-							Nom
-						</Text>
-						<Input
-							className="rounded-lg border border-border bg-background p-3 text-foreground"
-							value={name}
-							onChangeText={setName}
-							placeholder="Votre nom"
-							placeholderTextColor="#666"
-						/>
-					</View>
-
-					<View>
-						<Text className="mb-2 font-sans-medium text-foreground text-sm">
-							Type de compte
-						</Text>
-						<View className="flex-row flex-wrap gap-2">
-							<TouchableOpacity
-								className={`rounded-full px-3 py-2 ${
-									role === null
-										? "bg-primary"
-										: "border border-border bg-background"
-								}`}
-								onPress={() => setRole(null)}
-							>
-								<Text
-									className={`text-sm ${
-										role === null
-											? "font-sans-medium text-primary-foreground"
-											: "text-foreground"
-									}`}
-								>
-									Plus tard
-								</Text>
-							</TouchableOpacity>
-							{userRoleValues.map((userRole) => {
-								const isSelected = role === userRole;
-								return (
-									<TouchableOpacity
-										key={userRole}
-										className={`rounded-full px-3 py-2 ${
-											isSelected
-												? "bg-primary"
-												: "border border-border bg-background"
-										}`}
-										onPress={() => setRole(userRole)}
-									>
-										<Text
-											className={`text-sm ${
-												isSelected
-													? "font-sans-medium text-primary-foreground"
-													: "text-foreground"
-											}`}
-										>
-											{userRoleLabels[userRole]}
-										</Text>
-									</TouchableOpacity>
-								);
-							})}
+						<View>
+							<Text className="mb-1 font-sans-medium text-foreground text-sm">
+								Nom
+							</Text>
+							<Input
+								className="rounded-lg border border-border bg-background p-3 text-foreground"
+								value={name}
+								onChangeText={setName}
+								placeholder="Votre nom"
+								placeholderTextColor="#666"
+							/>
 						</View>
-						<Text className="mt-2 text-muted-foreground text-xs">
-							Les espaces Media / Radio et Prestataire restent en cours
-							d'amélioration.
-						</Text>
+
+						<View>
+							<Text className="mb-2 font-sans-medium text-foreground text-sm">
+								Type de compte
+							</Text>
+							<View className="flex-row flex-wrap gap-2">
+								<TouchableOpacity
+									className={`rounded-full px-3 py-2 ${
+										role === null
+											? "bg-primary"
+											: "border border-border bg-background"
+									}`}
+									onPress={() => setRole(null)}
+								>
+									<Text
+										className={`text-sm ${
+											role === null
+												? "font-sans-medium text-primary-foreground"
+												: "text-foreground"
+										}`}
+									>
+										Plus tard
+									</Text>
+								</TouchableOpacity>
+								{userRoleValues.map((userRole) => {
+									const isSelected = role === userRole;
+									return (
+										<TouchableOpacity
+											key={userRole}
+											className={`rounded-full px-3 py-2 ${
+												isSelected
+													? "bg-primary"
+													: "border border-border bg-background"
+											}`}
+											onPress={() => setRole(userRole)}
+										>
+											<Text
+												className={`text-sm ${
+													isSelected
+														? "font-sans-medium text-primary-foreground"
+														: "text-foreground"
+												}`}
+											>
+												{userRoleLabels[userRole]}
+											</Text>
+										</TouchableOpacity>
+									);
+								})}
+							</View>
+							<Text className="mt-2 text-muted-foreground text-xs">
+								Les espaces Media / Radio et Prestataire restent en cours
+								d'amélioration.
+							</Text>
+						</View>
+
+						<TouchableOpacity
+							className="mt-2 flex-row items-center justify-center rounded-lg bg-primary p-3"
+							onPress={handleSave}
+							disabled={isSaving}
+						>
+							{isSaving ? (
+								<ActivityIndicator color="white" className="mr-2" />
+							) : (
+								<Ionicons
+									name="save-outline"
+									size={20}
+									color="white"
+									className="mr-2"
+								/>
+							)}
+							<Text className="font-sans-medium text-primary-foreground">
+								{isSaving
+									? "Enregistrement..."
+									: "Enregistrer les modifications"}
+							</Text>
+						</TouchableOpacity>
 					</View>
 
-					<TouchableOpacity
-						className="mt-2 flex-row items-center justify-center rounded-lg bg-primary p-3"
-						onPress={handleSave}
-						disabled={isSaving}
-					>
-						{isSaving ? (
-							<ActivityIndicator color="white" className="mr-2" />
-						) : (
+					<View className="mt-2 border-border border-t pt-6">
+						<TouchableOpacity
+							className="flex-row items-center justify-center rounded-lg bg-destructive p-3"
+							onPress={handleLogout}
+						>
 							<Ionicons
-								name="save-outline"
+								name="log-out-outline"
 								size={20}
 								color="white"
 								className="mr-2"
 							/>
-						)}
-						<Text className="font-sans-medium text-primary-foreground">
-							{isSaving ? "Enregistrement..." : "Enregistrer les modifications"}
-						</Text>
-					</TouchableOpacity>
-				</View>
-
-				<View className="mt-2 border-border border-t pt-6">
-					<TouchableOpacity
-						className="flex-row items-center justify-center rounded-lg bg-destructive p-3"
-						onPress={handleLogout}
-					>
-						<Ionicons
-							name="log-out-outline"
-							size={20}
-							color="white"
-							className="mr-2"
-						/>
-						<Text className="font-sans-medium text-white">Se déconnecter</Text>
-					</TouchableOpacity>
-				</View>
-			</ScrollView>
+							<Text className="font-sans-medium text-white">
+								Se déconnecter
+							</Text>
+						</TouchableOpacity>
+					</View>
+				</ScrollView>
+			</KeyboardAvoidingView>
 		</Container>
 	);
 }

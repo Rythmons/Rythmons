@@ -244,11 +244,6 @@ export default function VenueProfilePage() {
 
 	const handleDelete = useCallback(async () => {
 		if (!venue) return;
-		const confirmed = window.confirm(
-			"Cette action est irréversible. Supprimer ce lieu ?",
-		);
-		if (!confirmed) return;
-
 		try {
 			await deleteMutation.mutateAsync({ id: venue.id });
 			toast.success("Lieu supprimé.");

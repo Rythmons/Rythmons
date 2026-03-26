@@ -32,6 +32,7 @@ interface AddressAutocompleteProps {
 		lat?: number,
 		lon?: number,
 	) => void;
+	onBlur?: () => void;
 	error?: string;
 	label?: string;
 	placeholder?: string;
@@ -41,6 +42,7 @@ interface AddressAutocompleteProps {
 export function AddressAutocomplete({
 	value = "",
 	onChange,
+	onBlur,
 	error,
 	label = "Adresse complète",
 	placeholder = "Ex: 123 Rue de la Musique",
@@ -147,6 +149,7 @@ export function AddressAutocomplete({
 							setIsOpen(false);
 						}
 					}}
+					onBlur={onBlur}
 					onFocus={() => {
 						if (suggestions.length > 0) setIsOpen(true);
 					}}

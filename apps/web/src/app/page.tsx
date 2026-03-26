@@ -22,15 +22,24 @@ export default function Home() {
 	return (
 		<div className="container mx-auto max-w-3xl px-4 py-2">
 			<pre className="overflow-x-auto font-mono text-sm">{TITLE_TEXT}</pre>
+			<p className="mt-4 text-muted-foreground">
+				Connectez artistes et lieux — proposez et gérez vos bookings en un seul
+				endroit.
+			</p>
 			<div className="mt-6 mb-6 flex flex-wrap gap-3">
 				{session?.user ? (
 					<Button asChild>
 						<Link href="/dashboard">Accéder au tableau de bord</Link>
 					</Button>
 				) : (
-					<Button asChild variant="default">
-						<Link href="/login">Se connecter</Link>
-					</Button>
+					<>
+						<Button asChild variant="default">
+							<Link href="/login">Se connecter</Link>
+						</Button>
+						<Button asChild variant="outline">
+							<Link href="/login?signup=1">Créer un compte</Link>
+						</Button>
+					</>
 				)}
 			</div>
 			<div className="grid gap-6">

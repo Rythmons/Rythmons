@@ -167,6 +167,7 @@ export function ImageUpload({
 						className,
 					)}
 				>
+					{/* biome-ignore lint/performance/noImgElement: preview uses direct remote/data URL */}
 					<img
 						src={value}
 						alt="Aperçu"

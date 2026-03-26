@@ -1,12 +1,38 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Building2, Loader2 } from "lucide-react";
+import { Building2 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { authClient } from "@/lib/auth-client";
 import { trpc } from "@/utils/trpc";
+
+function VenuePageSkeleton() {
+	return (
+		<div className="container mx-auto max-w-4xl py-8">
+			<div className="mb-8 h-32 rounded-xl bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-8">
+				<div className="flex items-start gap-4">
+					<Skeleton className="h-14 w-14 rounded-xl" />
+					<div className="flex-1 space-y-2">
+						<Skeleton className="h-8 w-64" />
+						<Skeleton className="h-5 w-96 max-w-full" />
+					</div>
+				</div>
+			</div>
+			<div className="rounded-xl border bg-card p-8 shadow-sm">
+				<div className="space-y-6">
+					<Skeleton className="h-10 w-full" />
+					<Skeleton className="h-10 w-full" />
+					<Skeleton className="h-24 w-full" />
+					<Skeleton className="h-10 w-32" />
+				</div>
+			</div>
+		</div>
+	);
+}
+
 import { VenueForm } from "./venue-form";
 
 function VenuePageContent() {
@@ -46,14 +72,7 @@ function VenuePageContent() {
 	}, [isNewMode, isLoading, venues, router]);
 
 	if (sessionPending || isLoading || editId) {
-		return (
-			<div className="container mx-auto max-w-4xl py-8">
-				<div className="flex items-center justify-center py-20">
-					<Loader2 className="h-8 w-8 animate-spin text-primary" />
-					<span className="ml-2 text-muted-foreground">Chargement...</span>
-				</div>
-			</div>
-		);
+		return <VenuePageSkeleton />;
 	}
 
 	if (error) {
@@ -120,16 +139,7 @@ function VenuePageContent() {
 
 export default function VenuePage() {
 	return (
-		<Suspense
-			fallback={
-				<div className="container mx-auto max-w-4xl py-8">
-					<div className="flex items-center justify-center py-20">
-						<Loader2 className="h-8 w-8 animate-spin text-primary" />
-						<span className="ml-2 text-muted-foreground">Chargement...</span>
-					</div>
-				</div>
-			}
-		>
+		<Suspense fallback={<VenuePageSkeleton />}>
 			<VenuePageContent />
 		</Suspense>
 	);

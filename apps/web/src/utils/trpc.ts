@@ -16,7 +16,14 @@ export function createAppQueryClient() {
 	let client: ReturnType<typeof createQueryClient>;
 	client = createQueryClient({
 		onError: (error: Error) => {
-			toast.error(error.message, {
+			const isNetworkError =
+				error.message === "Failed to fetch" ||
+				error.message === "Network request failed" ||
+				(error as Error & { code?: string }).code === "ECONNABORTED";
+			const message = isNetworkError
+				? "Pas de connexion. Réessayez quand le réseau est disponible."
+				: error.message;
+			toast.error(message, {
 				action: {
 					label: "Réessayer",
 					onClick: () => {
