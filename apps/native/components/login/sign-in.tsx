@@ -14,9 +14,14 @@ import { GoogleAuthButton } from "../google-auth-button";
 type Props = {
 	onSwitchToSignUp: () => void;
 	onSwitchToForgotPassword: () => void;
+	onInputFocus?: () => void;
 };
 
-export function SignIn({ onSwitchToSignUp, onSwitchToForgotPassword }: Props) {
+export function SignIn({
+	onSwitchToSignUp,
+	onSwitchToForgotPassword,
+	onInputFocus,
+}: Props) {
 	const { form, isLoading } = useSignInForm({
 		onSuccess: async () => {
 			void queryClient.refetchQueries();
@@ -55,9 +60,12 @@ export function SignIn({ onSwitchToSignUp, onSwitchToForgotPassword }: Props) {
 							value={field.state.value}
 							onChangeText={field.handleChange}
 							onBlur={field.handleBlur}
+							onFocus={onInputFocus}
 							placeholderTextColor="#9CA3AF"
 							keyboardType="email-address"
 							autoCapitalize="none"
+							textContentType="emailAddress"
+							autoComplete="email"
 						/>
 						{field.state.meta.errors.length > 0 && (
 							<Text className="mt-1 text-destructive text-sm">
@@ -78,8 +86,11 @@ export function SignIn({ onSwitchToSignUp, onSwitchToForgotPassword }: Props) {
 							value={field.state.value}
 							onChangeText={field.handleChange}
 							onBlur={field.handleBlur}
+							onFocus={onInputFocus}
 							placeholderTextColor="#9CA3AF"
 							secureTextEntry
+							textContentType="password"
+							autoComplete="password"
 						/>
 						{field.state.meta.errors.length > 0 && (
 							<Text className="mt-1 text-destructive text-sm">
