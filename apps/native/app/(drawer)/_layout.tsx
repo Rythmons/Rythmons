@@ -1,6 +1,7 @@
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { Tabs } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { authClient } from "@/lib/auth-client";
 import { trpc } from "@/utils/trpc";
 
@@ -13,6 +14,7 @@ type VenueMenuItem = {
 };
 
 export default function TabLayout() {
+	const insets = useSafeAreaInsets();
 	const { data: session } = authClient.useSession();
 	const sessionRole = (
 		session?.user as
@@ -43,22 +45,48 @@ export default function TabLayout() {
 	return (
 		<Tabs
 			screenOptions={{
-				headerShown: true, // shows header on top
+				headerShown: true,
+				tabBarHideOnKeyboard: true,
+				// Avoid default Expo Router segment titles (e.g. "(drawer)", "new", etc.)
+				// when a specific screen doesn't provide `headerTitle` explicitly.
+				headerTitle: "",
+				headerBackTitleVisible: false,
+				sceneStyle: {
+					backgroundColor: "hsl(278 86% 3%)",
+				},
+				headerStyle: {
+					backgroundColor: "hsl(278 86% 3%)",
+					borderBottomWidth: 1,
+					borderBottomColor: "hsl(280 40% 14%)",
+					elevation: 0,
+				},
+				headerShadowVisible: false,
+				headerTintColor: "hsl(289 10% 95%)",
 				headerTitleStyle: {
-					fontFamily: "FugazOne-Regular",
+					fontFamily: "Montserrat-Bold",
+					fontSize: 18,
+					letterSpacing: 0.2,
 				},
 				tabBarLabelStyle: {
 					fontFamily: "Montserrat-Medium",
-					fontSize: 10,
+					fontSize: 11,
 				},
-				tabBarActiveTintColor: "#7c3aed", // matching primary color
+				tabBarStyle: {
+					height: 60 + insets.bottom,
+					paddingTop: 8,
+					paddingBottom: Math.max(8, insets.bottom),
+					backgroundColor: "hsl(280 93% 6%)",
+					borderTopColor: "hsl(280 40% 14%)",
+				},
+				tabBarActiveTintColor: "hsl(348 91% 52%)",
+				tabBarInactiveTintColor: "hsl(289 15% 60%)",
 			}}
 		>
 			{/* Accueil */}
 			<Tabs.Screen
 				name="index"
 				options={{
-					headerTitle: "Accueil",
+					headerShown: false,
 					tabBarLabel: "Accueil",
 					tabBarIcon: ({ color, size }) => (
 						<Ionicons name="home-outline" size={size} color={color} />
@@ -114,7 +142,7 @@ export default function TabLayout() {
 			<Tabs.Screen
 				name="login"
 				options={{
-					headerTitle: "Se connecter",
+					headerShown: false,
 					tabBarLabel: "Connexion",
 					href: session?.user ? null : undefined, // Cache l'onglet si l'utilisateur est connecté
 					tabBarIcon: ({ color, size }) => (

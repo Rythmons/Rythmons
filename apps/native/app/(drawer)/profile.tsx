@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useHeaderHeight } from "@react-navigation/elements";
 import {
 	type UserRole,
 	userRoleLabels,
@@ -31,7 +32,8 @@ export default function ProfileScreen() {
 	const [role, setRole] = useState<UserRole | null>(sessionRole ?? null);
 	const [isSaving, setIsSaving] = useState(false);
 	const insets = useSafeAreaInsets();
-	const keyboardVerticalOffset = insets.top;
+	const headerHeight = useHeaderHeight();
+	const keyboardVerticalOffset = headerHeight;
 	const contentPaddingBottom = insets.bottom + 220;
 	const updateRoleMutation = useMutation(
 		trpc.account.updateRole.mutationOptions(),
@@ -121,7 +123,7 @@ export default function ProfileScreen() {
 	return (
 		<Container>
 			<KeyboardAvoidingView
-				behavior="padding"
+				behavior={Platform.OS === "ios" ? "padding" : "height"}
 				className="flex-1"
 				keyboardVerticalOffset={
 					Platform.OS === "ios" ? keyboardVerticalOffset : 0

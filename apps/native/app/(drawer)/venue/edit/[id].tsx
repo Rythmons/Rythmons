@@ -8,8 +8,6 @@ import {
 	ActivityIndicator,
 	Alert,
 	Image,
-	KeyboardAvoidingView,
-	Platform,
 	ScrollView,
 	TouchableOpacity,
 	View,
@@ -19,6 +17,7 @@ import { Container } from "@/components/container";
 import { AddressAutocomplete } from "@/components/ui/address-autocomplete";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { Input } from "@/components/ui/input";
+import { KeyboardFormScreen } from "@/components/ui/keyboard-form-screen";
 import { Text, Title } from "@/components/ui/typography";
 import { authClient } from "@/lib/auth-client";
 import { useContextualBackNavigation } from "@/lib/use-contextual-back-navigation";
@@ -96,7 +95,6 @@ export default function EditVenueScreen() {
 	const { data: session, isPending: sessionPending } = authClient.useSession();
 	const handleBack = useContextualBackNavigation(detailHref);
 	const insets = useSafeAreaInsets();
-	const keyboardVerticalOffset = insets.top;
 	const contentPaddingBottom = insets.bottom + 220;
 	const {
 		data: venue,
@@ -305,20 +303,12 @@ export default function EditVenueScreen() {
 
 	return (
 		<Container>
-			<KeyboardAvoidingView
-				behavior="padding"
-				className="flex-1"
-				keyboardVerticalOffset={
-					Platform.OS === "ios" ? keyboardVerticalOffset : 0
-				}
-			>
+			<KeyboardFormScreen>
 				<ScrollView
 					className="flex-1"
 					contentContainerStyle={{
 						flexGrow: 1,
-						paddingTop: 16,
 						paddingBottom: contentPaddingBottom,
-						paddingHorizontal: 16,
 					}}
 					keyboardShouldPersistTaps="handled"
 					keyboardDismissMode="interactive"
@@ -813,7 +803,7 @@ export default function EditVenueScreen() {
 						<View className="h-8" />
 					</View>
 				</ScrollView>
-			</KeyboardAvoidingView>
+			</KeyboardFormScreen>
 		</Container>
 	);
 }

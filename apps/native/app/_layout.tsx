@@ -134,7 +134,7 @@ export default function RootLayout() {
 						<Stack
 							screenOptions={{
 								headerTitleStyle: {
-									fontFamily: "FugazOne-Regular",
+									fontFamily: "Montserrat-Bold",
 								},
 								headerBackTitleStyle: {
 									fontFamily: "Montserrat-Regular",

@@ -7,9 +7,7 @@ import {
 	ActivityIndicator,
 	Alert,
 	Image,
-	KeyboardAvoidingView,
 	Linking,
-	Platform,
 	ScrollView,
 	TouchableOpacity,
 	View,
@@ -18,6 +16,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Container } from "@/components/container";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { Input } from "@/components/ui/input";
+import { KeyboardFormScreen } from "@/components/ui/keyboard-form-screen";
 import { Text, Title } from "@/components/ui/typography";
 import { authClient } from "@/lib/auth-client";
 import { useContextualBackNavigation } from "@/lib/use-contextual-back-navigation";
@@ -111,7 +110,6 @@ export default function ArtistProfileScreen() {
 	const { data: session } = authClient.useSession();
 	const handleBack = useContextualBackNavigation(backTo ?? "/(drawer)/artist");
 	const insets = useSafeAreaInsets();
-	const keyboardVerticalOffset = insets.top;
 	const contentPaddingBottom = insets.bottom + 220;
 
 	const {
@@ -370,20 +368,12 @@ export default function ArtistProfileScreen() {
 
 	return (
 		<Container>
-			<KeyboardAvoidingView
-				behavior="padding"
-				className="flex-1"
-				keyboardVerticalOffset={
-					Platform.OS === "ios" ? keyboardVerticalOffset : 0
-				}
-			>
+			<KeyboardFormScreen>
 				<ScrollView
 					className="flex-1"
 					contentContainerStyle={{
 						flexGrow: 1,
-						paddingTop: 16,
 						paddingBottom: contentPaddingBottom,
-						paddingHorizontal: 16,
 					}}
 					keyboardShouldPersistTaps="handled"
 					keyboardDismissMode="interactive"
@@ -1062,7 +1052,7 @@ export default function ArtistProfileScreen() {
 						</View>
 					</View>
 				</ScrollView>
-			</KeyboardAvoidingView>
+			</KeyboardFormScreen>
 		</Container>
 	);
 }

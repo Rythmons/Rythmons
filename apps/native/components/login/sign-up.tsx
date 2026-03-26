@@ -1,19 +1,17 @@
 import { useSignUpForm } from "@rythmons/auth/client";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import {
-	ActivityIndicator,
-	Pressable,
-	Text,
-	TextInput,
-	TouchableOpacity,
-	View,
-} from "react-native";
+import { Pressable, TouchableOpacity, View } from "react-native";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Field } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { Text, Title } from "@/components/ui/typography";
 import { GoogleAuthButton } from "../google-auth-button";
 
 type Props = {
 	onSwitchToSignIn: () => void;
-	onInputFocus?: () => void;
+	onInputFocus?: (target: number | null) => void;
 };
 
 export function SignUp({ onSwitchToSignIn, onInputFocus }: Props) {
@@ -29,9 +27,10 @@ export function SignUp({ onSwitchToSignIn, onInputFocus }: Props) {
 	});
 
 	return (
-		<View className="mt-6 rounded-lg border border-border bg-card p-4">
-			<Text className="mb-4 font-semibold text-foreground text-lg">
-				Créer un compte
+		<Card className="mt-6 p-5">
+			<Title className="mb-1 text-foreground text-xl">Créer un compte</Title>
+			<Text className="mb-4 text-muted-foreground text-sm">
+				Publie ton profil et commence a matcher.
 			</Text>
 
 			<View className="mb-4">
@@ -48,32 +47,45 @@ export function SignUp({ onSwitchToSignIn, onInputFocus }: Props) {
 
 			<form.Field name="name">
 				{(field) => (
-					<View className="mb-3">
-						<TextInput
-							className="rounded-md border border-input bg-input p-4 text-foreground"
+					<Field
+						label="Nom"
+						error={
+							field.state.meta.errors.length > 0
+								? typeof field.state.meta.errors[0] === "object"
+									? (field.state.meta.errors[0] as { message: string }).message
+									: String(field.state.meta.errors[0])
+								: undefined
+						}
+						className="mb-3"
+					>
+						<Input
 							placeholder="Nom"
 							value={field.state.value}
 							onChangeText={field.handleChange}
 							onBlur={field.handleBlur}
-							onFocus={onInputFocus}
+							onFocus={(event) =>
+								onInputFocus?.(event.nativeEvent.target ?? null)
+							}
 							placeholderTextColor="#9CA3AF"
 						/>
-						{field.state.meta.errors.length > 0 && (
-							<Text className="mt-1 text-destructive text-sm">
-								{typeof field.state.meta.errors[0] === "object"
-									? (field.state.meta.errors[0] as { message: string }).message
-									: String(field.state.meta.errors[0])}
-							</Text>
-						)}
-					</View>
+					</Field>
 				)}
 			</form.Field>
 
 			<form.Field name="email">
 				{(field) => (
-					<View className="mb-3">
-						<TextInput
-							className="rounded-md border border-input bg-input p-4 text-foreground"
+					<Field
+						label="Adresse e-mail"
+						error={
+							field.state.meta.errors.length > 0
+								? typeof field.state.meta.errors[0] === "object"
+									? (field.state.meta.errors[0] as { message: string }).message
+									: String(field.state.meta.errors[0])
+								: undefined
+						}
+						className="mb-3"
+					>
+						<Input
 							placeholder="Adresse e-mail"
 							value={field.state.value}
 							onChangeText={(value) => {
@@ -81,32 +93,38 @@ export function SignUp({ onSwitchToSignIn, onInputFocus }: Props) {
 								field.handleChange(value);
 							}}
 							onBlur={field.handleBlur}
-							onFocus={onInputFocus}
+							onFocus={(event) =>
+								onInputFocus?.(event.nativeEvent.target ?? null)
+							}
 							placeholderTextColor="#9CA3AF"
 							keyboardType="email-address"
 							autoCapitalize="none"
 						/>
-						{field.state.meta.errors.length > 0 && (
-							<Text className="mt-1 text-destructive text-sm">
-								{typeof field.state.meta.errors[0] === "object"
-									? (field.state.meta.errors[0] as { message: string }).message
-									: String(field.state.meta.errors[0])}
-							</Text>
-						)}
-					</View>
+					</Field>
 				)}
 			</form.Field>
 
 			<form.Field name="password">
 				{(field) => (
-					<View className="mb-3">
-						<TextInput
-							className="rounded-md border border-input bg-input p-4 text-foreground"
+					<Field
+						label="Mot de passe"
+						className="mb-3"
+						error={
+							field.state.meta.errors.length > 0
+								? typeof field.state.meta.errors[0] === "object"
+									? (field.state.meta.errors[0] as { message: string }).message
+									: String(field.state.meta.errors[0])
+								: undefined
+						}
+					>
+						<Input
 							placeholder="Mot de passe"
 							value={field.state.value}
 							onChangeText={field.handleChange}
 							onBlur={field.handleBlur}
-							onFocus={onInputFocus}
+							onFocus={(event) =>
+								onInputFocus?.(event.nativeEvent.target ?? null)
+							}
 							placeholderTextColor="#9CA3AF"
 							secureTextEntry
 						/>
@@ -128,31 +146,35 @@ export function SignUp({ onSwitchToSignIn, onInputFocus }: Props) {
 								})}
 							</View>
 						)}
-					</View>
+					</Field>
 				)}
 			</form.Field>
 
 			<form.Field name="passwordConfirmation">
 				{(field) => (
-					<View className="mb-4">
-						<TextInput
-							className="rounded-md border border-input bg-input p-4 text-foreground"
+					<Field
+						label="Confirmation"
+						error={
+							field.state.meta.errors.length > 0
+								? typeof field.state.meta.errors[0] === "object"
+									? (field.state.meta.errors[0] as { message: string }).message
+									: String(field.state.meta.errors[0])
+								: undefined
+						}
+						className="mb-4"
+					>
+						<Input
 							placeholder="Confirmation du mot de passe"
 							value={field.state.value}
 							onChangeText={field.handleChange}
 							onBlur={field.handleBlur}
-							onFocus={onInputFocus}
+							onFocus={(event) =>
+								onInputFocus?.(event.nativeEvent.target ?? null)
+							}
 							placeholderTextColor="#9CA3AF"
 							secureTextEntry
 						/>
-						{field.state.meta.errors.length > 0 && (
-							<Text className="mt-1 text-destructive text-sm">
-								{typeof field.state.meta.errors[0] === "object"
-									? (field.state.meta.errors[0] as { message: string }).message
-									: String(field.state.meta.errors[0])}
-							</Text>
-						)}
-					</View>
+					</Field>
 				)}
 			</form.Field>
 
@@ -194,25 +216,18 @@ export function SignUp({ onSwitchToSignIn, onInputFocus }: Props) {
 				)}
 			</form.Field>
 
-			<TouchableOpacity
+			<Button
 				onPress={form.handleSubmit}
 				disabled={isLoading}
-				className="flex-row items-center justify-center rounded-md bg-primary p-4"
-			>
-				{isLoading ? (
-					<ActivityIndicator size="small" color="#fff" />
-				) : (
-					<Text className="font-medium text-primary-foreground">
-						S'inscrire
-					</Text>
-				)}
-			</TouchableOpacity>
+				loading={isLoading}
+				label="S'inscrire"
+			/>
 			<View className="my-3 flex-row justify-center">
 				<Text className="text-muted-foreground text-sm">Déjà inscrit ? </Text>
 				<TouchableOpacity onPress={onSwitchToSignIn}>
 					<Text className="text-primary text-sm">Connectez-vous</Text>
 				</TouchableOpacity>
 			</View>
-		</View>
+		</Card>
 	);
 }
