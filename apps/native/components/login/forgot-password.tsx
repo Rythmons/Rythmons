@@ -1,17 +1,16 @@
 import { useForgotPasswordForm } from "@rythmons/auth/client";
 import { useState } from "react";
-import {
-	ActivityIndicator,
-	Text,
-	TextInput,
-	TouchableOpacity,
-	View,
-} from "react-native";
+import { TouchableOpacity, View } from "react-native";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Field } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { Text, Title } from "@/components/ui/typography";
 
 type Props = {
 	onSwitchToSignUp: () => void;
 	onSwitchToSignIn: () => void;
-	onInputFocus?: () => void;
+	onInputFocus?: (target: number | null) => void;
 };
 
 export function ForgotPassword({
@@ -36,15 +35,27 @@ export function ForgotPassword({
 	});
 
 	return (
-		<View className="mt-4 rounded-lg border border-border p-4">
-			<Text className="mb-4 font-semibold text-foreground text-lg">
-				Mot de passe oublié
+		<Card className="mt-4 p-5">
+			<Title className="mb-1 text-foreground text-xl">
+				Mot de passe oublie
+			</Title>
+			<Text className="mb-4 text-muted-foreground text-sm">
+				On t'envoie un lien de reinitialisation par e-mail.
 			</Text>
 			<form.Field name="email">
 				{(field) => (
-					<View className="mb-3">
-						<TextInput
-							className="rounded-md border border-input bg-input p-4 text-foreground"
+					<Field
+						label="Adresse email"
+						error={
+							field.state.meta.errors.length > 0
+								? typeof field.state.meta.errors[0] === "object"
+									? (field.state.meta.errors[0] as { message: string }).message
+									: String(field.state.meta.errors[0])
+								: error
+						}
+						className="mb-3"
+					>
+						<Input
 							placeholder="Adresse email"
 							value={field.state.value}
 							onChangeText={(value) => {
@@ -57,44 +68,25 @@ export function ForgotPassword({
 								field.handleChange(value);
 							}}
 							onBlur={field.handleBlur}
-							onFocus={onInputFocus}
+							onFocus={(event) =>
+								onInputFocus?.(event.nativeEvent.target ?? null)
+							}
 							placeholderTextColor="#9CA3AF"
 							keyboardType="email-address"
 							autoCapitalize="none"
 						/>
-
-						{field.state.meta.errors.length > 0 ? (
-							<Text className="mt-1 text-destructive text-sm">
-								{typeof field.state.meta.errors[0] === "object"
-									? (field.state.meta.errors[0] as { message: string }).message
-									: String(field.state.meta.errors[0])}
-							</Text>
-						) : null}
-
-						{error && (
-							<Text className="mt-2 text-destructive text-sm">{error}</Text>
-						)}
-					</View>
+					</Field>
 				)}
 			</form.Field>
 
-			{message && (
-				<Text className="mb-2 text-green-600 text-sm">{message}</Text>
-			)}
+			{message && <Text className="mb-2 text-sm text-success">{message}</Text>}
 
-			<TouchableOpacity
+			<Button
 				onPress={form.handleSubmit}
 				disabled={isLoading}
-				className="flex-row items-center justify-center rounded-md bg-primary p-4"
-			>
-				{isLoading ? (
-					<ActivityIndicator size="small" color="#fff" />
-				) : (
-					<Text className="font-medium text-primary-foreground">
-						Envoyer un email de réinitialisation
-					</Text>
-				)}
-			</TouchableOpacity>
+				loading={isLoading}
+				label="Envoyer le lien de reinitialisation"
+			/>
 			<View className="my-3 flex-row justify-center">
 				<TouchableOpacity onPress={onSwitchToSignUp}>
 					<Text className="text-primary text-sm">S'inscrire</Text>
@@ -104,6 +96,6 @@ export function ForgotPassword({
 					<Text className="text-primary text-sm">Se connecter</Text>
 				</TouchableOpacity>
 			</View>
-		</View>
+		</Card>
 	);
 }

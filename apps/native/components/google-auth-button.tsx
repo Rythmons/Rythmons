@@ -1,14 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as Linking from "expo-linking";
 import { useState } from "react";
-import {
-	ActivityIndicator,
-	Alert,
-	Text,
-	TouchableOpacity,
-	View,
-} from "react-native";
+import { ActivityIndicator, Alert, TouchableOpacity, View } from "react-native";
 
+import { Text } from "@/components/ui/typography";
 import { authClient } from "@/lib/auth-client";
 import { queryClient } from "@/utils/trpc";
 
@@ -98,7 +93,8 @@ export function GoogleAuthButton({ action }: GoogleAuthButtonProps) {
 		<TouchableOpacity
 			onPress={handlePress}
 			disabled={isLoading}
-			className="mb-4 flex-row items-center justify-center rounded-md border border-border bg-background px-4 py-3"
+			activeOpacity={0.9}
+			className="mb-4 min-h-12 flex-row items-center justify-center rounded-xl border border-border bg-background px-4 py-3"
 		>
 			<View className="mr-2 h-6 w-6 items-center justify-center rounded-full bg-white">
 				<Ionicons name="logo-google" size={18} color="#4285F4" />

@@ -8,8 +8,8 @@ type VenueMarker = {
 	id: string;
 	name: string;
 	city: string;
-	latitude: number | null;
-	longitude: number | null;
+	latitude?: number | null;
+	longitude?: number | null;
 	photoUrl: string | null;
 };
 

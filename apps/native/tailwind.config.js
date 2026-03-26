@@ -40,6 +40,18 @@ export const theme = {
 				DEFAULT: "hsl(var(--destructive))",
 				foreground: "hsl(var(--destructive-foreground))",
 			},
+			success: {
+				DEFAULT: "hsl(var(--success))",
+				foreground: "hsl(var(--success-foreground))",
+			},
+			warning: {
+				DEFAULT: "hsl(var(--warning))",
+				foreground: "hsl(var(--warning-foreground))",
+			},
+			info: {
+				DEFAULT: "hsl(var(--info))",
+				foreground: "hsl(var(--info-foreground))",
+			},
 			border: "hsl(var(--border))",
 			input: "hsl(var(--input))",
 			ring: "hsl(var(--ring))",
@@ -50,6 +62,11 @@ export const theme = {
 			lg: "var(--radius)",
 			md: "calc(var(--radius) - 2px)",
 			sm: "calc(var(--radius) - 4px)",
+			xs: "var(--radius-xs)",
+		},
+		boxShadow: {
+			card: "0px 10px 28px rgba(0, 0, 0, 0.22)",
+			focus: "0px 0px 0px 3px rgba(234, 13, 64, 0.26)",
 		},
 		borderWidth: {
 			hairline: hairlineWidth(),
