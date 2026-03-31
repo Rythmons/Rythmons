@@ -464,6 +464,59 @@ export default function ArtistProfileScreen() {
 								</TouchableOpacity>
 							) : null}
 
+							{!isEditing && !isOwner ? (
+								<View className="mt-4 rounded-xl border border-border bg-background p-4">
+									<Text className="font-sans-bold text-foreground">
+										Booking
+									</Text>
+									<Text className="mt-2 text-muted-foreground">
+										{canProposeBooking
+											? "Vous pouvez envoyer une proposition a cet artiste depuis ici."
+											: "Il vous manque un lieu pour envoyer une proposition a cet artiste."}
+									</Text>
+									<View className="mt-3 gap-3">
+										{canProposeBooking ? (
+											<TouchableOpacity
+												className="rounded-xl bg-primary px-4 py-3"
+												onPress={() =>
+													router.push({
+														pathname: "/(drawer)/bookings/propose",
+														params: { artistId: artist.id },
+													} as never)
+												}
+											>
+												<Text className="text-center font-sans-bold text-primary-foreground">
+													Proposer un booking
+												</Text>
+											</TouchableOpacity>
+										) : (
+											<>
+												<TouchableOpacity
+													className="rounded-xl bg-primary px-4 py-3"
+													onPress={() =>
+														router.push("/(drawer)/venue" as never)
+													}
+												>
+													<Text className="text-center font-sans-bold text-primary-foreground">
+														Creer ou choisir un lieu
+													</Text>
+												</TouchableOpacity>
+												<TouchableOpacity
+													className="rounded-xl border border-border bg-card px-4 py-3"
+													onPress={() =>
+														router.push("/(drawer)/bookings" as never)
+													}
+												>
+													<Text className="text-center font-sans-medium text-foreground">
+														Voir mes bookings
+													</Text>
+												</TouchableOpacity>
+											</>
+										)}
+									</View>
+								</View>
+							) : null}
+
 							{!isEditing
 								? (() => {
 										const sl = readSocialLinks(artist.socialLinks);
@@ -1064,17 +1117,6 @@ export default function ArtistProfileScreen() {
 													))}
 												</View>
 											</ScrollView>
-										</View>
-									) : null}
-									{!isOwner && !canProposeBooking && session?.user ? (
-										<View className="rounded-xl border border-border border-dashed bg-card p-4">
-											<Text className="font-sans-bold text-foreground">
-												Booking
-											</Text>
-											<Text className="mt-2 text-muted-foreground">
-												Créez d’abord un lieu pour pouvoir envoyer une
-												proposition de booking à cet artiste.
-											</Text>
 										</View>
 									) : null}
 								</View>

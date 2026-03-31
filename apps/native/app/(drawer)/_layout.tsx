@@ -41,6 +41,8 @@ export default function TabLayout() {
 	const canUseSearch = canSearchVenues || canSearchArtists;
 	const canManageArtists = canSearchVenues;
 	const canManageVenues = canSearchArtists;
+	const shouldShowArtistTab = canManageArtists && !canManageVenues;
+	const shouldShowVenueTab = canManageVenues && !canManageArtists;
 
 	return (
 		<Tabs
@@ -108,7 +110,7 @@ export default function TabLayout() {
 				options={{
 					headerTitle: "Mes Artistes",
 					tabBarLabel: "Artistes",
-					href: canManageArtists ? undefined : null,
+					href: shouldShowArtistTab ? undefined : null,
 					tabBarIcon: ({ color, size }) => (
 						<Ionicons name="musical-notes-outline" size={size} color={color} />
 					),
@@ -126,11 +128,22 @@ export default function TabLayout() {
 				}}
 			/>
 			<Tabs.Screen
+				name="bookings"
+				options={{
+					headerTitle: "Bookings",
+					href: session?.user ? undefined : null,
+					tabBarLabel: "Bookings",
+					tabBarIcon: ({ color, size }) => (
+						<Ionicons name="calendar-outline" size={size} color={color} />
+					),
+				}}
+			/>
+			<Tabs.Screen
 				name="venue"
 				options={{
 					headerTitle: "Mon Lieu",
 					tabBarLabel: "Lieu",
-					href: canManageVenues ? undefined : null,
+					href: shouldShowVenueTab ? undefined : null,
 					tabBarIcon: ({ color, size }) => (
 						<Ionicons name="business-outline" size={size} color={color} />
 					),
@@ -190,13 +203,6 @@ export default function TabLayout() {
 				name="venue/edit/[id]"
 				options={{
 					headerTitle: "Modification Lieu",
-					href: null,
-				}}
-			/>
-			<Tabs.Screen
-				name="bookings"
-				options={{
-					headerTitle: "Bookings",
 					href: null,
 				}}
 			/>

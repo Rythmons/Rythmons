@@ -3,7 +3,13 @@ import { Platform } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-export function KeyboardFormScreen({ children }: { children: ReactNode }) {
+export function KeyboardFormScreen({
+	children,
+	bottomInsetOffset = 24,
+}: {
+	children: ReactNode;
+	bottomInsetOffset?: number;
+}) {
 	const insets = useSafeAreaInsets();
 
 	return (
@@ -19,7 +25,7 @@ export function KeyboardFormScreen({ children }: { children: ReactNode }) {
 			automaticallyAdjustKeyboardInsets={Platform.OS === "ios"}
 			contentContainerStyle={{
 				paddingTop: Math.max(insets.top + 8, 16),
-				paddingBottom: insets.bottom + 24,
+				paddingBottom: insets.bottom + bottomInsetOffset,
 				paddingHorizontal: 16,
 			}}
 		>

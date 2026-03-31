@@ -1,11 +1,19 @@
+import { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Alert, ScrollView, View } from "react-native";
+import {
+	ActivityIndicator,
+	Alert,
+	Platform,
+	TouchableOpacity,
+	View,
+} from "react-native";
 import { Container } from "@/components/container";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { KeyboardFormScreen } from "@/components/ui/keyboard-form-screen";
 import { Text, Title } from "@/components/ui/typography";
 import { authClient } from "@/lib/auth-client";
 import { queryClient, trpc } from "@/utils/trpc";
@@ -40,8 +48,12 @@ export default function ProposeBookingScreen() {
 
 	const [selectedArtistId, setSelectedArtistId] = useState("");
 	const [selectedVenueId, setSelectedVenueId] = useState("");
-	const [proposedDate, setProposedDate] = useState("");
-	const [proposedTime, setProposedTime] = useState("19:00");
+	const [proposedDateTime, setProposedDateTime] = useState(() => {
+		const next = new Date();
+		next.setMinutes(0, 0, 0);
+		next.setHours(19, 0, 0, 0);
+		return next;
+	});
 	const [proposedFee, setProposedFee] = useState("");
 	const [initialMessage, setInitialMessage] = useState("");
 
@@ -140,15 +152,61 @@ export default function ProposeBookingScreen() {
 	const canSubmit =
 		Boolean(effectiveArtistId) &&
 		Boolean(effectiveVenueId) &&
-		proposedDate.trim().length > 0 &&
-		proposedTime.trim().length > 0;
+		!Number.isNaN(proposedDateTime.getTime());
+
+	const openDatePicker = () => {
+		if (Platform.OS !== "android") {
+			return;
+		}
+
+		DateTimePickerAndroid.open({
+			value: proposedDateTime,
+			mode: "date",
+			is24Hour: true,
+			minimumDate: new Date(),
+			onChange: (_event, selectedDate) => {
+				if (!selectedDate) return;
+				setProposedDateTime((current) => {
+					const next = new Date(current);
+					next.setFullYear(
+						selectedDate.getFullYear(),
+						selectedDate.getMonth(),
+						selectedDate.getDate(),
+					);
+					return next;
+				});
+			},
+		});
+	};
+
+	const openTimePicker = () => {
+		if (Platform.OS !== "android") {
+			return;
+		}
+
+		DateTimePickerAndroid.open({
+			value: proposedDateTime,
+			mode: "time",
+			is24Hour: true,
+			onChange: (_event, selectedTime) => {
+				if (!selectedTime) return;
+				setProposedDateTime((current) => {
+					const next = new Date(current);
+					next.setHours(
+						selectedTime.getHours(),
+						selectedTime.getMinutes(),
+						0,
+						0,
+					);
+					return next;
+				});
+			},
+		});
+	};
 
 	return (
 		<Container>
-			<ScrollView
-				className="flex-1"
-				contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 40 }}
-			>
+			<KeyboardFormScreen bottomInsetOffset={96}>
 				<Button
 					label="Retour"
 					variant="ghost"
@@ -215,20 +273,38 @@ export default function ProposeBookingScreen() {
 
 				<Card>
 					<Text className="font-sans-bold text-foreground">Date et heure</Text>
-					<Input
-						className="mt-3"
-						value={proposedDate}
-						onChangeText={setProposedDate}
-						placeholder="YYYY-MM-DD"
-						placeholderTextColor="#666"
-					/>
-					<Input
-						className="mt-3"
-						value={proposedTime}
-						onChangeText={setProposedTime}
-						placeholder="19:00"
-						placeholderTextColor="#666"
-					/>
+					<TouchableOpacity
+						className="mt-3 rounded-xl border border-border bg-background px-4 py-4"
+						activeOpacity={0.9}
+						onPress={openDatePicker}
+					>
+						<Text className="font-sans-medium text-foreground text-sm">
+							Date
+						</Text>
+						<Text className="mt-1 text-muted-foreground">
+							{proposedDateTime.toLocaleDateString("fr-FR", {
+								weekday: "long",
+								day: "numeric",
+								month: "long",
+								year: "numeric",
+							})}
+						</Text>
+					</TouchableOpacity>
+					<TouchableOpacity
+						className="mt-3 rounded-xl border border-border bg-background px-4 py-4"
+						activeOpacity={0.9}
+						onPress={openTimePicker}
+					>
+						<Text className="font-sans-medium text-foreground text-sm">
+							Heure
+						</Text>
+						<Text className="mt-1 text-muted-foreground">
+							{proposedDateTime.toLocaleTimeString("fr-FR", {
+								hour: "2-digit",
+								minute: "2-digit",
+							})}
+						</Text>
+					</TouchableOpacity>
 				</Card>
 
 				{!isArtistProposing ? (
@@ -250,9 +326,8 @@ export default function ProposeBookingScreen() {
 				<Card>
 					<Text className="font-sans-bold text-foreground">Message</Text>
 					<Input
-						className="mt-3 min-h-28"
+						className="mt-3"
 						multiline
-						textAlignVertical="top"
 						value={initialMessage}
 						onChangeText={setInitialMessage}
 						placeholder="Présentez votre proposition..."
@@ -261,19 +336,38 @@ export default function ProposeBookingScreen() {
 					/>
 				</Card>
 
-				<View className="gap-3">
+				<Card>
+					<Text className="font-sans-bold text-foreground">
+						Récapitulatif rapide
+					</Text>
+					<Text className="mt-2 text-muted-foreground">
+						{proposedDateTime.toLocaleString("fr-FR", {
+							dateStyle: "long",
+							timeStyle: "short",
+						})}
+					</Text>
+					{!isArtistProposing && proposedFee.trim() ? (
+						<Text className="mt-1 text-muted-foreground">
+							Cachet proposé: {proposedFee.trim()} €
+						</Text>
+					) : null}
+					<Text className="mt-1 text-muted-foreground">
+						{initialMessage.trim()
+							? "Le message d'introduction sera envoyé avec la proposition."
+							: "Vous pouvez envoyer la proposition sans message."}
+					</Text>
+				</Card>
+
+				<View className="gap-3 pb-10">
 					<Button
 						label="Envoyer la proposition"
 						loading={createMutation.isPending}
 						disabled={!canSubmit}
 						onPress={() => {
-							const proposedDateTime = new Date(
-								`${proposedDate.trim()}T${proposedTime.trim()}:00`,
-							);
 							if (Number.isNaN(proposedDateTime.getTime())) {
 								Alert.alert(
 									"Date invalide",
-									"Utilisez le format YYYY-MM-DD et une heure valide.",
+									"Choisissez une date et une heure valides avant d'envoyer.",
 								);
 								return;
 							}
@@ -294,7 +388,7 @@ export default function ProposeBookingScreen() {
 						onPress={() => router.replace("/(drawer)/bookings" as never)}
 					/>
 				</View>
-			</ScrollView>
+			</KeyboardFormScreen>
 		</Container>
 	);
 }

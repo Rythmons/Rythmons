@@ -256,6 +256,11 @@ export default function DashboardScreen() {
 						<Text className="mb-3 font-medium text-foreground">
 							Booking & calendrier
 						</Text>
+						<Text className="mb-4 text-muted-foreground text-sm">
+							Les bookings sont aussi accessibles directement depuis la barre de
+							navigation. Utilisez cet espace pour ouvrir votre planning ou
+							revenir vite sur vos propositions.
+						</Text>
 						<View className="flex-row flex-wrap gap-3">
 							<TouchableOpacity
 								className="rounded-md bg-primary px-4 py-3"

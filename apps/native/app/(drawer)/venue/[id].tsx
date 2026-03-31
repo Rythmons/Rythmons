@@ -154,6 +154,64 @@ export default function VenueProfileScreen() {
 							</View>
 						) : null}
 
+						{!isOwner && session?.user ? (
+							<View className="mt-4 rounded-xl border border-border bg-background px-4 py-4">
+								<Text className="font-sans-bold text-foreground">Booking</Text>
+								<Text className="mt-2 text-muted-foreground">
+									{canProposeBooking
+										? "Cette fiche est prete pour une proposition de booking."
+										: "Il vous manque un profil artiste pour contacter ce lieu."}
+								</Text>
+								<View className="mt-3 gap-3">
+									{canProposeBooking ? (
+										<TouchableOpacity
+											className="flex-row items-center justify-center rounded-xl bg-primary p-4"
+											onPress={() =>
+												router.push({
+													pathname: "/(drawer)/bookings/propose",
+													params: { venueId: venue.id },
+												} as never)
+											}
+										>
+											<Ionicons
+												name="calendar-outline"
+												size={20}
+												color="white"
+												style={{ marginRight: 8 }}
+											/>
+											<Text className="font-sans-bold text-primary-foreground">
+												Proposer un booking
+											</Text>
+										</TouchableOpacity>
+									) : (
+										<>
+											<TouchableOpacity
+												className="rounded-xl bg-primary px-4 py-3"
+												onPress={() =>
+													router.push({
+														pathname: "/(drawer)/artist/new",
+														params: { backTo: `/(drawer)/venue/${venue.id}` },
+													} as never)
+												}
+											>
+												<Text className="text-center font-sans-bold text-primary-foreground">
+													Creer un artiste
+												</Text>
+											</TouchableOpacity>
+											<TouchableOpacity
+												className="rounded-xl border border-border bg-card px-4 py-3"
+												onPress={() => router.push("/(drawer)/artist" as never)}
+											>
+												<Text className="text-center font-sans-medium text-foreground">
+													Choisir un artiste existant
+												</Text>
+											</TouchableOpacity>
+										</>
+									)}
+								</View>
+							</View>
+						) : null}
+
 						<View className="mt-4 rounded-lg border border-border bg-background px-3 py-3">
 							<Text className="font-sans-medium text-foreground text-sm">
 								Adresse
@@ -264,34 +322,6 @@ export default function VenueProfileScreen() {
 									Modifier mon lieu
 								</Text>
 							</TouchableOpacity>
-						) : canProposeBooking ? (
-							<TouchableOpacity
-								className="mt-6 flex-row items-center justify-center rounded-xl bg-primary p-4"
-								onPress={() =>
-									router.push({
-										pathname: "/(drawer)/bookings/propose",
-										params: { venueId: venue.id },
-									} as never)
-								}
-							>
-								<Ionicons
-									name="calendar-outline"
-									size={20}
-									color="white"
-									style={{ marginRight: 8 }}
-								/>
-								<Text className="font-sans-bold text-primary-foreground">
-									Proposer un booking
-								</Text>
-							</TouchableOpacity>
-						) : session?.user ? (
-							<View className="mt-6 rounded-xl border border-border border-dashed bg-background p-4">
-								<Text className="font-sans-bold text-foreground">Booking</Text>
-								<Text className="mt-2 text-muted-foreground">
-									Créez d’abord un profil artiste pour pouvoir envoyer une
-									proposition à ce lieu.
-								</Text>
-							</View>
 						) : null}
 					</View>
 

@@ -137,11 +137,15 @@ export default function VenueSearchScreen() {
 	const artistsQuery = useQuery({
 		...trpc.artist.myArtists.queryOptions(),
 		enabled: Boolean(session?.user) && !hasArtistRole,
+		refetchOnMount: "always",
+		refetchOnReconnect: true,
 	});
 
 	const venuesQuery = useQuery({
 		...trpc.venue.getMyVenues.queryOptions(),
 		enabled: Boolean(session?.user) && !hasOrganizerRole,
+		refetchOnMount: "always",
+		refetchOnReconnect: true,
 	});
 
 	const artistItems = (artistsQuery.data ?? []) as ArtistListItem[];
@@ -265,12 +269,16 @@ export default function VenueSearchScreen() {
 		...trpc.venue.search.queryOptions(venueSearchInput),
 		enabled:
 			Boolean(session?.user) && canSearchVenues && activeTab === "venues",
+		refetchOnMount: "always",
+		refetchOnReconnect: true,
 	});
 
 	const artistSearchQuery = useQuery({
 		...trpc.artist.search.queryOptions(artistSearchInput),
 		enabled:
 			Boolean(session?.user) && canSearchArtists && activeTab === "artists",
+		refetchOnMount: "always",
+		refetchOnReconnect: true,
 	});
 
 	const venues = (venueSearchQuery.data ?? []) as SearchVenueItem[];
@@ -796,6 +804,14 @@ export default function VenueSearchScreen() {
 								<Text className="mt-1 text-muted-foreground">
 									Verifiez votre connexion puis reessayez.
 								</Text>
+								<TouchableOpacity
+									className="mt-3 self-start rounded-lg bg-primary px-4 py-2"
+									onPress={() => void activeQuery.refetch()}
+								>
+									<Text className="font-sans-medium text-primary-foreground">
+										Reessayer
+									</Text>
+								</TouchableOpacity>
 							</View>
 						) : activeItems.length === 0 ? (
 							<View className="rounded-xl border border-border bg-card p-4">

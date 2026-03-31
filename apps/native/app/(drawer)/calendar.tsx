@@ -2,13 +2,12 @@ import type { AppRouter } from "@rythmons/api";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import type { inferRouterOutputs } from "@trpc/server";
 import { router } from "expo-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
 	ActivityIndicator,
 	Alert,
 	RefreshControl,
 	ScrollView,
-	TouchableOpacity,
 	View,
 } from "react-native";
 import { Container } from "@/components/container";
@@ -57,6 +56,20 @@ function getSlotForDay(slots: SlotItem[], day: Date) {
 	);
 }
 
+function isSameDay(left: Date, right: Date) {
+	return (
+		left.getFullYear() === right.getFullYear() &&
+		left.getMonth() === right.getMonth() &&
+		left.getDate() === right.getDate()
+	);
+}
+
+function buildCalendarCells(days: Date[]) {
+	if (days.length === 0) return [];
+	const leadingEmptyCells = (days[0].getDay() + 6) % 7;
+	return [...Array.from({ length: leadingEmptyCells }, () => null), ...days];
+}
+
 function showError(error: unknown, fallback: string) {
 	const message = error instanceof Error ? error.message : fallback;
 	Alert.alert("Erreur", message);
@@ -70,6 +83,9 @@ export default function CalendarScreen() {
 	);
 	const [ownerType, setOwnerType] = useState<"ARTIST" | "VENUE">("ARTIST");
 	const [ownerId, setOwnerId] = useState("");
+	const [selectedDay, setSelectedDay] = useState(
+		new Date(today.getFullYear(), today.getMonth(), today.getDate()),
+	);
 
 	const myArtistsQuery = useQuery({
 		...trpc.artist.myArtists.queryOptions(),
@@ -118,6 +134,56 @@ export default function CalendarScreen() {
 		() => getDaysInMonth(monthCursor.getFullYear(), monthCursor.getMonth()),
 		[monthCursor],
 	);
+	const calendarCells = useMemo(() => buildCalendarCells(days), [days]);
+	const selectedSlot = useMemo(
+		() => getSlotForDay((slotsQuery.data ?? []) as SlotItem[], selectedDay),
+		[selectedDay, slotsQuery.data],
+	);
+
+	useEffect(() => {
+		const selectedMonth = selectedDay.getMonth();
+		const selectedYear = selectedDay.getFullYear();
+		if (
+			selectedMonth !== monthCursor.getMonth() ||
+			selectedYear !== monthCursor.getFullYear()
+		) {
+			setSelectedDay(
+				new Date(monthCursor.getFullYear(), monthCursor.getMonth(), 1),
+			);
+		}
+	}, [monthCursor, selectedDay]);
+
+	const createSlotForSelectedDay = () => {
+		const startDate = new Date(selectedDay);
+		startDate.setHours(0, 0, 0, 0);
+		const endDate = new Date(selectedDay);
+		endDate.setHours(23, 59, 59, 999);
+		upsertMutation.mutate({
+			ownerType,
+			ownerId: effectiveOwnerId,
+			startDate,
+			endDate,
+			type: ownerType === "ARTIST" ? "UNAVAILABLE" : "OPEN",
+		});
+	};
+
+	const confirmDeleteSelectedSlot = () => {
+		if (!selectedSlot || selectedSlot.bookingId) return;
+		Alert.alert(
+			"Supprimer ce créneau ?",
+			ownerType === "ARTIST"
+				? "Cette journée redeviendra disponible dans votre planning."
+				: "Cette journée ne sera plus ouverte à la programmation.",
+			[
+				{ text: "Annuler", style: "cancel" },
+				{
+					text: "Supprimer",
+					style: "destructive",
+					onPress: () => deleteMutation.mutate({ id: selectedSlot.id }),
+				},
+			],
+		);
+	};
 
 	if (sessionPending) {
 		return (
@@ -274,9 +340,8 @@ export default function CalendarScreen() {
 				</View>
 
 				<Text className="text-muted-foreground text-sm">
-					{ownerType === "ARTIST"
-						? "Touchez un jour pour le marquer indisponible ou retirer ce créneau."
-						: "Touchez un jour pour l’ouvrir à la programmation ou retirer ce créneau."}
+					Sélectionnez une date dans la grille, puis utilisez les actions
+					dédiées pour voir, ajouter ou supprimer un créneau.
 				</Text>
 
 				{!effectiveOwnerId ? (
@@ -294,91 +359,124 @@ export default function CalendarScreen() {
 					</Card>
 				) : (
 					<View className="gap-3">
-						{days.map((day) => {
-							const slot = getSlotForDay(
-								(slotsQuery.data ?? []) as SlotItem[],
-								day,
-							);
-							const isBooked = slot?.type === "BOOKED";
-							const isUnavailable = slot?.type === "UNAVAILABLE";
-							const isOpen = slot?.type === "OPEN";
-							const bgClass = isBooked
-								? "bg-blue-500/10 border-blue-500/30"
-								: isUnavailable
-									? "bg-red-500/10 border-red-500/30"
-									: isOpen
-										? "bg-green-500/10 border-green-500/30"
-										: "bg-card";
+						<Card>
+							<View className="flex-row justify-between">
+								{["L", "M", "M", "J", "V", "S", "D"].map((label, index) => (
+									<View key={`${label}-${index}`} className="w-[13.5%] py-2">
+										<Text className="text-center font-sans-medium text-muted-foreground text-xs">
+											{label}
+										</Text>
+									</View>
+								))}
+							</View>
+							<View className="mt-2 flex-row flex-wrap gap-y-2">
+								{calendarCells.map((day, index) => {
+									if (!day) {
+										return (
+											<View key={`empty-${index}`} className="w-[13.5%] py-6" />
+										);
+									}
 
-							return (
-								<TouchableOpacity
-									key={day.toISOString()}
-									activeOpacity={0.9}
-									onPress={() => {
-										const startDate = new Date(day);
-										startDate.setHours(0, 0, 0, 0);
-										const endDate = new Date(day);
-										endDate.setHours(23, 59, 59, 999);
+									const slot = getSlotForDay(
+										(slotsQuery.data ?? []) as SlotItem[],
+										day,
+									);
+									const isBooked = slot?.type === "BOOKED";
+									const isUnavailable = slot?.type === "UNAVAILABLE";
+									const isOpen = slot?.type === "OPEN";
+									const isSelected = isSameDay(day, selectedDay);
+									const cellClasses = isBooked
+										? "border-blue-500/40 bg-blue-500/15"
+										: isUnavailable
+											? "border-red-500/40 bg-red-500/15"
+											: isOpen
+												? "border-green-500/40 bg-green-500/15"
+												: "border-border bg-background";
 
-										if (slot?.type === "BOOKED") {
-											if (slot.booking?.id) {
-												router.push({
-													pathname: "/(drawer)/bookings/[id]",
-													params: { id: slot.booking.id },
-												} as never);
-											}
-											return;
-										}
-
-										if (slot && !slot.bookingId) {
-											deleteMutation.mutate({ id: slot.id });
-											return;
-										}
-
-										upsertMutation.mutate({
-											ownerType,
-											ownerId: effectiveOwnerId,
-											startDate,
-											endDate,
-											type: ownerType === "ARTIST" ? "UNAVAILABLE" : "OPEN",
-										});
-									}}
-								>
-									<Card className={bgClass}>
-										<View className="flex-row items-start justify-between gap-3">
-											<View className="flex-1">
-												<Text className="font-sans-bold text-foreground">
-													{day.toLocaleDateString("fr-FR", {
-														weekday: "long",
-														day: "numeric",
-														month: "long",
-													})}
-												</Text>
-												<Text className="mt-1 text-muted-foreground">
-													{isBooked
-														? "Booking confirmé"
-														: isUnavailable
-															? "Indisponible"
-															: isOpen
-																? "Ouvert"
-																: "Aucun créneau"}
-												</Text>
-												{slot?.booking ? (
-													<Text className="mt-2 text-muted-foreground text-sm">
-														{slot.booking.artist?.stageName ??
-															slot.booking.venue?.name ??
-															"Booking"}
-													</Text>
-												) : null}
-											</View>
-											<Text className="text-muted-foreground text-sm">
-												{day.getDate()}
-											</Text>
+									return (
+										<View key={day.toISOString()} className="w-[13.5%]">
+											<Button
+												label={String(day.getDate())}
+												variant={isSelected ? "primary" : "secondary"}
+												className={`min-h-14 rounded-xl border px-0 ${isSelected ? "" : cellClasses}`}
+												textClassName={`text-sm ${!isSelected && isBooked ? "text-blue-200" : !isSelected && isUnavailable ? "text-red-200" : !isSelected && isOpen ? "text-green-200" : ""}`}
+												onPress={() => setSelectedDay(day)}
+											/>
 										</View>
-									</Card>
-								</TouchableOpacity>
-							);
-						})}
+									);
+								})}
+							</View>
+						</Card>
+
+						<Card>
+							<Text className="font-sans-bold text-foreground">
+								{selectedDay.toLocaleDateString("fr-FR", {
+									weekday: "long",
+									day: "numeric",
+									month: "long",
+									year: "numeric",
+								})}
+							</Text>
+							<Text className="mt-2 text-muted-foreground">
+								{selectedSlot?.type === "BOOKED"
+									? "Booking confirmé"
+									: selectedSlot?.type === "UNAVAILABLE"
+										? "Indisponible"
+										: selectedSlot?.type === "OPEN"
+											? "Ouvert à la programmation"
+											: "Aucun créneau enregistré"}
+							</Text>
+							{selectedSlot?.booking ? (
+								<Text className="mt-2 text-muted-foreground text-sm">
+									{selectedSlot.booking.artist?.stageName ??
+										selectedSlot.booking.venue?.name ??
+										"Booking"}
+								</Text>
+							) : (
+								<Text className="mt-2 text-muted-foreground text-sm">
+									{ownerType === "ARTIST"
+										? "Utilisez ce planning pour bloquer vos indisponibilités."
+										: "Utilisez ce planning pour marquer les dates ouvertes à la programmation."}
+								</Text>
+							)}
+						</Card>
+
+						<View className="gap-3">
+							{selectedSlot?.type === "BOOKED" && selectedSlot.booking?.id ? (
+								<Button
+									label="Voir le booking confirme"
+									onPress={() =>
+										router.push({
+											pathname: "/(drawer)/bookings/[id]",
+											params: { id: selectedSlot.booking?.id ?? "" },
+										} as never)
+									}
+								/>
+							) : null}
+
+							{!selectedSlot ? (
+								<Button
+									label={
+										ownerType === "ARTIST"
+											? "Marquer comme indisponible"
+											: "Ouvrir cette date"
+									}
+									loading={upsertMutation.isPending}
+									onPress={createSlotForSelectedDay}
+								/>
+							) : null}
+
+							{selectedSlot &&
+							selectedSlot.type !== "BOOKED" &&
+							!selectedSlot.bookingId ? (
+								<Button
+									label="Supprimer ce creneau"
+									variant="secondary"
+									loading={deleteMutation.isPending}
+									onPress={confirmDeleteSelectedSlot}
+								/>
+							) : null}
+						</View>
 					</View>
 				)}
 			</ScrollView>

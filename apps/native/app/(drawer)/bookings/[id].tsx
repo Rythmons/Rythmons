@@ -1,17 +1,12 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
-import {
-	ActivityIndicator,
-	Alert,
-	RefreshControl,
-	ScrollView,
-	View,
-} from "react-native";
+import { ActivityIndicator, Alert, RefreshControl, View } from "react-native";
 import { Container } from "@/components/container";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { KeyboardFormScreen } from "@/components/ui/keyboard-form-screen";
 import { Text, Title } from "@/components/ui/typography";
 import { authClient } from "@/lib/auth-client";
 import { queryClient, trpc } from "@/utils/trpc";
@@ -111,19 +106,12 @@ export default function BookingDetailScreen() {
 	if (bookingQuery.isLoading || !booking) {
 		return (
 			<Container>
-				<ScrollView
+				<View
 					className="flex-1"
-					contentContainerStyle={{
-						flexGrow: 1,
+					style={{
 						justifyContent: "center",
 						padding: 24,
 					}}
-					refreshControl={
-						<RefreshControl
-							refreshing={bookingQuery.isFetching}
-							onRefresh={() => void bookingQuery.refetch()}
-						/>
-					}
 				>
 					{bookingQuery.isError ? (
 						<Text className="text-center text-destructive">
@@ -132,7 +120,7 @@ export default function BookingDetailScreen() {
 					) : (
 						<ActivityIndicator size="large" />
 					)}
-				</ScrollView>
+				</View>
 			</Container>
 		);
 	}
@@ -148,16 +136,7 @@ export default function BookingDetailScreen() {
 
 	return (
 		<Container>
-			<ScrollView
-				className="flex-1"
-				contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 40 }}
-				refreshControl={
-					<RefreshControl
-						refreshing={bookingQuery.isFetching}
-						onRefresh={() => void bookingQuery.refetch()}
-					/>
-				}
-			>
+			<KeyboardFormScreen bottomInsetOffset={96}>
 				<Button
 					label="Retour aux bookings"
 					variant="ghost"
@@ -251,9 +230,8 @@ export default function BookingDetailScreen() {
 							Motif du refus
 						</Text>
 						<Input
-							className="mt-3 min-h-24"
+							className="mt-3"
 							multiline
-							textAlignVertical="top"
 							value={refusalReason}
 							onChangeText={setRefusalReason}
 							placeholder="Optionnel"
@@ -263,7 +241,18 @@ export default function BookingDetailScreen() {
 					</Card>
 				) : null}
 
-				<View className="gap-3">
+				{(canAccept || canRefuse || canCancel) && (
+					<Card>
+						<Text className="font-sans-bold text-foreground">
+							Actions sur la proposition
+						</Text>
+						<Text className="mt-2 text-muted-foreground">
+							Confirmez, refusez ou annulez cette proposition depuis cette zone.
+						</Text>
+					</Card>
+				)}
+
+				<View className="gap-3 pb-10">
 					{canAccept ? (
 						<Button
 							label="Accepter"
@@ -293,7 +282,7 @@ export default function BookingDetailScreen() {
 						/>
 					) : null}
 				</View>
-			</ScrollView>
+			</KeyboardFormScreen>
 		</Container>
 	);
 }

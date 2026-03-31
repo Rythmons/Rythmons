@@ -43,6 +43,49 @@ export default function Home() {
 					</Card>
 				) : null}
 
+				{session?.user ? (
+					<Card className="mb-6">
+						<Title className="mb-1 text-foreground text-xl">Mes profils</Title>
+						<Text className="mb-4 text-muted-foreground text-sm">
+							Accedez a vos artistes et a vos lieux sans surcharger la barre de
+							navigation mobile.
+						</Text>
+						<View className="gap-3">
+							<Button
+								label="Gerer mes artistes"
+								variant="secondary"
+								onPress={() => router.push("/(drawer)/artist" as never)}
+							/>
+							<Button
+								label="Gerer mes lieux"
+								variant="secondary"
+								onPress={() => router.push("/(drawer)/venue" as never)}
+							/>
+						</View>
+					</Card>
+				) : null}
+
+				{session?.user ? (
+					<Card className="mb-6">
+						<Title className="mb-1 text-foreground text-xl">Mon planning</Title>
+						<Text className="mb-4 text-muted-foreground text-sm">
+							Retrouvez rapidement vos bookings, votre calendrier et vos
+							prochaines actions.
+						</Text>
+						<View className="gap-3">
+							<Button
+								label="Ouvrir mes bookings"
+								onPress={() => router.push("/(drawer)/bookings" as never)}
+							/>
+							<Button
+								label="Gerer mon calendrier"
+								variant="secondary"
+								onPress={() => router.push("/(drawer)/calendar" as never)}
+							/>
+						</View>
+					</Card>
+				) : null}
+
 				{!session?.user ? (
 					<Card className="mb-6">
 						<Title className="mb-1 text-foreground text-xl">
