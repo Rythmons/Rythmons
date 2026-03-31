@@ -120,6 +120,10 @@ export default function ArtistProfileScreen() {
 		...trpc.artist.getById.queryOptions({ id: artistId ?? "" }),
 		enabled: Boolean(artistId),
 	});
+	const myVenuesQuery = useQuery({
+		...trpc.venue.getMyVenues.queryOptions(),
+		enabled: Boolean(session?.user) && Boolean(artistId),
+	});
 
 	const artist = artistData as ArtistScreenData | null;
 
@@ -130,6 +134,7 @@ export default function ArtistProfileScreen() {
 		if (!session?.user || !artist?.user?.id) return false;
 		return session.user.id === artist.user.id;
 	}, [artist?.user?.id, session?.user]);
+	const canProposeBooking = !isOwner && (myVenuesQuery.data?.length ?? 0) > 0;
 
 	const [isEditing, setIsEditing] = useState(false);
 	const [isSaving, setIsSaving] = useState(false);
@@ -419,6 +424,20 @@ export default function ArtistProfileScreen() {
 									>
 										<Text className="font-sans-medium text-primary">
 											{isEditing ? "Voir" : "Modifier"}
+										</Text>
+									</TouchableOpacity>
+								) : canProposeBooking ? (
+									<TouchableOpacity
+										className="rounded-lg bg-primary px-3 py-2"
+										onPress={() =>
+											router.push({
+												pathname: "/(drawer)/bookings/propose",
+												params: { artistId: artist.id },
+											} as never)
+										}
+									>
+										<Text className="font-sans-medium text-primary-foreground">
+											Proposer
 										</Text>
 									</TouchableOpacity>
 								) : null}
@@ -1045,6 +1064,17 @@ export default function ArtistProfileScreen() {
 													))}
 												</View>
 											</ScrollView>
+										</View>
+									) : null}
+									{!isOwner && !canProposeBooking && session?.user ? (
+										<View className="rounded-xl border border-border border-dashed bg-card p-4">
+											<Text className="font-sans-bold text-foreground">
+												Booking
+											</Text>
+											<Text className="mt-2 text-muted-foreground">
+												Créez d’abord un lieu pour pouvoir envoyer une
+												proposition de booking à cet artiste.
+											</Text>
 										</View>
 									) : null}
 								</View>

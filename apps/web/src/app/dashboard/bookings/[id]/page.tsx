@@ -2,11 +2,14 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Calendar } from "lucide-react";
+import type { Route } from "next";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
+import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
 import { authClient } from "@/lib/auth-client";
 import { trpc } from "@/utils/trpc";
 
@@ -40,6 +43,8 @@ export default function BookingDetailPage() {
 	const router = useRouter();
 	const queryClient = useQueryClient();
 	const id = params.id as string;
+	const [refusalReasonInput, setRefusalReasonInput] = useState("");
+	const bookingsRoute = "/dashboard/bookings" as Route;
 
 	const { data: session, isPending: sessionPending } = authClient.useSession();
 	const {
@@ -56,7 +61,7 @@ export default function BookingDetailPage() {
 		onSuccess: () => {
 			queryClient.invalidateQueries();
 			toast.success("Proposition acceptée !");
-			router.push("/dashboard/bookings");
+			router.push(bookingsRoute);
 		},
 		onError: (e) => toast.error(e.message),
 	});
@@ -66,7 +71,7 @@ export default function BookingDetailPage() {
 		onSuccess: () => {
 			queryClient.invalidateQueries();
 			toast.success("Proposition refusée.");
-			router.push("/dashboard/bookings");
+			router.push(bookingsRoute);
 		},
 		onError: (e) => toast.error(e.message),
 	});
@@ -76,7 +81,7 @@ export default function BookingDetailPage() {
 		onSuccess: () => {
 			queryClient.invalidateQueries();
 			toast.success("Proposition annulée.");
-			router.push("/dashboard/bookings");
+			router.push(bookingsRoute);
 		},
 		onError: (e) => toast.error(e.message),
 	});
@@ -91,7 +96,7 @@ export default function BookingDetailPage() {
 				<div className="container mx-auto max-w-2xl py-12 text-center">
 					<p className="text-destructive">{error.message}</p>
 					<Button asChild className="mt-4">
-						<Link href="/dashboard/bookings">Retour aux propositions</Link>
+						<Link href={bookingsRoute}>Retour aux propositions</Link>
 					</Button>
 				</div>
 			);
@@ -108,12 +113,18 @@ export default function BookingDetailPage() {
 	const canRefuse =
 		!isCreator && (isArtist || isOrganizer) && booking.status === "PENDING";
 	const canCancel = isCreator && booking.status === "PENDING";
+	const initiatorLabel = isCreator
+		? "Vous"
+		: (booking.createdBy?.name ?? "Autre");
+	const refusalReason =
+		(booking as typeof booking & { refusalReason?: string | null })
+			.refusalReason ?? null;
 
 	return (
 		<div className="container mx-auto max-w-2xl py-8">
 			<div className="mb-6 flex items-center justify-between">
 				<Button variant="ghost" size="sm" asChild>
-					<Link href="/dashboard/bookings">← Retour aux propositions</Link>
+					<Link href={bookingsRoute}>← Retour aux propositions</Link>
 				</Button>
 				<span
 					className={`rounded-full px-3 py-1 font-medium text-sm ${
@@ -150,6 +161,10 @@ export default function BookingDetailPage() {
 
 				<div className="grid gap-4 sm:grid-cols-2">
 					<div>
+						<p className="text-muted-foreground text-sm">Initiateur</p>
+						<p className="font-medium">{initiatorLabel}</p>
+					</div>
+					<div>
 						<p className="text-muted-foreground text-sm">Artiste</p>
 						<Link
 							href={`/artist/${booking.artist.id}`}
@@ -171,9 +186,18 @@ export default function BookingDetailPage() {
 
 				{booking.initialMessage && (
 					<div>
-						<p className="text-muted-foreground text-sm">Message</p>
+						<p className="text-muted-foreground text-sm">Message initial</p>
 						<p className="mt-1 whitespace-pre-wrap rounded bg-muted/50 p-3 text-sm">
 							{booking.initialMessage}
+						</p>
+					</div>
+				)}
+
+				{refusalReason && (
+					<div>
+						<p className="text-muted-foreground text-sm">Motif du refus</p>
+						<p className="mt-1 whitespace-pre-wrap rounded bg-muted/50 p-3 text-sm">
+							{refusalReason}
 						</p>
 					</div>
 				)}
@@ -198,6 +222,21 @@ export default function BookingDetailPage() {
 					</div>
 				)}
 
+				{canRefuse && (
+					<div className="space-y-2 rounded-lg border border-dashed p-4">
+						<p className="font-medium text-sm">
+							Refuser avec un motif optionnel
+						</p>
+						<Textarea
+							value={refusalReasonInput}
+							onChange={(e) => setRefusalReasonInput(e.target.value)}
+							placeholder="Expliquez brièvement pourquoi vous refusez cette proposition."
+							maxLength={500}
+							rows={3}
+						/>
+					</div>
+				)}
+
 				{(canAccept || canRefuse || canCancel) && (
 					<div className="flex flex-wrap gap-3 border-t pt-4">
 						{canAccept && (
@@ -211,7 +250,12 @@ export default function BookingDetailPage() {
 						{canRefuse && (
 							<Button
 								variant="destructive"
-								onClick={() => refuseMutation.mutate({ id })}
+								onClick={() =>
+									refuseMutation.mutate({
+										id,
+										reason: refusalReasonInput.trim() || undefined,
+									})
+								}
 								disabled={refuseMutation.isPending}
 							>
 								Refuser

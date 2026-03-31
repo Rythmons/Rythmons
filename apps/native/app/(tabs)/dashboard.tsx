@@ -253,6 +253,30 @@ export default function DashboardScreen() {
 					</View>
 
 					<View className="rounded-lg border border-border bg-card p-4">
+						<Text className="mb-3 font-medium text-foreground">
+							Booking & calendrier
+						</Text>
+						<View className="flex-row flex-wrap gap-3">
+							<TouchableOpacity
+								className="rounded-md bg-primary px-4 py-3"
+								onPress={() => router.push("/(drawer)/bookings" as never)}
+							>
+								<Text className="font-medium text-primary-foreground">
+									Voir mes bookings
+								</Text>
+							</TouchableOpacity>
+							<TouchableOpacity
+								className="rounded-md border border-border px-4 py-3"
+								onPress={() => router.push("/(drawer)/calendar" as never)}
+							>
+								<Text className="font-medium text-foreground">
+									Ouvrir mon calendrier
+								</Text>
+							</TouchableOpacity>
+						</View>
+					</View>
+
+					<View className="rounded-lg border border-border bg-card p-4">
 						<Text className="mb-2 font-medium text-foreground">
 							Gestion de session
 						</Text>

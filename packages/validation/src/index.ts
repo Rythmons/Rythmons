@@ -196,6 +196,40 @@ export const venueSearchSchema = z.object({
 
 export type VenueSearchInput = z.infer<typeof venueSearchSchema>;
 
+export const bookingStatusValues = [
+	"PENDING",
+	"ACCEPTED",
+	"REFUSED",
+	"CANCELLED",
+] as const;
+
+export const bookingStatusSchema = z.enum(bookingStatusValues);
+
+export const bookingByIdSchema = z.object({
+	id: z.string().min(1),
+});
+
+export const bookingCreateSchema = z.object({
+	artistId: z.string().min(1),
+	venueId: z.string().min(1),
+	proposedDate: z.coerce.date(),
+	proposedFee: z.number().int().min(0).nullable().optional(),
+	initialMessage: z.string().trim().max(2000).optional(),
+});
+
+export const bookingRefuseSchema = bookingByIdSchema.extend({
+	reason: z.string().trim().max(500).optional(),
+});
+
+export const bookingListFilterSchema = z.object({
+	status: bookingStatusSchema.optional(),
+});
+
+export type BookingCreateInput = z.infer<typeof bookingCreateSchema>;
+export type BookingRefuseInput = z.infer<typeof bookingRefuseSchema>;
+export type BookingByIdInput = z.infer<typeof bookingByIdSchema>;
+export type BookingListFilterInput = z.infer<typeof bookingListFilterSchema>;
+
 // Sign-in validation schema
 export const signInSchema = z.object({
 	email: emailSchema,

@@ -50,7 +50,6 @@ export default function TabLayout() {
 				// Avoid default Expo Router segment titles (e.g. "(drawer)", "new", etc.)
 				// when a specific screen doesn't provide `headerTitle` explicitly.
 				headerTitle: "",
-				headerBackTitleVisible: false,
 				sceneStyle: {
 					backgroundColor: "hsl(278 86% 3%)",
 				},
@@ -191,6 +190,34 @@ export default function TabLayout() {
 				name="venue/edit/[id]"
 				options={{
 					headerTitle: "Modification Lieu",
+					href: null,
+				}}
+			/>
+			<Tabs.Screen
+				name="bookings"
+				options={{
+					headerTitle: "Bookings",
+					href: null,
+				}}
+			/>
+			<Tabs.Screen
+				name="bookings/[id]"
+				options={{
+					headerTitle: "Détail booking",
+					href: null,
+				}}
+			/>
+			<Tabs.Screen
+				name="bookings/propose"
+				options={{
+					headerTitle: "Proposer un booking",
+					href: null,
+				}}
+			/>
+			<Tabs.Screen
+				name="calendar"
+				options={{
+					headerTitle: "Calendrier",
 					href: null,
 				}}
 			/>

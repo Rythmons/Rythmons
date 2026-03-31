@@ -32,11 +32,16 @@ export default function VenueProfileScreen() {
 		...trpc.venue.getById.queryOptions({ id: venueId ?? "" }),
 		enabled: Boolean(venueId),
 	});
+	const myArtistsQuery = useQuery({
+		...trpc.artist.myArtists.queryOptions(),
+		enabled: Boolean(session?.user) && Boolean(venueId),
+	});
 
 	const isOwner =
 		Boolean(session?.user) &&
 		Boolean(venue?.owner?.id) &&
 		session?.user.id === venue?.owner.id;
+	const canProposeBooking = !isOwner && (myArtistsQuery.data?.length ?? 0) > 0;
 
 	const openMaps = async () => {
 		if (!venue) return;
@@ -259,6 +264,34 @@ export default function VenueProfileScreen() {
 									Modifier mon lieu
 								</Text>
 							</TouchableOpacity>
+						) : canProposeBooking ? (
+							<TouchableOpacity
+								className="mt-6 flex-row items-center justify-center rounded-xl bg-primary p-4"
+								onPress={() =>
+									router.push({
+										pathname: "/(drawer)/bookings/propose",
+										params: { venueId: venue.id },
+									} as never)
+								}
+							>
+								<Ionicons
+									name="calendar-outline"
+									size={20}
+									color="white"
+									style={{ marginRight: 8 }}
+								/>
+								<Text className="font-sans-bold text-primary-foreground">
+									Proposer un booking
+								</Text>
+							</TouchableOpacity>
+						) : session?.user ? (
+							<View className="mt-6 rounded-xl border border-border border-dashed bg-background p-4">
+								<Text className="font-sans-bold text-foreground">Booking</Text>
+								<Text className="mt-2 text-muted-foreground">
+									Créez d’abord un profil artiste pour pouvoir envoyer une
+									proposition à ce lieu.
+								</Text>
+							</View>
 						) : null}
 					</View>
 

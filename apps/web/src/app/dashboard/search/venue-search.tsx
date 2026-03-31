@@ -826,9 +826,20 @@ export function VenueSearch({
 										<span className="text-muted-foreground text-xs">
 											{venue.postalCode}
 										</span>
-										<Button asChild>
-											<Link href={`/venue/${venue.id}`}>Voir profil</Link>
-										</Button>
+										<div className="flex items-center gap-2">
+											<Button asChild variant="outline">
+												<Link href={`/venue/${venue.id}`}>Voir profil</Link>
+											</Button>
+											{canSearchVenues && (
+												<Button asChild>
+													<Link
+														href={`/dashboard/bookings/propose?venueId=${venue.id}`}
+													>
+														Proposer
+													</Link>
+												</Button>
+											)}
+										</div>
 									</CardFooter>
 								</Card>
 							))
@@ -923,9 +934,20 @@ export function VenueSearch({
 										<span className="text-muted-foreground text-xs">
 											{artist.postalCode || ""}
 										</span>
-										<Button asChild>
-											<Link href={`/artist/${artist.id}`}>Voir profil</Link>
-										</Button>
+										<div className="flex items-center gap-2">
+											<Button asChild variant="outline">
+												<Link href={`/artist/${artist.id}`}>Voir profil</Link>
+											</Button>
+											{canSearchArtists && (
+												<Button asChild>
+													<Link
+														href={`/dashboard/bookings/propose?artistId=${artist.id}`}
+													>
+														Proposer
+													</Link>
+												</Button>
+											)}
+										</div>
 									</CardFooter>
 								</Card>
 							))}

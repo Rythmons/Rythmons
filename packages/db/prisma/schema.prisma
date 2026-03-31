@@ -190,6 +190,7 @@ model Booking {
   proposedFee       Int?
   status            BookingStatus @default(PENDING)
   initialMessage    String?       @db.Text
+  refusalReason     String?       @db.Text
   createdByUserId   String
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
