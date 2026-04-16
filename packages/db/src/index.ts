@@ -15,10 +15,14 @@ if (process.env.NODE_ENV !== "production") {
 export type {
 	Account,
 	Artist,
+	Conversation,
+	ConversationParticipant,
 	Genre,
+	Media,
+	Message,
 	Session,
 	User,
 	Venue,
 	Verification,
 } from "@prisma/client";
-export { Prisma, UserRole, VenueType } from "@prisma/client";
+export { EntityType, Prisma, UserRole, VenueType } from "@prisma/client";

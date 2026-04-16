@@ -1,6 +1,13 @@
 import { useAuth } from "@rythmons/auth/client";
 import { useQuery } from "@tanstack/react-query";
-import { Building2, LogOut, Mic2, Search, User } from "lucide-react";
+import {
+	Building2,
+	LogOut,
+	MessageCircle,
+	Mic2,
+	Search,
+	User,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -177,6 +184,16 @@ export default function UserMenu() {
 						<span>Recherche</span>
 					</DropdownMenuItem>
 				) : null}
+
+				<DropdownMenuItem
+					className="flex cursor-pointer items-center gap-2 p-4 text-zinc-400 hover:text-white focus:bg-white/5 focus:text-white"
+					onClick={() => {
+						router.push("/messages");
+					}}
+				>
+					<MessageCircle className="h-4 w-4" />
+					<span>Mes messages</span>
+				</DropdownMenuItem>
 
 				<DropdownMenuItem
 					className="flex cursor-pointer items-center gap-2 p-4 text-zinc-400 hover:text-white focus:bg-white/5 focus:text-white"

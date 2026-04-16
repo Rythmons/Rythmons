@@ -10,6 +10,7 @@ import {
 	Image as ImageIcon,
 	Loader2,
 	MapPin,
+	MessageCircle,
 	Music,
 	Pencil,
 	Plus,
@@ -22,6 +23,7 @@ import dynamic from "next/dynamic";
 import { notFound, useParams, useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
+import { MessageModal } from "@/components/message-modal";
 import { AddressAutocomplete } from "@/components/ui/address-autocomplete";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -107,6 +109,7 @@ export default function VenueProfilePage() {
 	const [isEditingLogo, setIsEditingLogo] = useState(false);
 	const [isEditingBanner, setIsEditingBanner] = useState(false);
 	const [isAddingGalleryImage, setIsAddingGalleryImage] = useState(false);
+	const [isMessageModalOpen, setIsMessageModalOpen] = useState(false);
 
 	const {
 		data: venue,
@@ -116,6 +119,22 @@ export default function VenueProfilePage() {
 		...trpc.venue.getById.queryOptions({ id: venueId }),
 		enabled: !!venueId,
 	});
+
+	const handleFollow = useCallback(() => {
+		if (!session?.user) {
+			router.push("/login");
+			return;
+		}
+		toast.info("Fonctionnalité 'Suivre' à venir !");
+	}, [session, router]);
+
+	const handleMessage = useCallback(() => {
+		if (!session?.user?.id) {
+			router.push("/login");
+			return;
+		}
+		setIsMessageModalOpen(true);
+	}, [session, router]);
 
 	// Get the correct query key
 	const venueQueryOptions = trpc.venue.getById.queryOptions({ id: venueId });
@@ -490,10 +509,27 @@ export default function VenueProfilePage() {
 								{/* Action Buttons */}
 								{!isOwner && (
 									<div className="mt-6 flex justify-center gap-3">
-										<Button className="rounded-full bg-primary px-6 hover:bg-primary/90">
+										<Button
+											className="rounded-full bg-secondary px-6 hover:bg-secondary/90"
+											onClick={handleFollow}
+										>
 											<Plus className="mr-2 h-4 w-4" />
 											Suivre
 										</Button>
+										<Button
+											className="rounded-full bg-secondary px-6 hover:bg-secondary/90"
+											onClick={handleMessage}
+										>
+											<MessageCircle className="mr-2 h-4 w-4" />
+											Envoyer un message
+										</Button>
+										<MessageModal
+											isOpen={isMessageModalOpen}
+											onClose={() => setIsMessageModalOpen(false)}
+											targetId={venueId}
+											targetType="VENUE"
+											targetName={venue?.name || "Lieu"}
+										/>
 									</div>
 								)}
 							</div>

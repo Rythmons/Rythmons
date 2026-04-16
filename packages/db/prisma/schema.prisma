@@ -1,6 +1,5 @@
 generator client {
-  provider = "prisma-client-js"
-
+  provider      = "prisma-client-js"
   binaryTargets = ["native", "rhel-openssl-3.0.x"]
 }
 
@@ -12,25 +11,25 @@ datasource db {
 model User {
   id            String    @id @map("_id")
   name          String
-  email         String
+  email         String    @unique
   emailVerified Boolean
   image         String?
   createdAt     DateTime
   updatedAt     DateTime
-  sessions      Session[]
-  accounts      Account[]
   role          UserRole?
+  accounts      Account[]
   artists       Artist[]
+  Media         Media[]
+  sessions      Session[]
   venues        Venue[]
 
-  @@unique([email])
   @@map("user")
 }
 
 model Session {
   id        String   @id @map("_id")
   expiresAt DateTime
-  token     String
+  token     String   @unique
   createdAt DateTime
   updatedAt DateTime
   ipAddress String?
@@ -38,7 +37,6 @@ model Session {
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([token])
   @@map("session")
 }
 
@@ -47,7 +45,6 @@ model Account {
   accountId             String
   providerId            String
   userId                String
-  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   accessToken           String?
   refreshToken          String?
   idToken               String?
@@ -57,6 +54,7 @@ model Account {
   password              String?
   createdAt             DateTime
   updatedAt             DateTime
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("account")
 }
@@ -69,36 +67,122 @@ model Verification {
   createdAt  DateTime?
   updatedAt  DateTime?
 
-
   @@map("verification")
 }
 
 model Artist {
   id               String   @id @default(cuid()) @map("_id")
   userId           String
-  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   stageName        String
-  city             String?
-  postalCode       String?
   photoUrl         String?
   bannerUrl        String?
   bio              String?
   website          String?
   socialLinks      Json?    @default("{}")
-  genres           Genre[]
   images           String[] @default([])
-  
   techRequirements String?
   feeMin           Int?
   feeMax           Int?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  city             String?
   isNegotiable     Boolean  @default(false)
+  postalCode       String?
   latitude         Float?
   longitude        Float?
-
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  genres           Genre[]  @relation("ArtistToGenre")
+  media            Media[]  @relation("ArtistToMedia")
 
   @@map("artist")
+}
+
+model Venue {
+  id            String        @id @default(cuid()) @map("_id")
+  name          String
+  address       String
+  city          String
+  postalCode    String
+  country       String        @default("France")
+  venueType     VenueType
+  capacity      Int?
+  description   String?
+  photoUrl      String?
+  logoUrl       String?
+  images        String[]      @default([])
+  paymentPolicy String?
+  techInfo      String?
+  ownerId       String
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  budgetMax     Int?
+  budgetMin     Int?
+  paymentTypes  PaymentType[] @default([])
+  latitude      Float?
+  longitude     Float?
+  owner         User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  genres        Genre[]       @relation("GenreToVenue")
+
+  @@map("venue")
+}
+
+model Genre {
+  id      String   @id @default(cuid()) @map("_id")
+  name    String   @unique
+  artists Artist[] @relation("ArtistToGenre")
+  venues  Venue[]  @relation("GenreToVenue")
+
+  @@map("genre")
+}
+
+model Media {
+  id          String   @id @default(cuid()) @map("_id")
+  name        String
+  description String?
+  website     String?
+  logoUrl     String?
+  country     String?  @default("France")
+  ownerId     String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  owner       User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  artist      Artist[] @relation("ArtistToMedia")
+
+  @@map("media")
+}
+
+model Conversation {
+  id           String                    @id @default(cuid()) @map("_id")
+  createdAt    DateTime                  @default(now())
+  updatedAt    DateTime                  @updatedAt
+  participants ConversationParticipant[]
+  messages     Message[]
+
+  @@map("conversation")
+}
+
+model ConversationParticipant {
+  id             String       @id @default(cuid()) @map("_id")
+  conversationId String
+  entityId       String
+  entityType     EntityType
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, entityId, entityType])
+  @@map("conversation_participant")
+}
+
+model Message {
+  id             String       @id @default(cuid()) @map("_id")
+  content        String
+  createdAt      DateTime     @default(now())
+  conversationId String
+  senderId       String
+  senderType     EntityType
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@map("message")
 }
 
 enum VenueType {
@@ -122,36 +206,6 @@ enum UserRole {
   BOTH
 }
 
-model Venue {
-  id            String    @id @default(cuid()) @map("_id")
-  name          String
-  address       String
-  city          String
-  postalCode    String
-  country       String    @default("France")
-  venueType     VenueType
-  capacity      Int?
-  description   String?   @db.Text
-  photoUrl      String?
-  logoUrl       String?
-  images        String[]  @default([])
-  paymentPolicy String?
-  paymentTypes  PaymentType[] @default([])
-  budgetMin     Int?
-  budgetMax     Int?
-  techInfo      String?
-  ownerId       String
-  owner         User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  genres        Genre[]
-  latitude      Float?
-  longitude     Float?
-  
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-
-  @@map("venue")
-}
-
 enum PaymentType {
   FIXED_FEE
   PERCENTAGE
@@ -159,11 +213,8 @@ enum PaymentType {
   NEGOTIABLE
 }
 
-model Genre {
-  id        String   @id @default(cuid()) @map("_id")
-  name      String   @unique
-  venues    Venue[]
-  artists   Artist[]
-  
-  @@map("genre")
+enum EntityType {
+  ARTIST
+  VENUE
+  MEDIA
 }
