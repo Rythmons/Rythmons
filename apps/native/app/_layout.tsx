@@ -22,11 +22,14 @@ import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect, useRef, useState } from "react";
 import { Platform } from "react-native";
+import { TamaguiProvider } from "tamagui";
+import { NoticeProvider, NoticeViewport } from "@/components/ui/notice";
 import { setAndroidNavigationBar } from "@/lib/android-navigation-bar";
 import { authClient } from "@/lib/auth-client";
 import { NAV_THEME } from "@/lib/constants";
 import { useColorScheme } from "@/lib/use-color-scheme";
 import { queryClient } from "@/utils/trpc";
+import tamaguiConfig from "../tamagui.config";
 
 const LIGHT_THEME: Theme = {
 	...DefaultTheme,
@@ -129,32 +132,43 @@ export default function RootLayout() {
 				}}
 			>
 				<ThemeProvider value={isDarkColorScheme ? DARK_THEME : LIGHT_THEME}>
-					<StatusBar style={isDarkColorScheme ? "light" : "dark"} />
-					<GestureHandlerRootView style={{ flex: 1 }}>
-						<Stack
-							screenOptions={{
-								headerTitleStyle: {
-									fontFamily: "Montserrat-Bold",
-								},
-								headerBackTitleStyle: {
-									fontFamily: "Montserrat-Regular",
-								},
-							}}
-						>
-							<Stack.Screen name="(drawer)" options={{ headerShown: false }} />
-							<Stack.Screen
-								name="modal"
-								options={{ title: "Modale", presentation: "modal" }}
-							/>
-							<Stack.Screen
-								name="verify-email"
-								options={{
-									title: "Vérification e-mail",
-									headerBackTitle: "Retour",
-								}}
-							/>
-						</Stack>
-					</GestureHandlerRootView>
+					<TamaguiProvider
+						config={tamaguiConfig}
+						defaultTheme={isDarkColorScheme ? "dark" : "light"}
+					>
+						<StatusBar style={isDarkColorScheme ? "light" : "dark"} />
+						<NoticeProvider>
+							<GestureHandlerRootView style={{ flex: 1 }}>
+								<Stack
+									screenOptions={{
+										headerTitleStyle: {
+											fontFamily: "Montserrat-Bold",
+										},
+										headerBackTitleStyle: {
+											fontFamily: "Montserrat-Regular",
+										},
+									}}
+								>
+									<Stack.Screen
+										name="(drawer)"
+										options={{ headerShown: false }}
+									/>
+									<Stack.Screen
+										name="modal"
+										options={{ title: "Modale", presentation: "modal" }}
+									/>
+									<Stack.Screen
+										name="verify-email"
+										options={{
+											title: "Vérification e-mail",
+											headerBackTitle: "Retour",
+										}}
+									/>
+								</Stack>
+								<NoticeViewport />
+							</GestureHandlerRootView>
+						</NoticeProvider>
+					</TamaguiProvider>
 				</ThemeProvider>
 			</PersistQueryClientProvider>
 		</AuthProvider>

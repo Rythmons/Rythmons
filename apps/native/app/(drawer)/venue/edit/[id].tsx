@@ -18,6 +18,7 @@ import { AddressAutocomplete } from "@/components/ui/address-autocomplete";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { Input } from "@/components/ui/input";
 import { KeyboardFormScreen } from "@/components/ui/keyboard-form-screen";
+import { useNotice } from "@/components/ui/notice";
 import { Text, Title } from "@/components/ui/typography";
 import { authClient } from "@/lib/auth-client";
 import { useContextualBackNavigation } from "@/lib/use-contextual-back-navigation";
@@ -68,6 +69,7 @@ interface FormData {
 }
 
 export default function EditVenueScreen() {
+	const { showNotice } = useNotice();
 	const params = useLocalSearchParams<{
 		id: string;
 		backTo?: string;
@@ -227,7 +229,11 @@ export default function EditVenueScreen() {
 					id: venue.id,
 					data: submitData,
 				});
-				Alert.alert("Succès", "Lieu mis à jour !");
+				showNotice({
+					title: "Lieu mis a jour",
+					message: "Les changements sont enregistres.",
+					kind: "success",
+				});
 			}
 
 			await refetch();

@@ -2,8 +2,10 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { Calendar, Loader2 } from "lucide-react";
+import type { Route } from "next";
 import Link from "next/link";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
 import { trpc } from "@/utils/trpc";
@@ -24,6 +26,7 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 export default function BookingsPage() {
+	const router = useRouter();
 	const { data: session, isPending: sessionPending } = authClient.useSession();
 	const [statusFilter, setStatusFilter] =
 		useState<(typeof STATUS_FILTERS)[number]["value"]>("ALL");
@@ -33,6 +36,12 @@ export default function BookingsPage() {
 		),
 		enabled: !!session?.user,
 	});
+
+	useEffect(() => {
+		if (!sessionPending && !session?.user) {
+			router.replace("/login");
+		}
+	}, [sessionPending, session, router]);
 
 	if (sessionPending || !session?.user) {
 		return (
@@ -95,9 +104,9 @@ export default function BookingsPage() {
 						const otherName = isSent
 							? b.venue.name
 							: ((b.artist as { stageName?: string }).stageName ?? "—");
-						const otherHref = isSent
-							? `/venue/${b.venue.id}`
-							: `/artist/${b.artist.id}`;
+						const otherHref = (
+							isSent ? `/venue/${b.venue.id}` : `/artist/${b.artist.id}`
+						) as Route;
 
 						return (
 							<li
@@ -138,7 +147,9 @@ export default function BookingsPage() {
 									</span>
 								</div>
 								<Button variant="outline" size="sm" asChild>
-									<Link href={`/dashboard/bookings/${b.id}`}>Voir</Link>
+									<Link href={`/dashboard/bookings/${b.id}` as Route}>
+										Voir
+									</Link>
 								</Button>
 							</li>
 						);

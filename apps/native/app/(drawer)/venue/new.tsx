@@ -18,6 +18,7 @@ import { AddressAutocomplete } from "@/components/ui/address-autocomplete";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { Input } from "@/components/ui/input";
 import { KeyboardFormScreen } from "@/components/ui/keyboard-form-screen";
+import { useNotice } from "@/components/ui/notice";
 import { Text, Title } from "@/components/ui/typography";
 import { authClient } from "@/lib/auth-client";
 import { useContextualBackNavigation } from "@/lib/use-contextual-back-navigation";
@@ -69,6 +70,7 @@ interface FormData {
 }
 
 export default function NewVenueScreen() {
+	const { showNotice } = useNotice();
 	const params = useLocalSearchParams<{ backTo?: string }>();
 	const backTo = Array.isArray(params.backTo)
 		? params.backTo[0]
@@ -173,7 +175,11 @@ export default function NewVenueScreen() {
 
 			const createdVenue = await createMutation.mutateAsync(submitData);
 			clearDraft();
-			Alert.alert("Succès", "Lieu créé avec succès !");
+			showNotice({
+				title: "Lieu cree",
+				message: "La fiche du lieu est prete.",
+				kind: "success",
+			});
 
 			await queryClient.invalidateQueries();
 			router.replace({

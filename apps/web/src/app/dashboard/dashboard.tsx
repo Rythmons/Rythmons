@@ -69,19 +69,25 @@ export default function Dashboard({ session }: { session: Session }) {
 	const _router = useRouter();
 	const userRole = session.user.role;
 
-	// Fetch Venues (Always fetch if we don't know the role yet, or if organizer)
+	// Fetch Venues
 	const { data: venues, isLoading: venuesLoading } = useQuery({
 		...trpc.venue.getMyVenues.queryOptions(),
 		enabled: !!session.user,
 	});
 
-	// Fetch Artists (Always fetch if we don't know the role yet, or if artist)
+	// Fetch Artists
 	const { data: artists, isLoading: artistsLoading } = useQuery({
 		...trpc.artist.myArtists.queryOptions(),
 		enabled: !!session.user,
 	});
 
-	const isLoading = venuesLoading || artistsLoading;
+	// Fetch Bookings to check for activity status
+	const { data: bookings, isLoading: bookingsLoading } = useQuery({
+		...trpc.booking.listMine.queryOptions(),
+		enabled: !!session.user,
+	});
+
+	const isLoading = venuesLoading || artistsLoading || bookingsLoading;
 
 	if (isLoading) {
 		return <DashboardSkeleton />;
@@ -354,6 +360,52 @@ export default function Dashboard({ session }: { session: Session }) {
 					</Button>
 				</div>
 			</div>
+			{/* Upcoming confirmed bookings (US31) */}
+			{bookings &&
+				bookings.filter((b) => b.status === "ACCEPTED").length > 0 && (
+					<section className="mb-10">
+						<div className="mb-4 flex items-center justify-between">
+							<h2 className="font-semibold text-white text-xl">
+								Prochaines dates
+							</h2>
+							<Button variant="link" asChild className="p-0 text-primary">
+								<Link href="/dashboard/bookings?status=ACCEPTED">
+									Voir tout →
+								</Link>
+							</Button>
+						</div>
+						<div className="scrollbar-hide flex gap-4 overflow-x-auto pb-4">
+							{bookings
+								.filter((b) => b.status === "ACCEPTED")
+								.slice(0, 5)
+								.map((b) => (
+									<Link
+										key={b.id}
+										href={`/dashboard/bookings/${b.id}`}
+										className="flex min-w-[280px] flex-col rounded-xl border border-white/10 bg-black/40 p-4 transition-colors hover:border-primary/50"
+									>
+										<div className="mb-2 flex items-center justify-between">
+											<span className="rounded bg-green-500/20 px-2 py-0.5 font-medium text-[10px] text-green-400 uppercase tracking-wider">
+												Confirmé
+											</span>
+											<span className="text-right text-white/40 text-xs">
+												{new Date(b.proposedDate).toLocaleDateString("fr-FR", {
+													day: "numeric",
+													month: "short",
+												})}
+											</span>
+										</div>
+										<p className="truncate font-semibold text-white">
+											{b.createdByUserId === session.user.id
+												? b.venue.name
+												: b.artist.stageName}
+										</p>
+										<p className="text-sm text-white/50">{b.venue.city}</p>
+									</Link>
+								))}
+						</div>
+					</section>
+				)}
 
 			{/* Two Column Layout for Desktop */}
 			<div className="grid gap-8 lg:grid-cols-2">
@@ -586,6 +638,97 @@ export default function Dashboard({ session }: { session: Session }) {
 					</section>
 				)}
 			</div>
+
+			{/* Suggested Next Steps (Quick Wins) */}
+			{(!bookings || bookings.length === 0) && (
+				<section className="mt-12 rounded-2xl border border-primary/20 bg-primary/5 p-8">
+					<div className="mb-6">
+						<h2 className="font-semibold text-white text-xl">
+							🚀 Prêt pour votre prochain concert ?
+						</h2>
+						<p className="text-white/60">
+							Voici quelques suggestions pour booster votre activité sur
+							Rythmons.
+						</p>
+					</div>
+					<div className="grid gap-4 md:grid-cols-3">
+						<Card className="border-white/10 bg-black/40 backdrop-blur-sm">
+							<CardHeader className="pb-2">
+								<CardTitle className="text-sm">
+									Trouver des partenaires
+								</CardTitle>
+							</CardHeader>
+							<CardContent>
+								<p className="text-muted-foreground text-xs">
+									Explorez les artistes et lieux près de chez vous.
+								</p>
+							</CardContent>
+							<CardFooter>
+								<Button
+									asChild
+									variant="link"
+									size="sm"
+									className="px-0 text-primary"
+								>
+									<Link href="/dashboard/search">Lancer une recherche →</Link>
+								</Button>
+							</CardFooter>
+						</Card>
+						<Card className="border-white/10 bg-black/40 backdrop-blur-sm">
+							<CardHeader className="pb-2">
+								<CardTitle className="text-sm">
+									Gérer vos disponibilités
+								</CardTitle>
+							</CardHeader>
+							<CardContent>
+								<p className="text-muted-foreground text-xs">
+									Mettez à jour votre calendrier pour être visible.
+								</p>
+							</CardContent>
+							<CardFooter>
+								<Button
+									asChild
+									variant="link"
+									size="sm"
+									className="px-0 text-primary"
+								>
+									<Link href="/dashboard/calendar">Ouvrir le calendrier →</Link>
+								</Button>
+							</CardFooter>
+						</Card>
+						<Card className="border-white/10 bg-black/40 backdrop-blur-sm">
+							<CardHeader className="pb-2">
+								<CardTitle className="text-sm">Peaufiner vos profils</CardTitle>
+							</CardHeader>
+							<CardContent>
+								<p className="text-muted-foreground text-xs">
+									Ajoutez des photos et votre fiche technique.
+								</p>
+							</CardContent>
+							<CardFooter>
+								<Button
+									asChild
+									variant="link"
+									size="sm"
+									className="px-0 text-primary"
+								>
+									<Link
+										href={
+											hasArtists
+												? `/artist/${artists[0]?.id}`
+												: hasVenues
+													? `/venue/${venues[0]?.id}`
+													: "/dashboard"
+										}
+									>
+										Modifier un profil →
+									</Link>
+								</Button>
+							</CardFooter>
+						</Card>
+					</div>
+				</section>
+			)}
 		</div>
 	);
 }

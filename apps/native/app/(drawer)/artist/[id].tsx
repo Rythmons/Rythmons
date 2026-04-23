@@ -17,6 +17,7 @@ import { Container } from "@/components/container";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { Input } from "@/components/ui/input";
 import { KeyboardFormScreen } from "@/components/ui/keyboard-form-screen";
+import { useNotice } from "@/components/ui/notice";
 import { Text, Title } from "@/components/ui/typography";
 import { authClient } from "@/lib/auth-client";
 import { useContextualBackNavigation } from "@/lib/use-contextual-back-navigation";
@@ -101,6 +102,7 @@ function isValidUrl(value: string) {
 }
 
 export default function ArtistProfileScreen() {
+	const { showNotice } = useNotice();
 	const params = useLocalSearchParams<{ id: string; backTo?: string }>();
 	const artistId = Array.isArray(params.id) ? params.id[0] : params.id;
 	const backTo = Array.isArray(params.backTo)
@@ -283,7 +285,11 @@ export default function ArtistProfileScreen() {
 			await queryClient.invalidateQueries();
 			setIsEditing(false);
 			await refetch();
-			Alert.alert("Succès", "Artiste mis à jour !");
+			showNotice({
+				title: "Artiste mis a jour",
+				message: "Les informations de la fiche sont enregistrees.",
+				kind: "success",
+			});
 		} catch (error) {
 			const message =
 				error instanceof Error ? error.message : "Erreur lors de la sauvegarde";
@@ -370,6 +376,9 @@ export default function ArtistProfileScreen() {
 	const genres = artist.genres ?? [];
 	const genreLabel =
 		genres.length > 0 ? genres.map((genre) => genre.name).join(" • ") : null;
+	const detailBackHref = backTo
+		? `/(drawer)/artist/${artist.id}?backTo=${encodeURIComponent(backTo)}`
+		: `/(drawer)/artist/${artist.id}`;
 
 	return (
 		<Container>
@@ -432,7 +441,10 @@ export default function ArtistProfileScreen() {
 										onPress={() =>
 											router.push({
 												pathname: "/(drawer)/bookings/propose",
-												params: { artistId: artist.id },
+												params: {
+													artistId: artist.id,
+													backTo: detailBackHref,
+												},
 											} as never)
 										}
 									>
@@ -481,7 +493,10 @@ export default function ArtistProfileScreen() {
 												onPress={() =>
 													router.push({
 														pathname: "/(drawer)/bookings/propose",
-														params: { artistId: artist.id },
+														params: {
+															artistId: artist.id,
+															backTo: detailBackHref,
+														},
 													} as never)
 												}
 											>

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { useNotice } from "@/components/ui/notice";
 import { Text, Title } from "@/components/ui/typography";
 import { queryClient } from "@/utils/trpc";
 import { GoogleAuthButton } from "../google-auth-button";
@@ -20,11 +21,16 @@ export function SignIn({
 	onSwitchToForgotPassword,
 	onInputFocus,
 }: Props) {
+	const { showNotice } = useNotice();
 	const { form, isLoading } = useSignInForm({
 		onSuccess: async () => {
 			void queryClient.refetchQueries();
 			router.replace("/(drawer)/profile");
-			Alert.alert("Succès", "Connexion réussie");
+			showNotice({
+				title: "Connexion reussie",
+				message: "Bienvenue sur votre espace Rythmons.",
+				kind: "success",
+			});
 		},
 		onError: (error) => {
 			Alert.alert("Connexion impossible", error);

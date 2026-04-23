@@ -3,7 +3,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Mic2 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense } from "react";
+import { Suspense, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { authClient } from "@/lib/auth-client";
@@ -60,6 +60,12 @@ function ArtistPageContent() {
 	const queryClient = useQueryClient();
 
 	const { data: session, isPending: sessionPending } = authClient.useSession();
+
+	useEffect(() => {
+		if (!sessionPending && !session?.user) {
+			router.replace("/login");
+		}
+	}, [sessionPending, session, router]);
 
 	// Fetch all artists for this user
 	const artistsQuery = useQuery({

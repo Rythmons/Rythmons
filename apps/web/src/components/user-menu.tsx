@@ -1,6 +1,6 @@
 import { useAuth } from "@rythmons/auth/client";
 import { useQuery } from "@tanstack/react-query";
-import { Building2, LogOut, Mic2, Search, User } from "lucide-react";
+import { Building2, LogOut, Mic2, User } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -31,11 +31,6 @@ export default function UserMenu() {
 	const router = useRouter();
 	const authClient = useAuth();
 	const { data: session, isPending } = authClient.useSession();
-	const sessionRole = (session?.user as { role?: string | null } | undefined)
-		?.role;
-	const hasArtistRole = sessionRole === "ARTIST" || sessionRole === "BOTH";
-	const hasOrganizerRole =
-		sessionRole === "ORGANIZER" || sessionRole === "BOTH";
 
 	// Fetch Artists and Venues for the menu
 	const { data: artists } = useQuery({
@@ -49,10 +44,6 @@ export default function UserMenu() {
 	});
 	const artistItems = (artists ?? []) as ArtistMenuItem[];
 	const venueItems = (venues ?? []) as VenueMenuItem[];
-	const canSearchVenues = hasArtistRole || artistItems.length > 0;
-	const canSearchArtists = hasOrganizerRole || venueItems.length > 0;
-	const canUseSearch = canSearchVenues || canSearchArtists;
-
 	if (isPending) {
 		return <Skeleton className="h-10 w-24" />;
 	}
@@ -70,29 +61,24 @@ export default function UserMenu() {
 			<DropdownMenuTrigger asChild>
 				<Button
 					variant="ghost"
-					className="relative h-10 w-full justify-start gap-2 overflow-hidden bg-card p-0 pr-4 text-left shadow-sm hover:bg-accent sm:w-auto"
+					className="relative h-10 gap-2 overflow-hidden px-2 hover:bg-white/5 sm:px-4"
 				>
-					{/* Default state: Show User Info (or maybe the first profile?) */}
-					{/* For now, replicating the 'User' state styled like a profile */}
-					<div className="flex h-full items-center">
-						<div className="flex h-full w-12 items-center justify-center bg-zinc-800 font-bold text-[10px] text-white">
-							UTIL.
+					<div className="flex items-center gap-2">
+						<div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-[#17011F]">
+							{session.user.image ? (
+								/* biome-ignore lint/performance/noImgElement: menu avatars use uploaded remote URLs */
+								<img
+									src={session.user.image}
+									alt={session.user.name}
+									className="h-full w-full rounded-full object-cover"
+								/>
+							) : (
+								<User className="h-4 w-4" />
+							)}
 						</div>
-						<div className="ml-3 flex items-center gap-3">
-							<div className="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800">
-								{session.user.image ? (
-									/* biome-ignore lint/performance/noImgElement: menu avatars use uploaded remote URLs */
-									<img
-										src={session.user.image}
-										alt={session.user.name}
-										className="h-full w-full rounded-full object-cover"
-									/>
-								) : (
-									<User className="h-4 w-4" />
-								)}
-							</div>
-							<span className="font-semibold">{session.user.name}</span>
-						</div>
+						<span className="hidden max-w-[100px] truncate font-display text-xs uppercase tracking-wider sm:block">
+							{session.user.name}
+						</span>
 					</div>
 				</Button>
 			</DropdownMenuTrigger>
@@ -165,18 +151,6 @@ export default function UserMenu() {
 				</div>
 
 				<DropdownMenuSeparator className="bg-white/10" />
-
-				{canUseSearch ? (
-					<DropdownMenuItem
-						className="flex cursor-pointer items-center gap-2 p-4 text-zinc-400 hover:text-white focus:bg-white/5 focus:text-white"
-						onClick={() => {
-							router.push("/dashboard/search");
-						}}
-					>
-						<Search className="h-4 w-4" />
-						<span>Recherche</span>
-					</DropdownMenuItem>
-				) : null}
 
 				<DropdownMenuItem
 					className="flex cursor-pointer items-center gap-2 p-4 text-zinc-400 hover:text-white focus:bg-white/5 focus:text-white"

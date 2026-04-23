@@ -6,7 +6,6 @@ import type { inferRouterOutputs } from "@trpc/server";
 import * as Location from "expo-location";
 import { router } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { ScrollView as ScrollViewType } from "react-native";
 import {
 	ActivityIndicator,
 	Image,
@@ -17,6 +16,7 @@ import {
 	View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Button as TButton, XStack } from "tamagui";
 import { Container } from "@/components/container";
 import { Input } from "@/components/ui/input";
 import { KeyboardFormScreen } from "@/components/ui/keyboard-form-screen";
@@ -44,6 +44,10 @@ type VenueListItem = {
 };
 
 type SearchTab = "venues" | "artists";
+type AppliedFilterChip = {
+	key: string;
+	label: string;
+};
 
 const RESULTS_PER_PAGE = 9;
 
@@ -81,9 +85,11 @@ function haveSameValues(left: string[], right: string[]) {
 
 export default function VenueSearchScreen() {
 	const { data: session, isPending: sessionPending } = authClient.useSession();
-	const scrollViewRef = useRef<ScrollViewType>(null);
+	const scrollViewRef = useRef<{
+		scrollTo?: (options: { y: number; animated?: boolean }) => void;
+		scrollToPosition?: (x: number, y: number, animated?: boolean) => void;
+	} | null>(null);
 	const insets = useSafeAreaInsets();
-	const contentPaddingBottom = insets.bottom + 220;
 	const [activeTab, setActiveTab] = useState<SearchTab>("venues");
 	const [search, setSearch] = useState("");
 	const [city, setCity] = useState("");
@@ -107,6 +113,9 @@ export default function VenueSearchScreen() {
 	const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
 	const [showAllGenres, setShowAllGenres] = useState(false);
 	const [showAllVenueTypes, setShowAllVenueTypes] = useState(false);
+	const [failedVenueLogoIds, setFailedVenueLogoIds] = useState<
+		Record<string, boolean>
+	>({});
 	const [viewMode, setViewMode] = useState<"list" | "map">("list");
 	const [appliedSearch, setAppliedSearch] = useState("");
 	const [appliedCity, setAppliedCity] = useState("");
@@ -293,14 +302,6 @@ export default function VenueSearchScreen() {
 	const pageSliceEnd = safePage * RESULTS_PER_PAGE;
 	const paginatedVenueItems = venues.slice(pageSliceStart, pageSliceEnd);
 	const paginatedArtistItems = artists.slice(pageSliceStart, pageSliceEnd);
-	const pageStart = activeItems.length === 0 ? 0 : pageSliceStart + 1;
-	const pageEnd = Math.min(pageSliceEnd, activeItems.length);
-	const paginationWindowStart = Math.max(1, safePage - 2);
-	const paginationWindowEnd = Math.min(totalPages, paginationWindowStart + 4);
-	const visiblePageNumbers = Array.from(
-		{ length: paginationWindowEnd - paginationWindowStart + 1 },
-		(_, i) => paginationWindowStart + i,
-	);
 	const activeQuery =
 		activeTab === "venues" ? venueSearchQuery : artistSearchQuery;
 	const visibleGenres = showAllGenres ? MUSIC_GENRES : MUSIC_GENRES.slice(0, 8);
@@ -366,11 +367,19 @@ export default function VenueSearchScreen() {
 
 	function goToPage(page: number) {
 		setCurrentPage(page);
-		scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+		if (scrollViewRef.current?.scrollToPosition) {
+			scrollViewRef.current.scrollToPosition(0, 0, true);
+			return;
+		}
+		scrollViewRef.current?.scrollTo?.({ y: 0, animated: true });
 	}
 
 	function scrollToTop() {
-		scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+		if (scrollViewRef.current?.scrollToPosition) {
+			scrollViewRef.current.scrollToPosition(0, 0, true);
+			return;
+		}
+		scrollViewRef.current?.scrollTo?.({ y: 0, animated: true });
 	}
 
 	function resetFilters() {
@@ -442,6 +451,110 @@ export default function VenueSearchScreen() {
 		setIsFilterModalOpen(false);
 	}
 
+	function persistAppliedState(next: {
+		search: string;
+		city: string;
+		postalCode: string;
+		radiusKm: number | null;
+		userCoords: { lat: number; lng: number } | null;
+		genres: string[];
+		venueType: string;
+		budgetMin: string;
+		budgetMax: string;
+		feeMin: string;
+		feeMax: string;
+	}) {
+		const state: PersistedSearchState = {
+			activeTab,
+			viewMode,
+			currentPage: 1,
+			search: next.search,
+			city: next.city,
+			postalCode: next.postalCode,
+			selectedGenres: next.genres,
+			selectedVenueType: next.venueType,
+			budgetMin: next.budgetMin,
+			budgetMax: next.budgetMax,
+			feeMin: next.feeMin,
+			feeMax: next.feeMax,
+			radiusKm: next.radiusKm,
+			userCoords: next.userCoords,
+		};
+		void setSearchState(state);
+	}
+
+	function removeAppliedFilter(chipKey: string) {
+		let nextSearch = appliedSearch;
+		let nextCity = appliedCity;
+		let nextPostalCode = appliedPostalCode;
+		let nextRadiusKm = appliedRadiusKm;
+		let nextUserCoords = appliedUserCoords;
+		let nextGenres = [...appliedGenres];
+		let nextVenueType = appliedVenueType;
+		let nextBudgetMin = appliedBudgetMin;
+		let nextBudgetMax = appliedBudgetMax;
+		let nextFeeMin = appliedFeeMin;
+		let nextFeeMax = appliedFeeMax;
+
+		if (chipKey === "search") nextSearch = "";
+		if (chipKey === "city") nextCity = "";
+		if (chipKey === "postalCode") nextPostalCode = "";
+		if (chipKey === "userCoords") nextUserCoords = null;
+		if (chipKey === "radiusKm") nextRadiusKm = null;
+		if (chipKey === "venueType") nextVenueType = "";
+		if (chipKey === "budgetMin") nextBudgetMin = "";
+		if (chipKey === "budgetMax") nextBudgetMax = "";
+		if (chipKey === "feeMin") nextFeeMin = "";
+		if (chipKey === "feeMax") nextFeeMax = "";
+		if (chipKey.startsWith("genre:")) {
+			const genreToRemove = chipKey.replace("genre:", "");
+			nextGenres = nextGenres.filter(
+				(genreName) => genreName !== genreToRemove,
+			);
+		}
+
+		setCurrentPage(1);
+		scrollToTop();
+		setSearch(nextSearch);
+		setCity(nextCity);
+		setPostalCode(nextPostalCode);
+		setRadiusKm(nextRadiusKm);
+		setUseMyLocation(nextUserCoords != null);
+		setMyLocationCoords(nextUserCoords);
+		setLocationStatus(nextUserCoords != null ? "success" : "idle");
+		setSelectedGenres(nextGenres);
+		setSelectedVenueType(nextVenueType);
+		setBudgetMin(nextBudgetMin);
+		setBudgetMax(nextBudgetMax);
+		setFeeMin(nextFeeMin);
+		setFeeMax(nextFeeMax);
+		setAppliedSearch(nextSearch);
+		setAppliedCity(nextCity);
+		setAppliedPostalCode(nextPostalCode);
+		setAppliedRadiusKm(nextRadiusKm);
+		setAppliedUserCoords(nextUserCoords);
+		setAppliedGenres(nextGenres);
+		setAppliedVenueType(nextVenueType);
+		setAppliedBudgetMin(nextBudgetMin);
+		setAppliedBudgetMax(nextBudgetMax);
+		setAppliedFeeMin(nextFeeMin);
+		setAppliedFeeMax(nextFeeMax);
+
+		persistAppliedState({
+			search: nextSearch,
+			city: nextCity,
+			postalCode: nextPostalCode,
+			radiusKm: nextRadiusKm,
+			userCoords: nextUserCoords,
+			genres: nextGenres,
+			venueType: nextVenueType,
+			budgetMin: nextBudgetMin,
+			budgetMax: nextBudgetMax,
+			feeMin: nextFeeMin,
+			feeMax: nextFeeMax,
+		});
+	}
+
 	const hasAdvancedFilters =
 		city.trim().length > 0 ||
 		postalCode.trim().length > 0 ||
@@ -454,28 +567,50 @@ export default function VenueSearchScreen() {
 				budgetMax.trim().length > 0
 			: feeMin.trim().length > 0 || feeMax.trim().length > 0);
 
-	const appliedFilterChips = [
-		...(appliedSearch ? [`Recherche: ${appliedSearch}`] : []),
-		...(appliedCity ? [`Ville: ${appliedCity}`] : []),
-		...(appliedPostalCode ? [`CP: ${appliedPostalCode}`] : []),
-		...(appliedUserCoords != null ? ["Ma position"] : []),
-		...(appliedRadiusKm != null ? [`Rayon: ${appliedRadiusKm} km`] : []),
-		...appliedGenres,
+	const appliedFilterChips: AppliedFilterChip[] = [
+		...(appliedSearch
+			? [{ key: "search", label: `Recherche: ${appliedSearch}` }]
+			: []),
+		...(appliedCity ? [{ key: "city", label: `Ville: ${appliedCity}` }] : []),
+		...(appliedPostalCode
+			? [{ key: "postalCode", label: `CP: ${appliedPostalCode}` }]
+			: []),
+		...(appliedUserCoords != null
+			? [{ key: "userCoords", label: "Ma position" }]
+			: []),
+		...(appliedRadiusKm != null
+			? [{ key: "radiusKm", label: `Rayon: ${appliedRadiusKm} km` }]
+			: []),
+		...appliedGenres.map((genreName) => ({
+			key: `genre:${genreName}`,
+			label: genreName,
+		})),
 		...(activeTab === "venues"
 			? [
 					...(appliedVenueType
 						? [
-								getVenueTypeLabel(
-									appliedVenueType as (typeof venueTypeValues)[number],
-								),
+								{
+									key: "venueType",
+									label: getVenueTypeLabel(
+										appliedVenueType as (typeof venueTypeValues)[number],
+									),
+								},
 							]
 						: []),
-					...(appliedBudgetMin ? [`Budget min ${appliedBudgetMin}€`] : []),
-					...(appliedBudgetMax ? [`Budget max ${appliedBudgetMax}€`] : []),
+					...(appliedBudgetMin
+						? [{ key: "budgetMin", label: `Budget min ${appliedBudgetMin}€` }]
+						: []),
+					...(appliedBudgetMax
+						? [{ key: "budgetMax", label: `Budget max ${appliedBudgetMax}€` }]
+						: []),
 				]
 			: [
-					...(appliedFeeMin ? [`Cachet min ${appliedFeeMin}€`] : []),
-					...(appliedFeeMax ? [`Cachet max ${appliedFeeMax}€`] : []),
+					...(appliedFeeMin
+						? [{ key: "feeMin", label: `Cachet min ${appliedFeeMin}€` }]
+						: []),
+					...(appliedFeeMax
+						? [{ key: "feeMax", label: `Cachet max ${appliedFeeMax}€` }]
+						: []),
 				]),
 	];
 
@@ -504,7 +639,7 @@ export default function VenueSearchScreen() {
 					</Text>
 					<TouchableOpacity
 						className="rounded-lg bg-primary px-4 py-2"
-						onPress={() => router.replace("/")}
+						onPress={() => router.replace("/(drawer)/login")}
 					>
 						<Text className="font-sans-medium text-primary-foreground">
 							Se connecter
@@ -549,26 +684,8 @@ export default function VenueSearchScreen() {
 		);
 	}
 
-	const heading =
-		canSearchVenues && canSearchArtists
-			? "Recherche"
-			: canSearchVenues
-				? "Rechercher des lieux"
-				: "Rechercher des artistes";
-
-	const subheading =
-		activeTab === "venues"
-			? "Trouvez des lieux et organisateurs deja presents sur Rythmons."
-			: "Trouvez des artistes deja presents sur Rythmons pour vos programmations.";
-	const filterSummary =
-		activeFilterCount > 0
-			? `${activeFilterCount} filtre(s) actif(s)`
-			: activeTab === "venues"
-				? "Ville, type de lieu, budget, genres"
-				: "Ville, cachet, genres";
-
 	return (
-		<Container>
+		<Container edges={["top", "left", "right"]}>
 			{viewMode === "map" && activeTab === "venues" ? (
 				<>
 					<View className="flex-row items-center justify-between border-border border-b px-4 py-3">
@@ -596,469 +713,676 @@ export default function VenueSearchScreen() {
 					<SearchMap venues={venues} />
 				</>
 			) : (
-				<KeyboardFormScreen>
-					<ScrollView
-						ref={scrollViewRef}
-						className="flex-1"
-						contentContainerStyle={{
-							flexGrow: 1,
-							paddingBottom: contentPaddingBottom,
-						}}
-						keyboardShouldPersistTaps="handled"
-						keyboardDismissMode="interactive"
-						contentInsetAdjustmentBehavior="always"
-						refreshControl={
-							<RefreshControl
-								refreshing={activeQuery.isFetching && !activeQuery.isLoading}
-								onRefresh={() => activeQuery.refetch()}
-							/>
-						}
-					>
-						<View className="mb-6">
-							<Title className="text-2xl text-foreground">{heading}</Title>
-							<Text className="mt-1 text-muted-foreground">{subheading}</Text>
-						</View>
-
-						{canSearchVenues && canSearchArtists ? (
-							<View className="mb-4 flex-row gap-3">
-								<TouchableOpacity
-									className={`flex-1 rounded-lg px-4 py-3 ${
+				<KeyboardFormScreen
+					bottomInsetOffset={12 - insets.bottom}
+					scrollRef={(ref) => {
+						scrollViewRef.current = ref as typeof scrollViewRef.current;
+					}}
+					refreshControl={
+						<RefreshControl
+							refreshing={activeQuery.isFetching && !activeQuery.isLoading}
+							onRefresh={() => void activeQuery.refetch()}
+						/>
+					}
+				>
+					{canSearchVenues && canSearchArtists ? (
+						<XStack marginBottom="$4" gap="$2">
+							<TButton
+								unstyled
+								flex={1}
+								height={42}
+								borderRadius="$4"
+								backgroundColor={activeTab === "venues" ? "$color8" : "$color2"}
+								borderWidth={activeTab === "venues" ? 0 : 1}
+								borderColor="$borderColor"
+								pressStyle={{ opacity: 0.9 }}
+								onPress={() => {
+									setActiveTab("venues");
+									setCurrentPage(1);
+									scrollToTop();
+								}}
+							>
+								<Text
+									className={`text-center font-sans-medium ${
 										activeTab === "venues"
-											? "bg-primary"
-											: "border border-border bg-card"
+											? "text-primary-foreground"
+											: "text-foreground"
 									}`}
-									onPress={() => {
-										setActiveTab("venues");
-										setCurrentPage(1);
-										scrollToTop();
-									}}
 								>
-									<Text
-										className={`text-center font-sans-medium ${
-											activeTab === "venues"
-												? "text-primary-foreground"
-												: "text-foreground"
-										}`}
-									>
-										Lieux
-									</Text>
-								</TouchableOpacity>
-								<TouchableOpacity
-									className={`flex-1 rounded-lg px-4 py-3 ${
+									Lieux
+								</Text>
+							</TButton>
+							<TButton
+								unstyled
+								flex={1}
+								height={42}
+								borderRadius="$4"
+								backgroundColor={
+									activeTab === "artists" ? "$color8" : "$color2"
+								}
+								borderWidth={activeTab === "artists" ? 0 : 1}
+								borderColor="$borderColor"
+								pressStyle={{ opacity: 0.9 }}
+								onPress={() => {
+									setActiveTab("artists");
+									setCurrentPage(1);
+									scrollToTop();
+								}}
+							>
+								<Text
+									className={`text-center font-sans-medium ${
 										activeTab === "artists"
-											? "bg-primary"
-											: "border border-border bg-card"
+											? "text-primary-foreground"
+											: "text-foreground"
 									}`}
-									onPress={() => {
-										setActiveTab("artists");
-										setCurrentPage(1);
-										scrollToTop();
-									}}
 								>
-									<Text
-										className={`text-center font-sans-medium ${
-											activeTab === "artists"
-												? "text-primary-foreground"
-												: "text-foreground"
-										}`}
-									>
-										Artistes
-									</Text>
-								</TouchableOpacity>
-							</View>
-						) : null}
+									Artistes
+								</Text>
+							</TButton>
+						</XStack>
+					) : null}
 
-						<View className="mb-4 rounded-xl border border-border bg-card p-4">
-							<View className="mb-3 flex-row items-start justify-between gap-3">
-								<View className="flex-1">
-									<Text className="font-sans-medium text-foreground">
-										Recherche rapide
-									</Text>
-									<Text className="mt-1 text-muted-foreground text-xs">
-										{filterSummary}
-									</Text>
-								</View>
-								<TouchableOpacity
-									className="rounded-full border border-border bg-background px-4 py-2"
-									onPress={() => setIsFilterModalOpen(true)}
-								>
-									<Text className="font-sans-medium text-foreground text-sm">
-										Filtres
-										{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
-									</Text>
-								</TouchableOpacity>
-							</View>
-							<View className="flex-row items-center rounded-lg border border-border bg-background px-3">
-								<Ionicons name="search-outline" size={18} color="#9ca3af" />
+					<View className="mb-4 gap-3">
+						<View className="flex-row items-center gap-2">
+							<View className="flex-1 flex-row items-center rounded-2xl border border-border bg-card px-4">
+								<Ionicons name="search-outline" size={18} color="#b5a9c3" />
 								<Input
-									className="flex-1 px-3 py-3 text-foreground"
+									className="flex-1 border-0 bg-transparent px-2 py-3.5 text-base text-foreground"
 									value={search}
 									onChangeText={setSearch}
 									onSubmitEditing={applyFilters}
-									placeholder="Nom, ville, code postal, genre..."
-									placeholderTextColor="#9ca3af"
+									placeholder="Artiste, lieu ou ville"
+									placeholderTextColor="#b5a9c3"
 									autoCapitalize="none"
 									autoCorrect={false}
+									returnKeyType="search"
 								/>
-								<TouchableOpacity
-									className={`rounded-full px-3 py-2 ${
-										hasPendingChanges ? "bg-primary" : "bg-muted"
-									}`}
-									onPress={applyFilters}
-									disabled={!hasPendingChanges}
-								>
-									<Text className="font-sans-medium text-primary-foreground text-xs">
-										Go
-									</Text>
-								</TouchableOpacity>
-							</View>
-							<View className="mt-4 flex-row items-center justify-between gap-3">
-								<Text className="text-muted-foreground text-xs">
-									{hasPendingChanges
-										? "Des changements sont prets a etre appliques."
-										: "Les resultats affichent votre derniere recherche appliquee."}
-								</Text>
-								{hasAdvancedFilters || appliedFilterChips.length > 0 ? (
-									<TouchableOpacity onPress={resetFilters}>
-										<Text className="text-primary text-xs">Tout effacer</Text>
+								{search.trim().length > 0 ? (
+									<TouchableOpacity
+										className="rounded-full bg-muted px-2 py-1.5"
+										onPress={() => setSearch("")}
+									>
+										<Ionicons name="close" size={12} color="#d7cde2" />
 									</TouchableOpacity>
 								) : null}
 							</View>
-
-							{appliedFilterChips.length > 0 ? (
-								<View className="mt-3 flex-row flex-wrap gap-2">
-									{appliedFilterChips.map((chip) => (
-										<View
-											key={chip}
-											className="rounded-full border border-border bg-background px-3 py-2"
-										>
-											<Text className="text-foreground text-xs">{chip}</Text>
-										</View>
-									))}
-								</View>
-							) : null}
+							<TouchableOpacity
+								className="relative flex-row items-center gap-2 rounded-2xl border border-border bg-card px-4 py-3.5"
+								onPress={() => setIsFilterModalOpen(true)}
+							>
+								<Ionicons name="options-outline" size={16} color="#f5f1fa" />
+								<Text className="font-sans-medium text-foreground text-sm">
+									Filtres
+								</Text>
+								{activeFilterCount > 0 ? (
+									<View className="absolute -top-1 -right-1 min-w-[18px] items-center rounded-full bg-primary px-1">
+										<Text className="font-sans-bold text-[10px] text-primary-foreground">
+											{activeFilterCount}
+										</Text>
+									</View>
+								) : null}
+							</TouchableOpacity>
 						</View>
 
-						<View className="mb-4 flex-row items-center justify-between">
-							<Text className="text-muted-foreground text-sm">
-								{appliedSearch
-									? `${activeItems.length} resultat(s) pour "${appliedSearch}"`
-									: activeTab === "venues"
-										? `${activeItems.length} lieu(x) disponible(s)`
-										: `${activeItems.length} artiste(s) disponible(s)`}
-							</Text>
-							<View className="flex-row items-center gap-3">
-								{activeItems.length > 0 ? (
-									<Text className="text-muted-foreground text-xs">
-										{pageStart}-{pageEnd} sur {activeItems.length}
-									</Text>
-								) : null}
-								{activeQuery.isFetching && !activeQuery.isLoading ? (
-									<Text className="text-muted-foreground text-xs">
-										Mise a jour...
-									</Text>
-								) : null}
-							</View>
-						</View>
+						{hasPendingChanges ? (
+							<TouchableOpacity
+								className="flex-row items-center justify-center rounded-xl bg-primary px-4 py-3"
+								onPress={applyFilters}
+							>
+								<Text className="font-sans-medium text-primary-foreground">
+									Mettre a jour les resultats
+								</Text>
+							</TouchableOpacity>
+						) : null}
 
-						{activeTab === "venues" &&
-						activeItems.length > 0 &&
-						!activeQuery.isLoading &&
-						!activeQuery.isError ? (
-							<View className="mb-4 flex-row items-center rounded-lg border border-border bg-card p-1">
+						<ScrollView
+							horizontal
+							showsHorizontalScrollIndicator={false}
+							contentContainerStyle={{ gap: 8, paddingRight: 4 }}
+						>
+							<TouchableOpacity
+								className={`rounded-full border px-3 py-2 ${
+									useMyLocation
+										? "border-primary bg-primary"
+										: "border-border bg-background"
+								}`}
+								onPress={() => void handleMyLocationToggle()}
+							>
+								<Text
+									className={`font-sans-medium text-xs ${
+										useMyLocation
+											? "text-primary-foreground"
+											: "text-foreground"
+									}`}
+								>
+									Autour de moi
+								</Text>
+							</TouchableOpacity>
+							<TouchableOpacity
+								className={`rounded-full border px-3 py-2 ${
+									radiusKm === 25
+										? "border-primary bg-primary"
+										: "border-border bg-background"
+								}`}
+								onPress={() =>
+									setRadiusKm((currentKm) => (currentKm === 25 ? null : 25))
+								}
+							>
+								<Text
+									className={`font-sans-medium text-xs ${
+										radiusKm === 25
+											? "text-primary-foreground"
+											: "text-foreground"
+									}`}
+								>
+									25 km
+								</Text>
+							</TouchableOpacity>
+							{activeTab === "venues" ? (
 								<TouchableOpacity
-									className={`flex-1 items-center rounded-md py-2 ${viewMode === "list" ? "bg-primary" : ""}`}
-									onPress={() => setViewMode("list")}
+									className={`rounded-full border px-3 py-2 ${
+										viewMode === "map"
+											? "border-primary bg-primary"
+											: "border-border bg-background"
+									}`}
+									onPress={() =>
+										setViewMode((currentMode) =>
+											currentMode === "map" ? "list" : "map",
+										)
+									}
 								>
 									<Text
-										className={`font-sans-medium text-sm ${viewMode === "list" ? "text-primary-foreground" : "text-foreground"}`}
-									>
-										Liste
-									</Text>
-								</TouchableOpacity>
-								<TouchableOpacity
-									className={`flex-1 items-center rounded-md py-2 ${viewMode === "map" ? "bg-primary" : ""}`}
-									onPress={() => setViewMode("map")}
-								>
-									<Text
-										className={`font-sans-medium text-sm ${viewMode === "map" ? "text-primary-foreground" : "text-foreground"}`}
+										className={`font-sans-medium text-xs ${
+											viewMode === "map"
+												? "text-primary-foreground"
+												: "text-foreground"
+										}`}
 									>
 										Carte
 									</Text>
 								</TouchableOpacity>
-							</View>
-						) : null}
-
-						{activeQuery.isLoading ? (
-							<View className="rounded-xl border border-border bg-card p-6">
-								<ActivityIndicator size="large" />
-								<Text className="mt-3 text-center text-muted-foreground">
-									Chargement des resultats...
-								</Text>
-							</View>
-						) : activeQuery.isError ? (
-							<View className="rounded-xl border border-destructive/30 bg-card p-4">
-								<Text className="font-sans-medium text-destructive">
-									Impossible de charger les resultats.
-								</Text>
-								<Text className="mt-1 text-muted-foreground">
-									Verifiez votre connexion puis reessayez.
-								</Text>
+							) : null}
+							{activeTab === "venues" ? (
+								<>
+									<TouchableOpacity
+										className={`rounded-full border px-3 py-2 ${
+											selectedVenueType === "CLUB"
+												? "border-primary bg-primary"
+												: "border-border bg-background"
+										}`}
+										onPress={() =>
+											setSelectedVenueType((currentType) =>
+												currentType === "CLUB" ? "" : "CLUB",
+											)
+										}
+									>
+										<Text
+											className={`font-sans-medium text-xs ${
+												selectedVenueType === "CLUB"
+													? "text-primary-foreground"
+													: "text-foreground"
+											}`}
+										>
+											Club
+										</Text>
+									</TouchableOpacity>
+									<TouchableOpacity
+										className={`rounded-full border px-3 py-2 ${
+											selectedVenueType === "CAFE"
+												? "border-primary bg-primary"
+												: "border-border bg-background"
+										}`}
+										onPress={() =>
+											setSelectedVenueType((currentType) =>
+												currentType === "CAFE" ? "" : "CAFE",
+											)
+										}
+									>
+										<Text
+											className={`font-sans-medium text-xs ${
+												selectedVenueType === "CAFE"
+													? "text-primary-foreground"
+													: "text-foreground"
+											}`}
+										>
+											Cafe
+										</Text>
+									</TouchableOpacity>
+								</>
+							) : (
 								<TouchableOpacity
-									className="mt-3 self-start rounded-lg bg-primary px-4 py-2"
-									onPress={() => void activeQuery.refetch()}
+									className={`rounded-full border px-3 py-2 ${
+										feeMax.trim().length > 0
+											? "border-primary bg-primary"
+											: "border-border bg-background"
+									}`}
+									onPress={() =>
+										setFeeMax((currentFeeMax) => (currentFeeMax ? "" : "600"))
+									}
 								>
-									<Text className="font-sans-medium text-primary-foreground">
-										Reessayer
+									<Text
+										className={`font-sans-medium text-xs ${
+											feeMax.trim().length > 0
+												? "text-primary-foreground"
+												: "text-foreground"
+										}`}
+									>
+										Cachet max 600 €
+									</Text>
+								</TouchableOpacity>
+							)}
+						</ScrollView>
+
+						{hasAdvancedFilters || appliedFilterChips.length > 0 ? (
+							<View className="mt-2 flex-row items-center justify-between">
+								<Text className="text-muted-foreground text-xs">
+									{activeFilterCount} filtre(s) actif(s)
+								</Text>
+								<TouchableOpacity onPress={resetFilters}>
+									<Text className="font-sans-medium text-primary text-xs">
+										Reinitialiser
 									</Text>
 								</TouchableOpacity>
 							</View>
-						) : activeItems.length === 0 ? (
-							<View className="rounded-xl border border-border bg-card p-4">
-								<Text className="font-sans-bold text-foreground">
-									Aucun {activeTab === "venues" ? "lieu" : "artiste"} trouve
-									pour ces criteres
-								</Text>
-								<Text className="mt-2 text-muted-foreground">
-									Essayez une autre ville, un autre genre ou ajustez vos
-									filtres.
-								</Text>
-							</View>
-						) : (
-							<View className="gap-3">
-								{activeTab === "venues"
-									? paginatedVenueItems.map((venue) => {
-											const genreLabel = venue.genres.length
-												? venue.genres.map((genre) => genre.name).join(" • ")
-												: "Genres non renseignes";
+						) : null}
 
-											return (
-												<TouchableOpacity
-													key={venue.id}
-													className="overflow-hidden rounded-xl border border-border bg-card"
-													onPress={() =>
-														router.push({
-															pathname: "/(drawer)/venue/[id]",
-															params: {
-																id: venue.id,
-																backTo: "/(drawer)/search",
-															},
-														})
-													}
-												>
-													{venue.photoUrl ? (
+						{appliedFilterChips.length > 0 ? (
+							<ScrollView
+								horizontal
+								showsHorizontalScrollIndicator={false}
+								contentContainerStyle={{
+									gap: 8,
+									paddingTop: 10,
+									paddingRight: 4,
+								}}
+							>
+								{appliedFilterChips.map((chip) => (
+									<TouchableOpacity
+										key={chip.key}
+										className="flex-row items-center gap-1 rounded-full border border-border bg-background px-3 py-2"
+										onPress={() => removeAppliedFilter(chip.key)}
+									>
+										<Text className="text-foreground text-xs">
+											{chip.label}
+										</Text>
+										<Ionicons name="close" size={12} color="#9ca3af" />
+									</TouchableOpacity>
+								))}
+							</ScrollView>
+						) : null}
+					</View>
+
+					<View className="mb-3 flex-row items-center justify-between">
+						<Text className="text-muted-foreground text-sm">
+							{appliedSearch
+								? `${activeItems.length} resultat(s) pour "${appliedSearch}"`
+								: activeTab === "venues"
+									? `${activeItems.length} lieu(x) disponible(s)`
+									: `${activeItems.length} artiste(s) disponible(s)`}
+						</Text>
+						{activeQuery.isFetching && !activeQuery.isLoading ? (
+							<Text className="text-muted-foreground text-xs">
+								Mise a jour...
+							</Text>
+						) : null}
+					</View>
+
+					{activeTab === "venues" &&
+					activeItems.length > 0 &&
+					!activeQuery.isLoading &&
+					!activeQuery.isError ? (
+						<View className="mb-4 flex-row items-center rounded-lg border border-border bg-card p-1">
+							<TouchableOpacity
+								className={`flex-1 items-center rounded-md py-2 ${viewMode === "list" ? "bg-primary" : ""}`}
+								onPress={() => setViewMode("list")}
+							>
+								<Text
+									className={`font-sans-medium text-sm ${viewMode === "list" ? "text-primary-foreground" : "text-foreground"}`}
+								>
+									Liste
+								</Text>
+							</TouchableOpacity>
+							<TouchableOpacity
+								className={`flex-1 items-center rounded-md py-2 ${viewMode === "map" ? "bg-primary" : ""}`}
+								onPress={() => setViewMode("map")}
+							>
+								<Text
+									className={`font-sans-medium text-sm ${viewMode === "map" ? "text-primary-foreground" : "text-foreground"}`}
+								>
+									Carte
+								</Text>
+							</TouchableOpacity>
+						</View>
+					) : null}
+
+					{activeQuery.isLoading ? (
+						<View className="rounded-xl border border-border bg-card p-6">
+							<ActivityIndicator size="large" />
+							<Text className="mt-3 text-center text-muted-foreground">
+								Chargement des resultats...
+							</Text>
+						</View>
+					) : activeQuery.isError ? (
+						<View className="rounded-xl border border-destructive/30 bg-card p-4">
+							<Text className="font-sans-medium text-destructive">
+								Impossible de charger les resultats.
+							</Text>
+							<Text className="mt-1 text-muted-foreground">
+								Verifiez votre connexion puis reessayez.
+							</Text>
+							<TouchableOpacity
+								className="mt-3 self-start rounded-lg bg-primary px-4 py-2"
+								onPress={() => void activeQuery.refetch()}
+							>
+								<Text className="font-sans-medium text-primary-foreground">
+									Reessayer
+								</Text>
+							</TouchableOpacity>
+						</View>
+					) : activeItems.length === 0 ? (
+						<View className="rounded-xl border border-border bg-card p-4">
+							<Text className="font-sans-bold text-foreground">
+								Aucun {activeTab === "venues" ? "lieu" : "artiste"} trouve pour
+								ces criteres
+							</Text>
+							<Text className="mt-2 text-muted-foreground">
+								Essayez une autre ville, un autre genre ou ajustez vos filtres.
+							</Text>
+						</View>
+					) : (
+						<View className="gap-3">
+							{activeTab === "venues"
+								? paginatedVenueItems.map((venue) => {
+										const genreLabel = venue.genres.length
+											? venue.genres.map((genre) => genre.name).join(" • ")
+											: "Genres non renseignes";
+										const topGenres = venue.genres
+											.slice(0, 3)
+											.map((genre) => genre.name);
+										const hasVenueHeroImage = Boolean(venue.photoUrl);
+
+										return (
+											<TouchableOpacity
+												key={venue.id}
+												className="overflow-hidden rounded-2xl border border-border bg-card"
+												onPress={() =>
+													router.push({
+														pathname: "/(drawer)/venue/[id]",
+														params: {
+															id: venue.id,
+															backTo: "/(drawer)/search",
+														},
+													})
+												}
+											>
+												<View className="relative">
+													{hasVenueHeroImage ? (
 														<Image
-															source={{ uri: venue.photoUrl }}
-															className="h-28 w-full"
+															source={{ uri: venue.photoUrl ?? undefined }}
+															className="h-40 w-full"
 															resizeMode="cover"
 														/>
 													) : (
-														<View className="h-28 w-full bg-primary/10" />
-													)}
-
-													<View className="p-4">
-														<View className="mb-3 flex-row items-center gap-3">
-															{venue.logoUrl ? (
-																<Image
-																	source={{ uri: venue.logoUrl }}
-																	className="h-12 w-12 rounded-lg border border-border"
-																/>
-															) : (
-																<View className="h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
+														<View className="h-28 w-full items-center justify-center bg-muted">
+															<View className="items-center gap-2">
+																<View className="rounded-full bg-background/80 p-3">
 																	<Ionicons
 																		name="business-outline"
-																		size={22}
-																		color="#7c3aed"
+																		size={28}
+																		color="#a78bfa"
 																	/>
 																</View>
-															)}
-
-															<View className="flex-1">
-																<Title className="text-foreground text-lg">
-																	{venue.name}
-																</Title>
-																<Text className="text-muted-foreground text-sm">
-																	{venue.city} •{" "}
-																	{getVenueTypeLabel(venue.venueType)}
+																<Text className="font-sans-medium text-foreground text-sm">
+																	Visuel a venir
 																</Text>
 															</View>
-
-															<Ionicons
-																name="chevron-forward"
-																size={18}
-																color="#9ca3af"
-															/>
 														</View>
-
-														<Text className="mb-2 text-muted-foreground text-sm">
-															Organisateur : {venue.owner.name}
-														</Text>
-														<Text className="mb-2 text-muted-foreground text-sm">
-															{genreLabel}
-														</Text>
-														<Text
-															className="text-muted-foreground"
-															numberOfLines={3}
-														>
-															{venue.description ||
-																"Aucune description n'a encore ete ajoutee pour ce lieu."}
+													)}
+													{hasVenueHeroImage ? (
+														<View className="absolute inset-0 bg-black/20" />
+													) : null}
+													<View className="absolute top-3 left-3 rounded-full bg-background/90 px-3 py-1">
+														<Text className="font-sans-medium text-foreground text-xs">
+															{getVenueTypeLabel(venue.venueType)}
 														</Text>
 													</View>
-												</TouchableOpacity>
-											);
-										})
-									: paginatedArtistItems.map((artist) => {
-											const genreLabel = artist.genres.length
-												? artist.genres.map((genre) => genre.name).join(" • ")
-												: "Genres non renseignes";
+													<View className="absolute right-3 bottom-3 rounded-full bg-background/90 px-3 py-1">
+														<Text className="font-sans-medium text-foreground text-xs">
+															{venue.city}
+														</Text>
+													</View>
+												</View>
 
-											return (
-												<TouchableOpacity
-													key={artist.id}
-													className="overflow-hidden rounded-xl border border-border bg-card"
-													onPress={() =>
-														router.push({
-															pathname: "/(drawer)/artist/[id]",
-															params: {
-																id: artist.id,
-																backTo: "/(drawer)/search",
-															},
-														})
-													}
-												>
-													{artist.bannerUrl || artist.photoUrl ? (
-														<View className="relative">
+												<View className="p-4">
+													<View className="flex-row items-start gap-3">
+														{venue.logoUrl && !failedVenueLogoIds[venue.id] ? (
 															<Image
-																source={{
-																	uri:
-																		artist.bannerUrl ||
-																		artist.photoUrl ||
-																		undefined,
-																}}
-																className="h-32 w-full"
-																resizeMode="cover"
+																source={{ uri: venue.logoUrl }}
+																className="-mt-8 h-14 w-14 rounded-xl border-2 border-background"
+																onError={() =>
+																	setFailedVenueLogoIds((currentState) => ({
+																		...currentState,
+																		[venue.id]: true,
+																	}))
+																}
 															/>
-															<View className="absolute inset-0 bg-black/25" />
-															{artist.images.length > 0 ? (
-																<View className="absolute top-3 right-3 rounded-full bg-background/90 px-3 py-1">
-																	<Text className="font-sans-medium text-foreground text-xs">
-																		{artist.images.length} photo(s)
+														) : (
+															<View className="-mt-8 h-14 w-14 items-center justify-center rounded-xl border-2 border-background bg-primary/10">
+																<Ionicons
+																	name="business-outline"
+																	size={24}
+																	color="#7c3aed"
+																/>
+															</View>
+														)}
+
+														<View className="flex-1">
+															<Title className="text-foreground text-xl">
+																{venue.name}
+															</Title>
+															<Text className="text-muted-foreground text-xs">
+																Organisateur: {venue.owner.name}
+															</Text>
+														</View>
+
+														<Ionicons
+															name="chevron-forward"
+															size={20}
+															color="#9ca3af"
+														/>
+													</View>
+
+													{topGenres.length > 0 ? (
+														<View className="mt-3 flex-row flex-wrap gap-2">
+															{topGenres.map((genreName) => (
+																<View
+																	key={`${venue.id}-${genreName}`}
+																	className="rounded-full border border-border bg-background px-2.5 py-1"
+																>
+																	<Text className="text-foreground text-xs">
+																		{genreName}
 																	</Text>
 																</View>
-															) : null}
+															))}
 														</View>
-													) : null}
-
-													<View className="p-4">
-														<View className="mb-3 flex-row items-center gap-3">
-															{artist.photoUrl ? (
-																<Image
-																	source={{ uri: artist.photoUrl }}
-																	className="h-14 w-14 rounded-full border border-border"
-																/>
-															) : (
-																<View className="h-14 w-14 items-center justify-center rounded-full bg-primary/10">
-																	<Ionicons
-																		name="musical-notes-outline"
-																		size={24}
-																		color="#7c3aed"
-																	/>
-																</View>
-															)}
-
-															<View className="flex-1">
-																<Title className="text-foreground text-lg">
-																	{artist.stageName}
-																</Title>
-																<Text className="text-muted-foreground text-sm">
-																	{artist.city || "Localisation non renseignee"}
-																</Text>
-															</View>
-															<Ionicons
-																name="chevron-forward"
-																size={18}
-																color="#9ca3af"
-															/>
-														</View>
-														<Text className="mb-2 text-muted-foreground text-sm">
+													) : (
+														<Text className="mt-3 text-muted-foreground text-xs">
 															{genreLabel}
 														</Text>
-														<Text className="mb-2 text-muted-foreground text-sm">
+													)}
+
+													<Text
+														className="mt-3 text-muted-foreground text-sm"
+														numberOfLines={2}
+													>
+														{venue.description ||
+															"Aucune description n'a encore ete ajoutee pour ce lieu."}
+													</Text>
+												</View>
+											</TouchableOpacity>
+										);
+									})
+								: paginatedArtistItems.map((artist) => {
+										const genreLabel = artist.genres.length
+											? artist.genres.map((genre) => genre.name).join(" • ")
+											: "Genres non renseignes";
+										const topGenres = artist.genres
+											.slice(0, 3)
+											.map((genre) => genre.name);
+										const hasArtistHeroImage = Boolean(
+											artist.bannerUrl || artist.photoUrl,
+										);
+
+										return (
+											<TouchableOpacity
+												key={artist.id}
+												className="overflow-hidden rounded-2xl border border-border bg-card"
+												onPress={() =>
+													router.push({
+														pathname: "/(drawer)/artist/[id]",
+														params: {
+															id: artist.id,
+															backTo: "/(drawer)/search",
+														},
+													})
+												}
+											>
+												<View className="relative">
+													{hasArtistHeroImage ? (
+														<Image
+															source={{
+																uri:
+																	artist.bannerUrl ||
+																	artist.photoUrl ||
+																	undefined,
+															}}
+															className="h-40 w-full"
+															resizeMode="cover"
+														/>
+													) : (
+														<View className="h-28 w-full items-center justify-center bg-muted">
+															<View className="items-center gap-2">
+																<View className="rounded-full bg-background/80 p-3">
+																	<Ionicons
+																		name="musical-notes-outline"
+																		size={28}
+																		color="#a78bfa"
+																	/>
+																</View>
+																<Text className="font-sans-medium text-foreground text-sm">
+																	Visuel a venir
+																</Text>
+															</View>
+														</View>
+													)}
+													{hasArtistHeroImage ? (
+														<View className="absolute inset-0 bg-black/25" />
+													) : null}
+													<View className="absolute right-3 bottom-3 rounded-full bg-background/90 px-3 py-1">
+														<Text className="font-sans-medium text-foreground text-xs">
 															{formatRangeLabel(artist.feeMin, artist.feeMax)}
 														</Text>
-														<Text
-															className="text-muted-foreground"
-															numberOfLines={3}
-														>
-															{artist.bio ||
-																"Aucune description n'a encore ete ajoutee pour cet artiste."}
-														</Text>
 													</View>
-												</TouchableOpacity>
-											);
-										})}
-							</View>
-						)}
+												</View>
 
-						{activeItems.length > 0 && totalPages > 1 ? (
-							<View className="mt-6 items-center gap-3 border-border border-t pt-5">
-								<Text className="text-muted-foreground text-sm">
-									Page {safePage} sur {totalPages}
+												<View className="p-4">
+													<View className="flex-row items-start gap-3">
+														{artist.photoUrl ? (
+															<Image
+																source={{ uri: artist.photoUrl }}
+																className="-mt-8 h-16 w-16 rounded-full border-2 border-background"
+															/>
+														) : (
+															<View className="-mt-8 h-16 w-16 items-center justify-center rounded-full border-2 border-background bg-primary/10">
+																<Ionicons
+																	name="musical-notes-outline"
+																	size={26}
+																	color="#7c3aed"
+																/>
+															</View>
+														)}
+
+														<View className="flex-1">
+															<Title className="text-foreground text-xl">
+																{artist.stageName}
+															</Title>
+															<Text className="text-muted-foreground text-xs">
+																{artist.city || "Localisation non renseignee"}
+															</Text>
+														</View>
+														<Ionicons
+															name="chevron-forward"
+															size={20}
+															color="#9ca3af"
+														/>
+													</View>
+
+													{topGenres.length > 0 ? (
+														<View className="mt-3 flex-row flex-wrap gap-2">
+															{topGenres.map((genreName) => (
+																<View
+																	key={`${artist.id}-${genreName}`}
+																	className="rounded-full border border-border bg-background px-2.5 py-1"
+																>
+																	<Text className="text-foreground text-xs">
+																		{genreName}
+																	</Text>
+																</View>
+															))}
+														</View>
+													) : (
+														<Text className="mt-3 text-muted-foreground text-xs">
+															{genreLabel}
+														</Text>
+													)}
+
+													<Text
+														className="mt-3 text-muted-foreground text-sm"
+														numberOfLines={2}
+													>
+														{artist.bio ||
+															"Aucune description n'a encore ete ajoutee pour cet artiste."}
+													</Text>
+												</View>
+											</TouchableOpacity>
+										);
+									})}
+						</View>
+					)}
+
+					{activeItems.length > 0 && totalPages > 1 ? (
+						<View className="mt-5 flex-row items-center justify-between border-border border-t pt-4">
+							<TouchableOpacity
+								className={`rounded-lg border px-4 py-2 ${
+									safePage === 1
+										? "border-border bg-muted opacity-40"
+										: "border-border bg-card"
+								}`}
+								onPress={() => goToPage(safePage - 1)}
+								disabled={safePage === 1}
+							>
+								<Text className="font-sans-medium text-foreground text-sm">
+									Precedent
 								</Text>
-								<View className="flex-row flex-wrap justify-center gap-2">
-									<TouchableOpacity
-										className={`rounded-lg border px-4 py-2 ${
-											safePage === 1
-												? "border-border bg-muted opacity-40"
-												: "border-border bg-card"
-										}`}
-										onPress={() => goToPage(safePage - 1)}
-										disabled={safePage === 1}
-									>
-										<Text className="font-sans-medium text-foreground text-sm">
-											← Préc.
-										</Text>
-									</TouchableOpacity>
-									{visiblePageNumbers.map((pageNumber) => (
-										<TouchableOpacity
-											key={pageNumber}
-											className={`h-9 w-9 items-center justify-center rounded-lg border ${
-												pageNumber === safePage
-													? "border-primary bg-primary"
-													: "border-border bg-card"
-											}`}
-											onPress={() => goToPage(pageNumber)}
-										>
-											<Text
-												className={`font-sans-medium text-sm ${
-													pageNumber === safePage
-														? "text-primary-foreground"
-														: "text-foreground"
-												}`}
-											>
-												{pageNumber}
-											</Text>
-										</TouchableOpacity>
-									))}
-									<TouchableOpacity
-										className={`rounded-lg border px-4 py-2 ${
-											safePage === totalPages
-												? "border-border bg-muted opacity-40"
-												: "border-border bg-card"
-										}`}
-										onPress={() => goToPage(safePage + 1)}
-										disabled={safePage === totalPages}
-									>
-										<Text className="font-sans-medium text-foreground text-sm">
-											Suiv. →
-										</Text>
-									</TouchableOpacity>
-								</View>
-							</View>
-						) : null}
-
-						<View className="h-8" />
-					</ScrollView>
+							</TouchableOpacity>
+							<Text className="text-muted-foreground text-sm">
+								Page {safePage}/{totalPages}
+							</Text>
+							<TouchableOpacity
+								className={`rounded-lg border px-4 py-2 ${
+									safePage === totalPages
+										? "border-border bg-muted opacity-40"
+										: "border-border bg-card"
+								}`}
+								onPress={() => goToPage(safePage + 1)}
+								disabled={safePage === totalPages}
+							>
+								<Text className="font-sans-medium text-foreground text-sm">
+									Suivant
+								</Text>
+							</TouchableOpacity>
+						</View>
+					) : null}
 				</KeyboardFormScreen>
 			)}
 
@@ -1068,262 +1392,262 @@ export default function VenueSearchScreen() {
 				visible={isFilterModalOpen}
 				onRequestClose={() => setIsFilterModalOpen(false)}
 			>
-				<View className="flex-1 justify-end bg-black/50">
-					<View className="max-h-[88%] rounded-t-3xl bg-background px-4 pt-4 pb-6">
-						<View className="mb-4 flex-row items-center justify-between gap-3">
-							<View>
-								<Title className="text-foreground text-xl">Filtres</Title>
-								<Text className="mt-1 text-muted-foreground text-sm">
-									{activeTab === "venues"
-										? "Affinez les lieux sans quitter les resultats."
-										: "Affinez les artistes sans quitter les resultats."}
-								</Text>
-							</View>
-							<TouchableOpacity onPress={() => setIsFilterModalOpen(false)}>
-								<Text className="font-sans-medium text-primary">Fermer</Text>
-							</TouchableOpacity>
+				<View className="flex-1 justify-end">
+					<TouchableOpacity
+						activeOpacity={1}
+						className="h-[12%] bg-black/50"
+						onPress={() => setIsFilterModalOpen(false)}
+					/>
+					<View className="h-[88%] rounded-t-3xl border border-border bg-background px-4 pt-4 pb-6">
+						<View className="mb-3 items-center">
+							<View className="h-1.5 w-12 rounded-full bg-border" />
+						</View>
+						<View className="mb-4">
+							<Title className="text-foreground text-xl">Filtres</Title>
+							<Text className="mt-1 text-muted-foreground text-sm">
+								{activeTab === "venues"
+									? "Affinez les lieux sans quitter les resultats."
+									: "Affinez les artistes sans quitter les resultats."}
+							</Text>
 						</View>
 
-						<KeyboardFormScreen>
-							<ScrollView
-								showsVerticalScrollIndicator={false}
-								keyboardShouldPersistTaps="handled"
-								keyboardDismissMode="interactive"
-								contentInsetAdjustmentBehavior="always"
-								contentContainerStyle={{ paddingBottom: contentPaddingBottom }}
-							>
-								<View className="gap-4 pb-4">
-									<View className="flex-row gap-3">
-										<Input
-											className="flex-1"
-											value={city}
-											onChangeText={setCity}
-											placeholder="Ville"
-											placeholderTextColor="#9ca3af"
-										/>
-										<Input
-											className="flex-1"
-											value={postalCode}
-											onChangeText={setPostalCode}
-											placeholder="Code postal"
-											placeholderTextColor="#9ca3af"
-										/>
-									</View>
+						<ScrollView
+							className="flex-1"
+							showsVerticalScrollIndicator={false}
+							keyboardShouldPersistTaps="handled"
+							keyboardDismissMode="interactive"
+							contentInsetAdjustmentBehavior="never"
+							contentContainerStyle={{ gap: 16, paddingBottom: 24 }}
+						>
+							<View className="gap-4 pb-4">
+								<View className="flex-row gap-3">
+									<Input
+										className="flex-1"
+										value={city}
+										onChangeText={setCity}
+										placeholder="Ville"
+										placeholderTextColor="#9ca3af"
+									/>
+									<Input
+										className="flex-1"
+										value={postalCode}
+										onChangeText={setPostalCode}
+										placeholder="Code postal"
+										placeholderTextColor="#9ca3af"
+									/>
+								</View>
 
-									<View>
-										<View className="mb-2 flex-row items-center justify-between">
-											<Text className="font-sans-medium text-foreground">
-												Rayon
-											</Text>
-											<TouchableOpacity
-												className={`flex-row items-center gap-1 rounded-full border px-3 py-1.5 ${
-													useMyLocation
-														? "border-primary bg-primary"
-														: "border-border bg-background"
-												}`}
-												onPress={handleMyLocationToggle}
-												disabled={locationStatus === "loading"}
+								<View>
+									<View className="mb-2 flex-row items-center justify-between">
+										<Text className="font-sans-medium text-foreground">
+											Rayon
+										</Text>
+										<TouchableOpacity
+											className={`flex-row items-center gap-1 rounded-full border px-3 py-1.5 ${
+												useMyLocation
+													? "border-primary bg-primary"
+													: "border-border bg-background"
+											}`}
+											onPress={handleMyLocationToggle}
+											disabled={locationStatus === "loading"}
+										>
+											<Ionicons
+												name={
+													locationStatus === "loading"
+														? "reload"
+														: "location-outline"
+												}
+												size={12}
+												color={useMyLocation ? "white" : undefined}
+											/>
+											<Text
+												className={`ml-1 text-xs ${useMyLocation ? "text-primary-foreground" : "text-foreground"}`}
 											>
-												<Ionicons
-													name={
-														locationStatus === "loading"
-															? "reload"
-															: "location-outline"
-													}
-													size={12}
-													color={useMyLocation ? "white" : undefined}
-												/>
-												<Text
-													className={`ml-1 text-xs ${useMyLocation ? "text-primary-foreground" : "text-foreground"}`}
+												{locationStatus === "loading"
+													? "Localisation..."
+													: "Ma position"}
+											</Text>
+										</TouchableOpacity>
+									</View>
+									<View className="flex-row flex-wrap gap-2">
+										{[null, 10, 25, 50, 100, 200].map((km) => {
+											const isSelected = radiusKm === km;
+											return (
+												<TouchableOpacity
+													key={km ?? "none"}
+													className={`rounded-full border px-3 py-2 ${
+														isSelected
+															? "border-primary bg-primary"
+															: "border-border bg-background"
+													}`}
+													onPress={() => setRadiusKm(km)}
 												>
-													{locationStatus === "loading"
-														? "Localisation..."
-														: "Ma position"}
-												</Text>
-											</TouchableOpacity>
-										</View>
-										<View className="flex-row flex-wrap gap-2">
-											{[null, 10, 25, 50, 100, 200].map((km) => {
-												const isSelected = radiusKm === km;
-												return (
-													<TouchableOpacity
-														key={km ?? "none"}
-														className={`rounded-full border px-3 py-2 ${
-															isSelected
-																? "border-primary bg-primary"
-																: "border-border bg-background"
-														}`}
-														onPress={() => setRadiusKm(km)}
+													<Text
+														className={`text-xs ${isSelected ? "text-primary-foreground" : "text-foreground"}`}
 													>
-														<Text
-															className={`text-xs ${isSelected ? "text-primary-foreground" : "text-foreground"}`}
-														>
-															{km == null ? "Pas de limite" : `${km} km`}
+														{km == null ? "Pas de limite" : `${km} km`}
+													</Text>
+												</TouchableOpacity>
+											);
+										})}
+									</View>
+									{useMyLocation && locationStatus === "success" ? (
+										<Text className="mt-1 text-green-600 text-xs">
+											✓ Position obtenue
+										</Text>
+									) : locationStatus === "error" ? (
+										<Text className="mt-1 text-destructive text-xs">
+											Impossible d&apos;obtenir votre position.
+										</Text>
+									) : !useMyLocation &&
+										radiusKm != null &&
+										!city.trim() &&
+										!postalCode.trim() ? (
+										<Text className="mt-1 text-muted-foreground text-xs">
+											Saisissez une ville ou un CP pour activer le rayon.
+										</Text>
+									) : null}
+								</View>
+
+								{activeTab === "venues" ? (
+									<>
+										<View>
+											<View className="mb-2 flex-row items-center justify-between gap-3">
+												<Text className="font-sans-medium text-foreground">
+													Type de lieu
+												</Text>
+												{venueTypeValues.length > visibleVenueTypes.length ? (
+													<TouchableOpacity
+														onPress={() =>
+															setShowAllVenueTypes((current) => !current)
+														}
+													>
+														<Text className="text-primary text-xs">
+															{showAllVenueTypes
+																? "Voir moins"
+																: `Voir ${venueTypeValues.length - visibleVenueTypes.length} de plus`}
 														</Text>
 													</TouchableOpacity>
-												);
-											})}
-										</View>
-										{useMyLocation && locationStatus === "success" ? (
-											<Text className="mt-1 text-green-600 text-xs">
-												✓ Position obtenue
-											</Text>
-										) : locationStatus === "error" ? (
-											<Text className="mt-1 text-destructive text-xs">
-												Impossible d&apos;obtenir votre position.
-											</Text>
-										) : !useMyLocation &&
-											radiusKm != null &&
-											!city.trim() &&
-											!postalCode.trim() ? (
-											<Text className="mt-1 text-muted-foreground text-xs">
-												Saisissez une ville ou un CP pour activer le rayon.
-											</Text>
-										) : null}
-									</View>
-
-									{activeTab === "venues" ? (
-										<>
-											<View>
-												<View className="mb-2 flex-row items-center justify-between gap-3">
-													<Text className="font-sans-medium text-foreground">
-														Type de lieu
-													</Text>
-													{venueTypeValues.length > visibleVenueTypes.length ? (
+												) : null}
+											</View>
+											<View className="flex-row flex-wrap gap-2">
+												{visibleVenueTypes.map((venueType) => {
+													const isSelected = selectedVenueType === venueType;
+													return (
 														<TouchableOpacity
+															key={venueType}
+															className={`rounded-full border px-3 py-2 ${
+																isSelected
+																	? "border-primary bg-primary"
+																	: "border-border bg-background"
+															}`}
 															onPress={() =>
-																setShowAllVenueTypes((current) => !current)
+																setSelectedVenueType((currentType) =>
+																	currentType === venueType ? "" : venueType,
+																)
 															}
 														>
-															<Text className="text-primary text-xs">
-																{showAllVenueTypes
-																	? "Voir moins"
-																	: `Voir ${venueTypeValues.length - visibleVenueTypes.length} de plus`}
+															<Text
+																className={`text-xs ${
+																	isSelected
+																		? "text-primary-foreground"
+																		: "text-foreground"
+																}`}
+															>
+																{getVenueTypeLabel(venueType)}
 															</Text>
 														</TouchableOpacity>
-													) : null}
-												</View>
-												<View className="flex-row flex-wrap gap-2">
-													{visibleVenueTypes.map((venueType) => {
-														const isSelected = selectedVenueType === venueType;
-														return (
-															<TouchableOpacity
-																key={venueType}
-																className={`rounded-full border px-3 py-2 ${
-																	isSelected
-																		? "border-primary bg-primary"
-																		: "border-border bg-background"
-																}`}
-																onPress={() =>
-																	setSelectedVenueType((currentType) =>
-																		currentType === venueType ? "" : venueType,
-																	)
-																}
-															>
-																<Text
-																	className={`text-xs ${
-																		isSelected
-																			? "text-primary-foreground"
-																			: "text-foreground"
-																	}`}
-																>
-																	{getVenueTypeLabel(venueType)}
-																</Text>
-															</TouchableOpacity>
-														);
-													})}
-												</View>
+													);
+												})}
 											</View>
+										</View>
 
-											<View className="flex-row gap-3">
-												<Input
-													className="flex-1"
-													value={budgetMin}
-													onChangeText={setBudgetMin}
-													placeholder="Budget min (€)"
-													placeholderTextColor="#9ca3af"
-													keyboardType="numeric"
-												/>
-												<Input
-													className="flex-1"
-													value={budgetMax}
-													onChangeText={setBudgetMax}
-													placeholder="Budget max (€)"
-													placeholderTextColor="#9ca3af"
-													keyboardType="numeric"
-												/>
-											</View>
-										</>
-									) : (
 										<View className="flex-row gap-3">
 											<Input
 												className="flex-1"
-												value={feeMin}
-												onChangeText={setFeeMin}
-												placeholder="Cachet min (€)"
+												value={budgetMin}
+												onChangeText={setBudgetMin}
+												placeholder="Budget min (€)"
 												placeholderTextColor="#9ca3af"
 												keyboardType="numeric"
 											/>
 											<Input
 												className="flex-1"
-												value={feeMax}
-												onChangeText={setFeeMax}
-												placeholder="Cachet max (€)"
+												value={budgetMax}
+												onChangeText={setBudgetMax}
+												placeholder="Budget max (€)"
 												placeholderTextColor="#9ca3af"
 												keyboardType="numeric"
 											/>
 										</View>
-									)}
+									</>
+								) : (
+									<View className="flex-row gap-3">
+										<Input
+											className="flex-1"
+											value={feeMin}
+											onChangeText={setFeeMin}
+											placeholder="Cachet min (€)"
+											placeholderTextColor="#9ca3af"
+											keyboardType="numeric"
+										/>
+										<Input
+											className="flex-1"
+											value={feeMax}
+											onChangeText={setFeeMax}
+											placeholder="Cachet max (€)"
+											placeholderTextColor="#9ca3af"
+											keyboardType="numeric"
+										/>
+									</View>
+								)}
 
-									<View>
-										<View className="mb-2 flex-row items-center justify-between gap-3">
-											<Text className="font-sans-medium text-foreground">
-												Genres
-											</Text>
-											{MUSIC_GENRES.length > visibleGenres.length ? (
+								<View>
+									<View className="mb-2 flex-row items-center justify-between gap-3">
+										<Text className="font-sans-medium text-foreground">
+											Genres
+										</Text>
+										{MUSIC_GENRES.length > visibleGenres.length ? (
+											<TouchableOpacity
+												onPress={() => setShowAllGenres((current) => !current)}
+											>
+												<Text className="text-primary text-xs">
+													{showAllGenres
+														? "Voir moins"
+														: `Voir ${MUSIC_GENRES.length - visibleGenres.length} de plus`}
+												</Text>
+											</TouchableOpacity>
+										) : null}
+									</View>
+									<View className="flex-row flex-wrap gap-2">
+										{visibleGenres.map((genreName) => {
+											const isSelected = selectedGenres.includes(genreName);
+											return (
 												<TouchableOpacity
-													onPress={() =>
-														setShowAllGenres((current) => !current)
-													}
+													key={genreName}
+													className={`rounded-full border px-3 py-2 ${
+														isSelected
+															? "border-primary bg-primary"
+															: "border-border bg-background"
+													}`}
+													onPress={() => toggleGenre(genreName)}
 												>
-													<Text className="text-primary text-xs">
-														{showAllGenres
-															? "Voir moins"
-															: `Voir ${MUSIC_GENRES.length - visibleGenres.length} de plus`}
+													<Text
+														className={`text-xs ${
+															isSelected
+																? "text-primary-foreground"
+																: "text-foreground"
+														}`}
+													>
+														{genreName}
 													</Text>
 												</TouchableOpacity>
-											) : null}
-										</View>
-										<View className="flex-row flex-wrap gap-2">
-											{visibleGenres.map((genreName) => {
-												const isSelected = selectedGenres.includes(genreName);
-												return (
-													<TouchableOpacity
-														key={genreName}
-														className={`rounded-full border px-3 py-2 ${
-															isSelected
-																? "border-primary bg-primary"
-																: "border-border bg-background"
-														}`}
-														onPress={() => toggleGenre(genreName)}
-													>
-														<Text
-															className={`text-xs ${
-																isSelected
-																	? "text-primary-foreground"
-																	: "text-foreground"
-															}`}
-														>
-															{genreName}
-														</Text>
-													</TouchableOpacity>
-												);
-											})}
-										</View>
+											);
+										})}
 									</View>
 								</View>
-							</ScrollView>
-						</KeyboardFormScreen>
+							</View>
+						</ScrollView>
 
 						<View className="mt-4 flex-row gap-3">
 							<TouchableOpacity

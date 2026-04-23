@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { router, useLocalSearchParams } from "expo-router";
+import { useEffect, useState } from "react";
 import {
 	ActivityIndicator,
 	Alert,
@@ -27,6 +28,7 @@ export default function VenueProfileScreen() {
 
 	const { data: session } = authClient.useSession();
 	const handleBack = useContextualBackNavigation(backTo ?? "/(drawer)/venue");
+	const [venueLogoFailed, setVenueLogoFailed] = useState(false);
 
 	const { data: venue, isLoading } = useQuery({
 		...trpc.venue.getById.queryOptions({ id: venueId ?? "" }),
@@ -42,6 +44,10 @@ export default function VenueProfileScreen() {
 		Boolean(venue?.owner?.id) &&
 		session?.user.id === venue?.owner.id;
 	const canProposeBooking = !isOwner && (myArtistsQuery.data?.length ?? 0) > 0;
+
+	useEffect(() => {
+		setVenueLogoFailed(false);
+	}, [venueId]);
 
 	const openMaps = async () => {
 		if (!venue) return;
@@ -104,6 +110,9 @@ export default function VenueProfileScreen() {
 		venue.genres?.length > 0
 			? venue.genres.map((g) => g.name).join(" • ")
 			: null;
+	const detailBackHref = backTo
+		? `/(drawer)/venue/${venue.id}?backTo=${encodeURIComponent(backTo)}`
+		: `/(drawer)/venue/${venue.id}`;
 
 	return (
 		<Container>
@@ -121,10 +130,11 @@ export default function VenueProfileScreen() {
 				<View className="-mt-10 px-4">
 					<View className="rounded-2xl border border-border bg-card p-4">
 						<View className="flex-row items-center gap-3">
-							{venue.logoUrl ? (
+							{venue.logoUrl && !venueLogoFailed ? (
 								<Image
 									source={{ uri: venue.logoUrl }}
 									className="h-16 w-16 rounded-2xl border border-border"
+									onError={() => setVenueLogoFailed(true)}
 								/>
 							) : (
 								<View className="h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
@@ -169,7 +179,10 @@ export default function VenueProfileScreen() {
 											onPress={() =>
 												router.push({
 													pathname: "/(drawer)/bookings/propose",
-													params: { venueId: venue.id },
+													params: {
+														venueId: venue.id,
+														backTo: detailBackHref,
+													},
 												} as never)
 											}
 										>

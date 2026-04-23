@@ -130,10 +130,43 @@ const VENUE_STYLE_FIXTURES = [
 	"configuration adaptable pour soirees club et concerts",
 ];
 
-const MEDIA_PALETTES = {
-	artist: ["241137", "4c1d95", "be185d"],
-	venue: ["0f172a", "164e63", "0f766e"],
-	banner: ["1e1b4b", "581c87", "9d174d"],
+const IMMERSIVE_MEDIA_LIBRARY = {
+	artist: [
+		"https://images.unsplash.com/photo-1516280440614-37939bbacd81",
+		"https://images.unsplash.com/photo-1501386761578-eac5c94b800a",
+		"https://images.unsplash.com/photo-1464375117522-1311d6a5b81f",
+		"https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3",
+		"https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee",
+		"https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f",
+		"https://images.unsplash.com/photo-1506157786151-b8491531f063",
+		"https://images.unsplash.com/photo-1487180144351-b8472da7d491",
+		"https://images.unsplash.com/photo-1540039155733-5bb30b53aa14",
+		"https://images.unsplash.com/photo-1516450360452-9312f5e86fc7",
+	],
+	venue: [
+		"https://images.unsplash.com/photo-1514525253161-7a46d19cd819",
+		"https://images.unsplash.com/photo-1492684223066-81342ee5ff30",
+		"https://images.unsplash.com/photo-1470225620780-dba8ba36b745",
+		"https://images.unsplash.com/photo-1524368535928-5b5e00ddc76b",
+		"https://images.unsplash.com/photo-1468164016595-6108e4c60c8b",
+		"https://images.unsplash.com/photo-1472653431158-6364773b2a56",
+		"https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec",
+		"https://images.unsplash.com/photo-1511578314322-379afb476865",
+		"https://images.unsplash.com/photo-1517457373958-b7bdd4587205",
+		"https://images.unsplash.com/photo-1460723237483-7a6dc9d0b212",
+	],
+	banner: [
+		"https://images.unsplash.com/photo-1459749411175-04bf5292ceea",
+		"https://images.unsplash.com/photo-1497032205916-ac775f0649ae",
+		"https://images.unsplash.com/photo-1429514513361-8fa32282fd5f",
+		"https://images.unsplash.com/photo-1501386761578-eac5c94b800a",
+		"https://images.unsplash.com/photo-1540039155733-5bb30b53aa14",
+		"https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f",
+		"https://images.unsplash.com/photo-1511379938547-c1f69419868d",
+		"https://images.unsplash.com/photo-1458560871784-56d23406c091",
+		"https://images.unsplash.com/photo-1470225620780-dba8ba36b745",
+		"https://images.unsplash.com/photo-1514525253161-7a46d19cd819",
+	],
 };
 
 const demoUsers = [
@@ -471,14 +504,31 @@ function creerSlug(valeur) {
 }
 
 function creerAvatarUrl(type, seed) {
-	return `https://api.dicebear.com/9.x/${type}/svg?seed=${encodeURIComponent(seed)}`;
+	return `https://api.dicebear.com/9.x/${type}/png?seed=${encodeURIComponent(seed)}`;
+}
+
+function hashDeterministe(valeur) {
+	return Array.from(valeur).reduce(
+		(acc, caractere) => (acc * 31 + caractere.charCodeAt(0)) % 2147483647,
+		7,
+	);
 }
 
 function creerPlaceholderMediaUrl({ type, slug, label, width, height }) {
-	const palette = MEDIA_PALETTES[type] ?? MEDIA_PALETTES.artist;
-	const background = palette[0];
-	const foreground = "f8fafc";
-	return `https://placehold.co/${width}x${height}/${background}/${foreground}.png?text=${encodeURIComponent(label)}&font=montserrat&seed=${encodeURIComponent(`${type}-${slug}`)}`;
+	const bibliotheque =
+		IMMERSIVE_MEDIA_LIBRARY[type] ?? IMMERSIVE_MEDIA_LIBRARY.artist;
+	const index =
+		hashDeterministe(`${type}:${slug}:${label}`) % bibliotheque.length;
+	const baseUrl = bibliotheque[index];
+	const query = new URLSearchParams({
+		auto: "format",
+		fit: "crop",
+		crop: "faces,entropy",
+		w: String(width),
+		h: String(height),
+		q: "80",
+	});
+	return `${baseUrl}?${query.toString()}`;
 }
 
 function creerGalerieMedia({ type, slug, baseLabel, count }) {

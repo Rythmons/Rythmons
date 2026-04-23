@@ -63,7 +63,25 @@ export default function BookingDetailPage() {
 			toast.success("Proposition acceptée !");
 			router.push(bookingsRoute);
 		},
-		onError: (e) => toast.error(e.message),
+		onError: (e) => {
+			if (e.message.includes("Le lieu n'est pas ouvert")) {
+				toast.error(
+					<div className="flex flex-col gap-2">
+						<p>{e.message}</p>
+						<Button
+							variant="outline"
+							size="sm"
+							onClick={() => router.push("/dashboard/calendar")}
+						>
+							Ouvrir le calendrier
+						</Button>
+					</div>,
+					{ duration: 6000 },
+				);
+			} else {
+				toast.error(e.message);
+			}
+		},
 	});
 
 	const refuseMutation = useMutation({
@@ -159,13 +177,29 @@ export default function BookingDetailPage() {
 					</div>
 				</div>
 
-				<div className="grid gap-4 sm:grid-cols-2">
-					<div>
-						<p className="text-muted-foreground text-sm">Initiateur</p>
-						<p className="font-medium">{initiatorLabel}</p>
+				<div className="grid gap-6 sm:grid-cols-2">
+					<div className="rounded-lg bg-muted/30 p-4">
+						<p className="mb-1 font-semibold text-muted-foreground text-xs uppercase tracking-wider">
+							EXPÉDITEUR
+						</p>
+						<p className="font-medium text-lg">{initiatorLabel}</p>
+					</div>
+					<div className="rounded-lg bg-muted/30 p-4">
+						<p className="mb-1 font-semibold text-muted-foreground text-xs uppercase tracking-wider">
+							DESTINATAIRE
+						</p>
+						<p className="font-medium text-lg">
+							{isCreator
+								? isArtist
+									? booking.venue.name
+									: booking.artist.stageName
+								: "Vous"}
+						</p>
 					</div>
 					<div>
-						<p className="text-muted-foreground text-sm">Artiste</p>
+						<p className="font-medium text-muted-foreground text-sm">
+							Artiste concerné
+						</p>
 						<Link
 							href={`/artist/${booking.artist.id}`}
 							className="font-medium text-primary hover:underline"
@@ -174,7 +208,9 @@ export default function BookingDetailPage() {
 						</Link>
 					</div>
 					<div>
-						<p className="text-muted-foreground text-sm">Lieu</p>
+						<p className="font-medium text-muted-foreground text-sm">
+							Lieu concerné
+						</p>
 						<Link
 							href={`/venue/${booking.venue.id}`}
 							className="font-medium text-primary hover:underline"

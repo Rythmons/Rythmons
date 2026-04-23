@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { KeyboardFormScreen } from "@/components/ui/keyboard-form-screen";
+import { useNotice } from "@/components/ui/notice";
 import { Text, Title } from "@/components/ui/typography";
 import { authClient } from "@/lib/auth-client";
 import { queryClient, trpc } from "@/utils/trpc";
@@ -24,6 +25,7 @@ function showError(error: unknown, fallback: string) {
 }
 
 export default function BookingDetailScreen() {
+	const { showNotice } = useNotice();
 	const params = useLocalSearchParams<{ id: string }>();
 	const id = Array.isArray(params.id) ? params.id[0] : params.id;
 	const { data: session, isPending: sessionPending } = authClient.useSession();
@@ -38,7 +40,11 @@ export default function BookingDetailScreen() {
 		...trpc.booking.accept.mutationOptions(),
 		onSuccess: async () => {
 			await queryClient.invalidateQueries();
-			Alert.alert("Succès", "Proposition acceptée.");
+			showNotice({
+				title: "Proposition acceptee",
+				message: "Le booking est confirme.",
+				kind: "success",
+			});
 			router.replace("/(drawer)/bookings" as never);
 		},
 		onError: (error) =>
@@ -49,7 +55,11 @@ export default function BookingDetailScreen() {
 		...trpc.booking.refuse.mutationOptions(),
 		onSuccess: async () => {
 			await queryClient.invalidateQueries();
-			Alert.alert("Succès", "Proposition refusée.");
+			showNotice({
+				title: "Proposition refusee",
+				message: "Le statut du booking a ete mis a jour.",
+				kind: "success",
+			});
 			router.replace("/(drawer)/bookings" as never);
 		},
 		onError: (error) =>
@@ -60,7 +70,11 @@ export default function BookingDetailScreen() {
 		...trpc.booking.cancel.mutationOptions(),
 		onSuccess: async () => {
 			await queryClient.invalidateQueries();
-			Alert.alert("Succès", "Proposition annulée.");
+			showNotice({
+				title: "Proposition annulee",
+				message: "Le booking n'est plus actif.",
+				kind: "success",
+			});
 			router.replace("/(drawer)/bookings" as never);
 		},
 		onError: (error) =>
@@ -136,7 +150,15 @@ export default function BookingDetailScreen() {
 
 	return (
 		<Container>
-			<KeyboardFormScreen bottomInsetOffset={96}>
+			<KeyboardFormScreen
+				bottomInsetOffset={96}
+				refreshControl={
+					<RefreshControl
+						refreshing={bookingQuery.isFetching}
+						onRefresh={() => void bookingQuery.refetch()}
+					/>
+				}
+			>
 				<Button
 					label="Retour aux bookings"
 					variant="ghost"

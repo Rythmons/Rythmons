@@ -1,192 +1,194 @@
 "use client";
-import { useQuery } from "@tanstack/react-query";
-import { Search, SlidersHorizontal } from "lucide-react";
+
+import { LayoutDashboard, LogOut, Menu, User, X } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
-import { trpc } from "@/utils/trpc";
 import UserMenu from "./user-menu";
 
-type HeaderLink = {
-	to: Route;
-	label: string;
-};
-
-const SEARCH_VALUE_STORAGE_KEY = "rythmons:web:search-query";
-
-function SearchHeaderControls({
-	canSearchVenues,
-	canSearchArtists,
-}: {
-	canSearchVenues: boolean;
-	canSearchArtists: boolean;
-}) {
-	const pathname = usePathname();
-	const router = useRouter();
-	const searchParams = useSearchParams();
-	const isSearchRoute = pathname === "/dashboard/search";
-	const canAccessSearch = canSearchVenues || canSearchArtists;
-	const [searchValue, setSearchValue] = useState("");
-
-	useEffect(() => {
-		if (typeof window === "undefined") {
-			return;
-		}
-
-		if (isSearchRoute) {
-			const nextValue = searchParams.get("q") ?? "";
-			setSearchValue(nextValue);
-			window.sessionStorage.setItem(SEARCH_VALUE_STORAGE_KEY, nextValue);
-			return;
-		}
-
-		setSearchValue(
-			window.sessionStorage.getItem(SEARCH_VALUE_STORAGE_KEY) ?? "",
-		);
-	}, [isSearchRoute, searchParams]);
-
-	if (!canAccessSearch) {
-		return null;
-	}
-
-	function navigateToSearch(
-		mutate: (params: URLSearchParams) => void,
-		options?: { openFilters?: boolean },
-	) {
-		const params = new URLSearchParams(
-			isSearchRoute ? searchParams.toString() : "",
-		);
-		mutate(params);
-		if (options?.openFilters) {
-			params.set("filters", "1");
-		}
-		const query = params.toString();
-		const nextRoute = (
-			query ? `/dashboard/search?${query}` : "/dashboard/search"
-		) as Route;
-
-		if (isSearchRoute) {
-			router.replace(nextRoute, { scroll: false });
-			return;
-		}
-
-		router.push(nextRoute, { scroll: false });
-	}
-
-	function submitSearch() {
-		const trimmedQuery = searchValue.trim();
-		if (typeof window !== "undefined") {
-			window.sessionStorage.setItem(SEARCH_VALUE_STORAGE_KEY, trimmedQuery);
-		}
-
-		navigateToSearch((params) => {
-			params.delete("page");
-			if (trimmedQuery) {
-				params.set("q", trimmedQuery);
-			} else {
-				params.delete("q");
-			}
-		});
-	}
-
-	function openFilters() {
-		navigateToSearch(
-			(params) => {
-				params.delete("page");
-				const trimmedQuery = searchValue.trim();
-				if (trimmedQuery) {
-					params.set("q", trimmedQuery);
-				} else {
-					params.delete("q");
-				}
-			},
-			{ openFilters: true },
-		);
-	}
-
+function Logo() {
 	return (
-		<div className="flex w-full min-w-0 flex-1 items-center justify-center gap-2 px-0 lg:px-4">
-			<div className="flex h-10 w-full max-w-xl items-center rounded-md border border-input bg-transparent pl-3 shadow-xs focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/50 dark:bg-input/30">
-				<Search className="h-4 w-4 shrink-0 text-muted-foreground" />
-				<Input
-					value={searchValue}
-					onChange={(event) => setSearchValue(event.target.value)}
-					onKeyDown={(event) => {
-						if (event.key === "Enter") {
-							submitSearch();
-						}
-					}}
-					aria-label="Rechercher un lieu, un artiste, une ville"
-					placeholder="Rechercher un lieu, un artiste, une ville..."
-					className="h-full border-0 bg-transparent pl-3 shadow-none focus-visible:ring-0"
-				/>
-			</div>
-			<Button type="button" size="sm" variant="outline" onClick={openFilters}>
-				<SlidersHorizontal className="h-4 w-4" />
-				Filtres
-			</Button>
-		</div>
+		<Link
+			href={"/" as Route}
+			className="group flex items-center"
+			aria-label="Rythmons — Accueil"
+		>
+			{/* biome-ignore lint/performance/noImgElement: branding logo */}
+			<img
+				src="/logo.png"
+				alt=""
+				className="h-10 w-auto object-contain brightness-0 invert transition-transform active:scale-95"
+			/>
+		</Link>
 	);
 }
 
 export default function Header() {
 	const { data: session } = authClient.useSession();
-	const sessionRole = (session?.user as { role?: string | null } | undefined)
-		?.role;
-	const hasArtistRole = sessionRole === "ARTIST" || sessionRole === "BOTH";
-	const hasOrganizerRole =
-		sessionRole === "ORGANIZER" || sessionRole === "BOTH";
-	const { data: artists } = useQuery({
-		...trpc.artist.myArtists.queryOptions(),
-		enabled: Boolean(session?.user) && !hasArtistRole,
-	});
-	const { data: venues } = useQuery({
-		...trpc.venue.getMyVenues.queryOptions(),
-		enabled: Boolean(session?.user) && !hasOrganizerRole,
-	});
-	const canSearchVenues = hasArtistRole || (artists?.length ?? 0) > 0;
-	const canSearchArtists = hasOrganizerRole || (venues?.length ?? 0) > 0;
-	const links: HeaderLink[] = [
-		{ to: "/" as Route, label: "Accueil" },
-		{ to: "/dashboard" as Route, label: "Tableau de bord" },
-	];
+	const router = useRouter();
+	const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+	const pathname = usePathname();
+	const isHome = pathname === "/";
+	const showDashboardNav = !!session?.user && !isHome;
+
+	const closeMobile = () => setIsMobileMenuOpen(false);
 
 	return (
-		<div className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-			{/* ── Main bar ─────────────────────────────────────────── */}
-			<div className="flex items-center gap-3 px-2 py-2">
-				{/* Nav links — always visible */}
-				<nav className="flex shrink-0 gap-2 text-sm lg:gap-4 lg:text-lg">
-					{links.map(({ to, label }) => (
-						<Link key={to} href={to}>
-							{label}
-						</Link>
-					))}
-				</nav>
-
-				{/* Search — flex-1 so it fills available space without overflowing */}
-				<div className="min-w-0 flex-1">
-					<Suspense
-						fallback={
-							<div className="h-10 w-full animate-pulse rounded-md bg-muted" />
-						}
+		<header className="sticky top-0 z-50 w-full border-white/5 border-b bg-black/80 backdrop-blur-md">
+			<div className="container mx-auto flex h-16 min-w-0 items-center gap-2 px-3 sm:gap-3 sm:px-4">
+				<div className="flex min-w-0 items-center gap-6">
+					<Logo />
+					<nav
+						className="show-on-desktop min-w-0 items-center gap-6"
+						aria-label="Navigation principale"
 					>
-						<SearchHeaderControls
-							canSearchVenues={canSearchVenues}
-							canSearchArtists={canSearchArtists}
-						/>
-					</Suspense>
+						{!session?.user ? (
+							<Link
+								href={"/how-it-works" as Route}
+								className="whitespace-nowrap font-medium text-sm text-white transition-colors hover:text-brand"
+							>
+								Comment ça marche ?
+							</Link>
+						) : null}
+						{session?.user ? (
+							<Link
+								href={"/dashboard/search" as Route}
+								className="whitespace-nowrap font-medium text-sm text-white/70 transition-colors hover:text-white"
+							>
+								Recherche
+							</Link>
+						) : null}
+						{showDashboardNav && (
+							<Link
+								href={"/dashboard" as Route}
+								className="whitespace-nowrap font-medium text-sm text-white/70 transition-colors hover:text-white"
+							>
+								Tableau de bord
+							</Link>
+						)}
+					</nav>
 				</div>
 
-				{/* User menu */}
-				<div className="flex shrink-0 items-center gap-2">
-					<UserMenu />
+				<div className="ml-auto flex shrink-0 items-center gap-3">
+					{session?.user ? (
+						<UserMenu />
+					) : (
+						<div className="show-on-desktop items-center gap-3">
+							<Button
+								variant="outline"
+								size="sm"
+								className="h-8 border-[color:var(--brand-primary)] px-4 font-bold text-white text-xs uppercase tracking-widest hover:bg-[color:var(--brand-primary)]/10"
+								asChild
+							>
+								<Link href={"/login?signup=1" as Route}>Inscription</Link>
+							</Button>
+							<Button
+								size="sm"
+								className="h-8 bg-[color:var(--brand-primary)] px-4 font-bold text-white text-xs uppercase tracking-widest hover:brightness-110"
+								asChild
+							>
+								<Link href={"/login" as Route}>Connexion</Link>
+							</Button>
+						</div>
+					)}
+
+					<Button
+						variant="ghost"
+						size="icon"
+						type="button"
+						className="hide-on-desktop text-white"
+						aria-expanded={isMobileMenuOpen}
+						aria-controls="site-mobile-nav"
+						aria-label={isMobileMenuOpen ? "Fermer le menu" : "Ouvrir le menu"}
+						onClick={() => setIsMobileMenuOpen((o) => !o)}
+					>
+						{isMobileMenuOpen ? (
+							<X className="h-6 w-6" aria-hidden />
+						) : (
+							<Menu className="h-6 w-6" aria-hidden />
+						)}
+					</Button>
 				</div>
 			</div>
-		</div>
+
+			{isMobileMenuOpen && (
+				<div
+					id="site-mobile-nav"
+					className="absolute top-16 right-0 left-0 flex flex-col gap-4 border-white/10 border-b bg-black p-6 md:hidden"
+				>
+					<Link
+						href={"/how-it-works" as Route}
+						className="font-medium text-lg"
+						onClick={closeMobile}
+					>
+						Comment ça marche ?
+					</Link>
+
+					{session?.user ? (
+						<div className="flex flex-col gap-3 border-white/5 border-t pt-4">
+							<Link
+								href={"/dashboard" as Route}
+								className="flex items-center gap-2 font-medium text-lg text-white/90"
+								onClick={closeMobile}
+							>
+								<LayoutDashboard className="h-5 w-5 text-brand" aria-hidden />
+								Tableau de bord
+							</Link>
+							<Link
+								href={"/dashboard/profile" as Route}
+								className="flex items-center gap-2 font-medium text-lg text-white/90"
+								onClick={closeMobile}
+							>
+								<User className="h-5 w-5 text-brand" aria-hidden />
+								Mon profil
+							</Link>
+							<Button
+								type="button"
+								variant="outline"
+								className="border-white/20 text-white"
+								onClick={async () => {
+									try {
+										await authClient.signOut();
+										closeMobile();
+										router.push("/" as Route);
+									} catch {
+										toast.error(
+											"Erreur lors de la déconnexion. Veuillez réessayer.",
+										);
+									}
+								}}
+							>
+								<LogOut className="mr-2 h-4 w-4" aria-hidden />
+								Se déconnecter
+							</Button>
+						</div>
+					) : (
+						<div className="flex flex-col gap-3 border-white/5 border-t pt-4">
+							<Button
+								variant="outline"
+								className="border-[color:var(--brand-primary)] font-bold text-white uppercase tracking-widest"
+								asChild
+							>
+								<Link href={"/login?signup=1" as Route} onClick={closeMobile}>
+									Inscription
+								</Link>
+							</Button>
+							<Button
+								className="bg-[color:var(--brand-primary)] font-bold text-white uppercase tracking-widest hover:brightness-110"
+								asChild
+							>
+								<Link href={"/login" as Route} onClick={closeMobile}>
+									Connexion
+								</Link>
+							</Button>
+						</div>
+					)}
+				</div>
+			)}
+		</header>
 	);
 }

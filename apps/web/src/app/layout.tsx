@@ -1,12 +1,14 @@
 import type { Metadata } from "next";
 import { Fugaz_One, Montserrat } from "next/font/google";
-import "../index.css";
 import "@uploadthing/react/styles.css";
+import "../index.css";
 import Header from "@/components/header";
 import Providers from "@/components/providers";
+import { SiteFooter } from "@/components/site-footer";
 
 const montserrat = Montserrat({
 	variable: "--font-montserrat",
+	weight: ["400", "500", "600", "700"],
 	subsets: ["latin"],
 });
 
@@ -35,9 +37,10 @@ export default function RootLayout({
 				className={`${montserrat.className} ${montserrat.variable} ${fugazOne.variable} antialiased`}
 			>
 				<Providers routerConfig={extractRouterConfig(ourFileRouter)}>
-					<div className="grid min-h-svh grid-rows-[auto_1fr]">
+					<div className="grid min-h-svh grid-rows-[auto_1fr_auto]">
 						<Header />
-						{children}
+						<div className="min-h-0">{children}</div>
+						<SiteFooter />
 					</div>
 				</Providers>
 			</body>

@@ -12,11 +12,13 @@ import {
 	Headphones,
 	Image as ImageIcon,
 	Loader2,
+	MapPin,
 	Mic2,
 	Music,
 	Pencil,
 	Plus,
 	Save,
+	Share2,
 	Trash2,
 	X,
 } from "lucide-react";
@@ -55,6 +57,8 @@ interface EditFormData {
 	bannerUrl: string;
 	genreNames: string[];
 	images: string[];
+	city: string;
+	postalCode: string;
 }
 
 export default function ArtistProfilePage() {
@@ -86,6 +90,22 @@ export default function ArtistProfilePage() {
 		...trpc.artist.getById.queryOptions({ id: artistId }),
 		enabled: !!artistId,
 	});
+
+	const handleShare = useCallback(() => {
+		const url = window.location.href;
+		if (navigator.share) {
+			navigator
+				.share({
+					title: artist?.stageName || "Rythmons",
+					text: `Découvrez le profil de ${artist?.stageName || "cet artiste"} sur Rythmons !`,
+					url: url,
+				})
+				.catch(() => {});
+		} else {
+			navigator.clipboard.writeText(url);
+			toast.success("Lien copié dans le presse-papier !");
+		}
+	}, [artist]);
 
 	// Get the correct query key
 	const artistQueryOptions = trpc.artist.getById.queryOptions({ id: artistId });
@@ -141,6 +161,8 @@ export default function ArtistProfilePage() {
 			bannerUrl: artist.bannerUrl || "",
 			genreNames: artist.genres?.map((g) => g.name) || [],
 			images: artist.images || [],
+			city: artist.city || "",
+			postalCode: artist.postalCode || "",
 		});
 		setIsEditMode(true);
 	}, [artist]);
@@ -173,6 +195,8 @@ export default function ArtistProfilePage() {
 				bannerUrl: formData.bannerUrl || null,
 				genreNames: formData.genreNames,
 				images: formData.images,
+				city: formData.city || null,
+				postalCode: formData.postalCode || null,
 			},
 		});
 	}, [artist, formData, updateMutation]);
@@ -252,6 +276,8 @@ export default function ArtistProfilePage() {
 						bannerUrl: artist.bannerUrl || "",
 						genreNames: artist.genres?.map((g) => g.name) || [],
 						images: artist.images || [],
+						city: artist.city || "",
+						postalCode: artist.postalCode || "",
 					};
 				})();
 
@@ -322,10 +348,15 @@ export default function ArtistProfilePage() {
 									</Button>
 								</>
 							) : (
-								<Button onClick={enterEditMode}>
-									<Pencil className="mr-2 h-4 w-4" />
-									Modifier
-								</Button>
+								<div className="flex gap-2">
+									<Button variant="outline" size="icon" onClick={handleShare}>
+										<Share2 className="h-4 w-4" />
+									</Button>
+									<Button onClick={enterEditMode}>
+										<Pencil className="mr-2 h-4 w-4" />
+										Modifier
+									</Button>
+								</div>
 							)}
 						</div>
 					</div>
@@ -414,6 +445,34 @@ export default function ArtistProfilePage() {
 									</>
 								)}
 
+								{isEditMode ? (
+									<div className="mt-3 grid grid-cols-2 gap-2">
+										<Input
+											value={formData?.city || ""}
+											onChange={(e) => updateFormField("city", e.target.value)}
+											className="text-center text-sm"
+											placeholder="Ville"
+										/>
+										<Input
+											value={formData?.postalCode || ""}
+											onChange={(e) =>
+												updateFormField("postalCode", e.target.value)
+											}
+											className="text-center text-sm"
+											placeholder="CP"
+											maxLength={5}
+										/>
+									</div>
+								) : (
+									<p className="mt-3 flex items-center justify-center gap-1 text-sm text-white/50">
+										<MapPin className="h-3 w-3" />
+										{displayData.city || "Ville non renseignée"}
+										{displayData.postalCode
+											? ` (${displayData.postalCode})`
+											: ""}
+									</p>
+								)}
+
 								{/* Action Buttons */}
 								{!isOwner && session?.user && (
 									<div className="mt-6 flex flex-wrap justify-center gap-3">
@@ -437,6 +496,14 @@ export default function ArtistProfilePage() {
 										>
 											<Plus className="mr-2 h-4 w-4" />
 											Suivre
+										</Button>
+										<Button
+											variant="outline"
+											size="icon"
+											className="rounded-full"
+											onClick={handleShare}
+										>
+											<Share2 className="h-4 w-4" />
 										</Button>
 									</div>
 								)}

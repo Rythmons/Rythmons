@@ -6,6 +6,7 @@ import {
 	ActivityIndicator,
 	Alert,
 	Platform,
+	RefreshControl,
 	TouchableOpacity,
 	View,
 } from "react-native";
@@ -14,8 +15,10 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { KeyboardFormScreen } from "@/components/ui/keyboard-form-screen";
+import { useNotice } from "@/components/ui/notice";
 import { Text, Title } from "@/components/ui/typography";
 import { authClient } from "@/lib/auth-client";
+import { useContextualBackNavigation } from "@/lib/use-contextual-back-navigation";
 import { queryClient, trpc } from "@/utils/trpc";
 
 function showError(error: unknown, fallback: string) {
@@ -24,9 +27,11 @@ function showError(error: unknown, fallback: string) {
 }
 
 export default function ProposeBookingScreen() {
+	const { showNotice } = useNotice();
 	const params = useLocalSearchParams<{
 		artistId?: string;
 		venueId?: string;
+		backTo?: string;
 	}>();
 	const artistId = Array.isArray(params.artistId)
 		? params.artistId[0]
@@ -34,8 +39,14 @@ export default function ProposeBookingScreen() {
 	const venueId = Array.isArray(params.venueId)
 		? params.venueId[0]
 		: params.venueId;
+	const backTo = Array.isArray(params.backTo)
+		? params.backTo[0]
+		: params.backTo;
 	const { data: session, isPending: sessionPending } = authClient.useSession();
 	const isArtistProposing = Boolean(venueId);
+	const handleBack = useContextualBackNavigation(
+		backTo ?? (artistId || venueId ? "/(drawer)/bookings" : "/(drawer)/search"),
+	);
 
 	const myArtistsQuery = useQuery({
 		...trpc.artist.myArtists.queryOptions(),
@@ -93,7 +104,11 @@ export default function ProposeBookingScreen() {
 		...trpc.booking.create.mutationOptions(),
 		onSuccess: async () => {
 			await queryClient.invalidateQueries();
-			Alert.alert("Succès", "Proposition envoyée.");
+			showNotice({
+				title: "Proposition envoyee",
+				message: "Le booking est maintenant visible dans votre suivi.",
+				kind: "success",
+			});
 			router.replace("/(drawer)/bookings" as never);
 		},
 		onError: (error) =>
@@ -206,13 +221,24 @@ export default function ProposeBookingScreen() {
 
 	return (
 		<Container>
-			<KeyboardFormScreen bottomInsetOffset={96}>
+			<KeyboardFormScreen
+				bottomInsetOffset={96}
+				refreshControl={
+					<RefreshControl
+						refreshing={myArtistsQuery.isFetching || myVenuesQuery.isFetching}
+						onRefresh={() => {
+							void myArtistsQuery.refetch();
+							void myVenuesQuery.refetch();
+						}}
+					/>
+				}
+			>
 				<Button
 					label="Retour"
 					variant="ghost"
 					className="self-start px-0"
 					textClassName="text-primary"
-					onPress={() => router.back()}
+					onPress={handleBack}
 				/>
 
 				<View className="gap-2">
@@ -382,11 +408,7 @@ export default function ProposeBookingScreen() {
 							});
 						}}
 					/>
-					<Button
-						label="Annuler"
-						variant="secondary"
-						onPress={() => router.replace("/(drawer)/bookings" as never)}
-					/>
+					<Button label="Annuler" variant="secondary" onPress={handleBack} />
 				</View>
 			</KeyboardFormScreen>
 		</Container>
