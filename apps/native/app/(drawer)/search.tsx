@@ -451,6 +451,10 @@ export default function VenueSearchScreen() {
 		setIsFilterModalOpen(false);
 	}
 
+	function closeFilterModal() {
+		setIsFilterModalOpen(false);
+	}
+
 	function persistAppliedState(next: {
 		search: string;
 		city: string;
@@ -971,6 +975,17 @@ export default function VenueSearchScreen() {
 									</Text>
 								</TouchableOpacity>
 							)}
+
+							{appliedFilterChips.map((chip) => (
+								<TouchableOpacity
+									key={chip.key}
+									className="flex-row items-center gap-1 rounded-full border border-border bg-background px-3 py-2"
+									onPress={() => removeAppliedFilter(chip.key)}
+								>
+									<Text className="text-foreground text-xs">{chip.label}</Text>
+									<Ionicons name="close" size={12} color="#9ca3af" />
+								</TouchableOpacity>
+							))}
 						</ScrollView>
 
 						{hasAdvancedFilters || appliedFilterChips.length > 0 ? (
@@ -984,31 +999,6 @@ export default function VenueSearchScreen() {
 									</Text>
 								</TouchableOpacity>
 							</View>
-						) : null}
-
-						{appliedFilterChips.length > 0 ? (
-							<ScrollView
-								horizontal
-								showsHorizontalScrollIndicator={false}
-								contentContainerStyle={{
-									gap: 8,
-									paddingTop: 10,
-									paddingRight: 4,
-								}}
-							>
-								{appliedFilterChips.map((chip) => (
-									<TouchableOpacity
-										key={chip.key}
-										className="flex-row items-center gap-1 rounded-full border border-border bg-background px-3 py-2"
-										onPress={() => removeAppliedFilter(chip.key)}
-									>
-										<Text className="text-foreground text-xs">
-											{chip.label}
-										</Text>
-										<Ionicons name="close" size={12} color="#9ca3af" />
-									</TouchableOpacity>
-								))}
-							</ScrollView>
 						) : null}
 					</View>
 
@@ -1390,15 +1380,18 @@ export default function VenueSearchScreen() {
 				animationType="slide"
 				transparent
 				visible={isFilterModalOpen}
-				onRequestClose={() => setIsFilterModalOpen(false)}
+				onRequestClose={closeFilterModal}
 			>
-				<View className="flex-1 justify-end">
+				<View className="flex-1 justify-end bg-black/50">
 					<TouchableOpacity
 						activeOpacity={1}
-						className="h-[12%] bg-black/50"
-						onPress={() => setIsFilterModalOpen(false)}
+						className="flex-1"
+						onPress={closeFilterModal}
 					/>
-					<View className="h-[88%] rounded-t-3xl border border-border bg-background px-4 pt-4 pb-6">
+					<View
+						className="h-[88%] rounded-t-3xl border border-border bg-background px-4 pt-4"
+						style={{ paddingBottom: Math.max(16, insets.bottom + 12) }}
+					>
 						<View className="mb-3 items-center">
 							<View className="h-1.5 w-12 rounded-full bg-border" />
 						</View>
@@ -1651,6 +1644,7 @@ export default function VenueSearchScreen() {
 
 						<View className="mt-4 flex-row gap-3">
 							<TouchableOpacity
+								hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
 								className="flex-1 rounded-xl border border-border bg-card px-4 py-3"
 								onPress={resetFilters}
 							>
@@ -1659,11 +1653,13 @@ export default function VenueSearchScreen() {
 								</Text>
 							</TouchableOpacity>
 							<TouchableOpacity
+								hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
 								className={`flex-1 rounded-xl px-4 py-3 ${
 									hasPendingChanges ? "bg-primary" : "bg-muted"
 								}`}
-								onPress={applyFiltersAndClose}
-								disabled={!hasPendingChanges}
+								onPress={
+									hasPendingChanges ? applyFiltersAndClose : closeFilterModal
+								}
 							>
 								<Text className="text-center font-sans-medium text-primary-foreground">
 									Appliquer

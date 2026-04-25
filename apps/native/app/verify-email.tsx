@@ -36,7 +36,7 @@ export default function VerifyEmailScreen() {
 	const targetEmail = session?.user?.email ?? emailFromParams;
 
 	const loadDevVerificationLink = useCallback(async () => {
-		if (!__DEV__ || !targetEmail || !process.env.EXPO_PUBLIC_SERVER_URL) {
+		if (!targetEmail || !process.env.EXPO_PUBLIC_SERVER_URL) {
 			setDevVerificationUrl(null);
 			return;
 		}

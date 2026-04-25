@@ -1,4 +1,5 @@
 import { useSignUpForm } from "@rythmons/auth/client";
+import { signUpSchema } from "@rythmons/validation";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Pressable, TouchableOpacity, View } from "react-native";
@@ -130,14 +131,14 @@ export function SignUp({ onSwitchToSignIn, onInputFocus }: Props) {
 						/>
 						{field.state.meta.errors.length > 0 && (
 							<View className="mt-1">
-								{field.state.meta.errors.map((err) => {
+								{field.state.meta.errors.map((err, idx) => {
 									const errorMessage =
 										typeof err === "object"
 											? (err as { message: string }).message
 											: String(err);
 									return (
 										<Text
-											key={errorMessage}
+											key={`${idx}-${errorMessage}`}
 											className="text-destructive text-sm"
 										>
 											• {errorMessage}
@@ -216,12 +217,20 @@ export function SignUp({ onSwitchToSignIn, onInputFocus }: Props) {
 				)}
 			</form.Field>
 
-			<Button
-				onPress={form.handleSubmit}
-				disabled={isLoading}
-				loading={isLoading}
-				label="S'inscrire"
-			/>
+			<form.Subscribe>
+				{(state) => {
+					const canSubmit = signUpSchema.safeParse(state.values).success;
+
+					return (
+						<Button
+							onPress={form.handleSubmit}
+							disabled={!canSubmit || isLoading || state.isSubmitting}
+							loading={isLoading || state.isSubmitting}
+							label="S'inscrire"
+						/>
+					);
+				}}
+			</form.Subscribe>
 			<View className="my-3 flex-row justify-center">
 				<Text className="text-muted-foreground text-sm">Déjà inscrit ? </Text>
 				<TouchableOpacity onPress={onSwitchToSignIn}>
