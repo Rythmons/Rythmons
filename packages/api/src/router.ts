@@ -2,6 +2,7 @@ import { accountRouter } from "./routers/account";
 import { artistRouter } from "./routers/artist";
 import { availabilityRouter } from "./routers/availability";
 import { bookingRouter } from "./routers/booking";
+import { mediaRouter } from "./routers/media";
 import { venueRouter } from "./routers/venue";
 import { protectedProcedure, publicProcedure, router } from "./trpc";
 
@@ -20,6 +21,7 @@ export const appRouter = router({
 	artist: artistRouter,
 	booking: bookingRouter,
 	availability: availabilityRouter,
+	media: mediaRouter,
 });
 
 export type AppRouter = typeof appRouter;

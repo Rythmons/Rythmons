@@ -1,6 +1,7 @@
 import { useAuth } from "@rythmons/auth/client";
 import { useQuery } from "@tanstack/react-query";
 import { Building2, LogOut, Mic2, Search, User } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -45,6 +46,10 @@ export default function UserMenu() {
 
 	const { data: venues } = useQuery({
 		...trpc.venue.getMyVenues.queryOptions(),
+		enabled: !!session?.user,
+	});
+	const { data: medias } = useQuery({
+		...trpc.media.getMyMedias.queryOptions(),
 		enabled: !!session?.user,
 	});
 	const artistItems = (artists ?? []) as ArtistMenuItem[];
@@ -103,11 +108,11 @@ export default function UserMenu() {
 					{artistItems.map((artist) => (
 						<Link
 							key={artist.id}
-							href={`/artist/${artist.id}`}
+							href={`/artist/${artist.id}` as any}
 							className="group relative flex h-14 w-full cursor-pointer items-center overflow-hidden border-white/10 border-b transition-colors hover:bg-white/5"
 						>
 							{/* Tag */}
-							<div className="flex h-full w-12 items-center justify-center bg-gradient-to-br from-violet-600 to-indigo-600 font-bold text-[10px] text-white">
+							<div className="flex h-full w-12 shrink-0 items-center justify-center bg-gradient-to-br from-violet-600 to-indigo-600 font-semibold text-[10px] text-white tracking-wide">
 								INDÉ
 							</div>
 							{/* Content */}
@@ -139,7 +144,7 @@ export default function UserMenu() {
 							className="group relative flex h-14 w-full cursor-pointer items-center overflow-hidden border-white/10 border-b transition-colors hover:bg-white/5"
 						>
 							{/* Tag */}
-							<div className="flex h-full w-12 items-center justify-center bg-gradient-to-br from-red-600 to-orange-600 font-bold text-[10px] text-white">
+							<div className="flex h-full w-12 shrink-0 items-center justify-center bg-gradient-to-br from-red-600 to-orange-600 font-semibold text-[10px] text-white tracking-wide">
 								PRO
 							</div>
 							{/* Content */}
@@ -158,6 +163,37 @@ export default function UserMenu() {
 								</div>
 								<span className="font-bold text-sm tracking-wide">
 									{venue.name}
+								</span>
+							</div>
+						</Link>
+					))}
+
+					{/* Medias */}
+					{(medias as any[])?.map((media) => (
+						<Link
+							key={media.id}
+							href={`/media/${media.id}` as any}
+							className="group relative flex h-14 w-full cursor-pointer items-center overflow-hidden border-white/10 border-b transition-colors hover:bg-white/5"
+						>
+							{/* Tag */}
+							<div className="flex h-full w-12 items-center justify-center bg-gradient-to-br from-red-600 to-orange-600 font-bold text-[10px] text-white">
+								PRO
+							</div>
+							{/* Content */}
+							<div className="ml-3 flex items-center gap-3">
+								<div className="flex h-9 w-9 items-center justify-center rounded-lg bg-zinc-800">
+									{media.logoUrl ? (
+										<Image
+											src={media.logoUrl}
+											alt={media.name}
+											className="h-full w-full rounded-lg object-cover"
+										/>
+									) : (
+										<Building2 className="h-4 w-4 text-zinc-400" />
+									)}
+								</div>
+								<span className="font-bold text-sm tracking-wide">
+									{media.name}
 								</span>
 							</div>
 						</Link>

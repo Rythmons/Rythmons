@@ -63,7 +63,7 @@ Workflow recommande pour les changements de schema :
 1. Modifiez `packages/db/prisma/schema.prisma`.
 2. Lancez `pnpm db:migrate` pour generer une migration versionnee.
 3. Committez le contenu de `packages/db/prisma/migrations/`.
-4. Laissez le deploy executer `pnpm db:deploy` avant le build.
+4. En production (Vercel) : le build exécute uniquement `pnpm build` (pas de `db:deploy` pendant le build, pour éviter P1002/P3005). Appliquez les migrations **après** déploiement avec `pnpm db:deploy` en local en pointant `DATABASE_URL` vers la base prod, ou via un job CI.
 
 Gardez `pnpm db:push` pour initialiser une base locale ou pour du prototypage rapide. Ne l'utilisez pas comme mecanisme principal pour la production.
 
