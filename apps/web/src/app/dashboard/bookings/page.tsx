@@ -4,9 +4,19 @@ import { useQuery } from "@tanstack/react-query";
 import { Calendar, Loader2 } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
 import { trpc } from "@/utils/trpc";
+
+const STATUS_FILTERS = [
+	{ value: "ALL", label: "Toutes" },
+	{ value: "PENDING", label: "En attente" },
+	{ value: "ACCEPTED", label: "Acceptées" },
+	{ value: "REFUSED", label: "Refusées" },
+	{ value: "CANCELLED", label: "Annulées" },
+] as const;
 
 const STATUS_LABELS: Record<string, string> = {
 	PENDING: "En attente",
@@ -16,11 +26,22 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 export default function BookingsPage() {
+	const router = useRouter();
 	const { data: session, isPending: sessionPending } = authClient.useSession();
+	const [statusFilter, setStatusFilter] =
+		useState<(typeof STATUS_FILTERS)[number]["value"]>("ALL");
 	const { data: bookings, isLoading } = useQuery({
-		...trpc.booking.listMine.queryOptions(),
+		...trpc.booking.listMine.queryOptions(
+			statusFilter === "ALL" ? undefined : { status: statusFilter },
+		),
 		enabled: !!session?.user,
 	});
+
+	useEffect(() => {
+		if (!sessionPending && !session?.user) {
+			router.replace("/login");
+		}
+	}, [sessionPending, session, router]);
 
 	if (sessionPending || !session?.user) {
 		return (
@@ -43,11 +64,26 @@ export default function BookingsPage() {
 
 	return (
 		<div className="container mx-auto max-w-4xl py-8">
-			<div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+			<div className="mb-6 space-y-3">
 				<h1 className="font-bold text-2xl">Propositions de booking</h1>
-				<Button asChild>
-					<Link href="/dashboard/bookings/propose">Nouvelle proposition</Link>
-				</Button>
+				<p className="text-muted-foreground text-sm">
+					Créez une nouvelle proposition depuis une fiche artiste ou lieu, puis
+					suivez ici les demandes envoyées et reçues.
+				</p>
+			</div>
+
+			<div className="mb-6 flex flex-wrap gap-2">
+				{STATUS_FILTERS.map((filter) => (
+					<Button
+						key={filter.value}
+						type="button"
+						variant={statusFilter === filter.value ? "default" : "outline"}
+						size="sm"
+						onClick={() => setStatusFilter(filter.value)}
+					>
+						{filter.label}
+					</Button>
+				))}
 			</div>
 
 			{list.length === 0 ? (
@@ -57,8 +93,8 @@ export default function BookingsPage() {
 						Vous n'avez pas encore de proposition.
 					</p>
 					<p className="mt-2 text-muted-foreground text-sm">
-						Utilisez le bouton &quot;Proposer un booking&quot; sur une fiche
-						artiste ou lieu pour en créer une.
+						Utilisez le bouton &quot;Proposer un booking&quot; depuis une fiche
+						artiste ou lieu pour créer une nouvelle demande.
 					</p>
 				</div>
 			) : (
@@ -68,9 +104,9 @@ export default function BookingsPage() {
 						const otherName = isSent
 							? b.venue.name
 							: ((b.artist as { stageName?: string }).stageName ?? "—");
-						const otherHref = isSent
-							? `/venue/${b.venue.id}`
-							: `/artist/${b.artist.id}`;
+						const otherHref = (
+							isSent ? `/venue/${b.venue.id}` : `/artist/${b.artist.id}`
+						) as Route;
 
 						return (
 							<li
@@ -82,7 +118,7 @@ export default function BookingsPage() {
 										<p className="font-medium">
 											{isSent ? "Vers" : "De"} :{" "}
 											<Link
-												href={otherHref as Route}
+												href={otherHref}
 												className="text-primary hover:underline"
 											>
 												{otherName}
@@ -111,7 +147,9 @@ export default function BookingsPage() {
 									</span>
 								</div>
 								<Button variant="outline" size="sm" asChild>
-									<Link href={`/dashboard/bookings/${b.id}`}>Voir</Link>
+									<Link href={`/dashboard/bookings/${b.id}` as Route}>
+										Voir
+									</Link>
 								</Button>
 							</li>
 						);

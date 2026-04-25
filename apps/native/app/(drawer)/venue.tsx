@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { router } from "expo-router";
+import { useState } from "react";
 import {
 	ActivityIndicator,
 	Image,
@@ -17,6 +18,9 @@ import { getVenueTypeLabel } from "@/utils/venue-labels";
 
 export default function VenueListScreen() {
 	const { data: session, isPending: sessionPending } = authClient.useSession();
+	const [failedVenueLogoIds, setFailedVenueLogoIds] = useState<
+		Record<string, boolean>
+	>({});
 
 	const {
 		data: venues = [],
@@ -145,10 +149,16 @@ export default function VenueListScreen() {
 
 								<View className="p-4">
 									<View className="flex-row items-center gap-3">
-										{venue.logoUrl ? (
+										{venue.logoUrl && !failedVenueLogoIds[venue.id] ? (
 											<Image
 												source={{ uri: venue.logoUrl }}
 												className="h-12 w-12 rounded-full border border-border"
+												onError={() =>
+													setFailedVenueLogoIds((currentState) => ({
+														...currentState,
+														[venue.id]: true,
+													}))
+												}
 											/>
 										) : (
 											<View className="h-12 w-12 items-center justify-center rounded-full bg-primary/10">

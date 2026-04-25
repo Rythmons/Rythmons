@@ -22,7 +22,6 @@ model User {
   role          UserRole?
   artists       Artist[]
   venues        Venue[]
-  medias        Media[]
   createdBookings Booking[]
 
   @@unique([email])
@@ -71,6 +70,7 @@ model Verification {
   createdAt  DateTime?
   updatedAt  DateTime?
 
+
   @@map("verification")
 }
 
@@ -96,10 +96,8 @@ model Artist {
   latitude         Float?
   longitude        Float?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  medias Media[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   bookings Booking[]
 
@@ -192,6 +190,7 @@ model Booking {
   proposedFee       Int?
   status            BookingStatus @default(PENDING)
   initialMessage    String?       @db.Text
+  refusalReason     String?       @db.Text
   createdByUserId   String
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
@@ -224,29 +223,10 @@ model AvailabilitySlot {
 }
 
 model Genre {
-  id      String   @id @default(cuid()) @map("_id")
-  name    String   @unique
-  venues  Venue[]
-  artists Artist[]
+  id        String   @id @default(cuid()) @map("_id")
+  name      String   @unique
+  venues    Venue[]
+  artists   Artist[]
 
   @@map("genre")
-}
-
-model Media {
-  id          String  @id @default(cuid()) @map("_id")
-  name        String
-  description String? @db.Text
-  website     String?
-  logoUrl     String?
-  country     String? @default("France")
-
-  artists Artist[]
-
-  ownerId String
-  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@map("media")
 }

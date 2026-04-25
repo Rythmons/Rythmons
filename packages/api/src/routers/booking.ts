@@ -1,22 +1,33 @@
+import {
+	bookingByIdSchema,
+	bookingCreateSchema,
+	bookingListFilterSchema,
+	bookingRefuseSchema,
+} from "@rythmons/validation";
 import { TRPCError } from "@trpc/server";
-import { z } from "zod";
 import { protectedProcedure, router } from "../trpc";
 
-const createInput = z.object({
-	artistId: z.string(),
-	venueId: z.string(),
-	proposedDate: z.date(),
-	proposedFee: z.number().int().min(0).nullable().optional(),
-	initialMessage: z.string().max(2000).optional(),
-});
+function getBookingDayRange(date: Date) {
+	const startOfDay = new Date(date);
+	startOfDay.setUTCHours(0, 0, 0, 0);
+	const endOfDay = new Date(date);
+	endOfDay.setUTCHours(23, 59, 59, 999);
+	return { startOfDay, endOfDay };
+}
+
+function normalizeOptionalReason(reason?: string) {
+	const trimmed = reason?.trim();
+	return trimmed ? trimmed : null;
+}
 
 export const bookingRouter = router({
 	create: protectedProcedure
-		.input(createInput)
+		.input(bookingCreateSchema)
 		.mutation(async ({ ctx, input }) => {
 			const userId = ctx.session.user.id;
+			const { startOfDay, endOfDay } = getBookingDayRange(input.proposedDate);
 
-			const [artist, venue] = await Promise.all([
+			const [artist, venue, existingPendingBooking] = await Promise.all([
 				ctx.db.artist.findUnique({
 					where: { id: input.artistId },
 					select: { id: true, userId: true },
@@ -25,12 +36,32 @@ export const bookingRouter = router({
 					where: { id: input.venueId },
 					select: { id: true, ownerId: true },
 				}),
+				ctx.db.booking.findFirst({
+					where: {
+						artistId: input.artistId,
+						venueId: input.venueId,
+						status: "PENDING",
+						proposedDate: {
+							gte: startOfDay,
+							lte: endOfDay,
+						},
+					},
+					select: { id: true },
+				}),
 			]);
 
 			if (!artist || !venue) {
 				throw new TRPCError({
 					code: "NOT_FOUND",
 					message: "Artiste ou lieu introuvable.",
+				});
+			}
+
+			if (artist.userId === venue.ownerId) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message:
+						"Vous ne pouvez pas créer une proposition entre vos propres profils artiste et lieu.",
 				});
 			}
 
@@ -45,13 +76,21 @@ export const bookingRouter = router({
 				});
 			}
 
+			if (existingPendingBooking) {
+				throw new TRPCError({
+					code: "CONFLICT",
+					message:
+						"Une proposition en attente existe déjà entre cet artiste et ce lieu pour cette date.",
+				});
+			}
+
 			const booking = await ctx.db.booking.create({
 				data: {
 					artistId: input.artistId,
 					venueId: input.venueId,
 					proposedDate: input.proposedDate,
 					proposedFee: input.proposedFee ?? null,
-					initialMessage: input.initialMessage ?? null,
+					initialMessage: input.initialMessage?.trim() || null,
 					createdByUserId: userId,
 					status: "PENDING",
 				},
@@ -82,43 +121,46 @@ export const bookingRouter = router({
 			return booking;
 		}),
 
-	listMine: protectedProcedure.query(async ({ ctx }) => {
-		const userId = ctx.session.user.id;
+	listMine: protectedProcedure
+		.input(bookingListFilterSchema.optional())
+		.query(async ({ ctx, input }) => {
+			const userId = ctx.session.user.id;
 
-		const bookings = await ctx.db.booking.findMany({
-			where: {
-				OR: [{ artist: { userId } }, { venue: { ownerId: userId } }],
-			},
-			orderBy: { createdAt: "desc" },
-			include: {
-				artist: {
-					select: {
-						id: true,
-						stageName: true,
-						photoUrl: true,
-						user: { select: { id: true, name: true, image: true } },
+			const bookings = await ctx.db.booking.findMany({
+				where: {
+					OR: [{ artist: { userId } }, { venue: { ownerId: userId } }],
+					...(input?.status ? { status: input.status } : {}),
+				},
+				orderBy: { updatedAt: "desc" },
+				include: {
+					artist: {
+						select: {
+							id: true,
+							stageName: true,
+							photoUrl: true,
+							user: { select: { id: true, name: true, image: true } },
+						},
+					},
+					venue: {
+						select: {
+							id: true,
+							name: true,
+							logoUrl: true,
+							city: true,
+							owner: { select: { id: true, name: true, image: true } },
+						},
+					},
+					createdBy: {
+						select: { id: true, name: true },
 					},
 				},
-				venue: {
-					select: {
-						id: true,
-						name: true,
-						logoUrl: true,
-						city: true,
-						owner: { select: { id: true, name: true, image: true } },
-					},
-				},
-				createdBy: {
-					select: { id: true, name: true },
-				},
-			},
-		});
+			});
 
-		return bookings;
-	}),
+			return bookings;
+		}),
 
 	getById: protectedProcedure
-		.input(z.object({ id: z.string() }))
+		.input(bookingByIdSchema)
 		.query(async ({ ctx, input }) => {
 			const userId = ctx.session.user.id;
 
@@ -185,7 +227,7 @@ export const bookingRouter = router({
 		}),
 
 	accept: protectedProcedure
-		.input(z.object({ id: z.string() }))
+		.input(bookingByIdSchema)
 		.mutation(async ({ ctx, input }) => {
 			const userId = ctx.session.user.id;
 
@@ -229,43 +271,131 @@ export const bookingRouter = router({
 				});
 			}
 
-			const startOfDay = new Date(booking.proposedDate);
-			startOfDay.setUTCHours(0, 0, 0, 0);
-			const endOfDay = new Date(booking.proposedDate);
-			endOfDay.setUTCHours(23, 59, 59, 999);
+			const { startOfDay, endOfDay } = getBookingDayRange(booking.proposedDate);
+			const dayLockKey = startOfDay.toISOString().slice(0, 10);
 
-			await ctx.db.$transaction([
-				ctx.db.booking.update({
-					where: { id: input.id },
-					data: { status: "ACCEPTED" },
-				}),
-				ctx.db.availabilitySlot.create({
-					data: {
-						ownerType: "ARTIST",
-						ownerId: booking.artistId,
-						startDate: startOfDay,
-						endDate: endOfDay,
-						type: "BOOKED",
-						bookingId: booking.id,
-					},
-				}),
-				ctx.db.availabilitySlot.create({
-					data: {
-						ownerType: "VENUE",
-						ownerId: booking.venueId,
-						startDate: startOfDay,
-						endDate: endOfDay,
-						type: "BOOKED",
-						bookingId: booking.id,
-					},
-				}),
-			]);
+			await ctx.db.$transaction(async (tx) => {
+				await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`booking:artist:${booking.artistId}:${dayLockKey}`}))`;
+				await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`booking:venue:${booking.venueId}:${dayLockKey}`}))`;
+
+				const [artistConflict, venueConflict, venueOpenSlot] =
+					await Promise.all([
+						tx.availabilitySlot.findFirst({
+							where: {
+								ownerType: "ARTIST",
+								ownerId: booking.artistId,
+								type: { in: ["UNAVAILABLE", "BOOKED"] },
+								startDate: { lte: endOfDay },
+								endDate: { gte: startOfDay },
+							},
+							select: { id: true },
+						}),
+						tx.availabilitySlot.findFirst({
+							where: {
+								ownerType: "VENUE",
+								ownerId: booking.venueId,
+								type: "BOOKED",
+								startDate: { lte: endOfDay },
+								endDate: { gte: startOfDay },
+							},
+							select: { id: true },
+						}),
+						tx.availabilitySlot.findFirst({
+							where: {
+								ownerType: "VENUE",
+								ownerId: booking.venueId,
+								type: "OPEN",
+								startDate: { lte: endOfDay },
+								endDate: { gte: startOfDay },
+							},
+							select: { id: true },
+						}),
+					]);
+
+				if (artistConflict) {
+					throw new TRPCError({
+						code: "CONFLICT",
+						message:
+							"L'artiste n'est pas disponible sur cette date. Mettez à jour le calendrier avant d'accepter.",
+					});
+				}
+
+				if (!venueOpenSlot) {
+					throw new TRPCError({
+						code: "CONFLICT",
+						message:
+							"Le lieu n'est pas ouvert sur cette date. Ajoutez d'abord une disponibilité dans le calendrier.",
+					});
+				}
+
+				if (venueConflict) {
+					throw new TRPCError({
+						code: "CONFLICT",
+						message: "Le lieu possède déjà un booking confirmé sur cette date.",
+					});
+				}
+
+				const updated = await tx.booking.updateMany({
+					where: { id: input.id, status: "PENDING" },
+					data: { status: "ACCEPTED", refusalReason: null },
+				});
+
+				if (updated.count !== 1) {
+					throw new TRPCError({
+						code: "CONFLICT",
+						message:
+							"Cette proposition a changé d'état entre-temps. Rechargez la page avant de réessayer.",
+					});
+				}
+
+				await Promise.all([
+					tx.availabilitySlot.deleteMany({
+						where: {
+							ownerType: "ARTIST",
+							ownerId: booking.artistId,
+							bookingId: null,
+							startDate: { lte: endOfDay },
+							endDate: { gte: startOfDay },
+						},
+					}),
+					tx.availabilitySlot.deleteMany({
+						where: {
+							ownerType: "VENUE",
+							ownerId: booking.venueId,
+							bookingId: null,
+							startDate: { lte: endOfDay },
+							endDate: { gte: startOfDay },
+						},
+					}),
+				]);
+
+				await tx.availabilitySlot.createMany({
+					data: [
+						{
+							ownerType: "ARTIST",
+							ownerId: booking.artistId,
+							startDate: startOfDay,
+							endDate: endOfDay,
+							type: "BOOKED",
+							bookingId: booking.id,
+						},
+						{
+							ownerType: "VENUE",
+							ownerId: booking.venueId,
+							startDate: startOfDay,
+							endDate: endOfDay,
+							type: "BOOKED",
+							bookingId: booking.id,
+						},
+					],
+				});
+			});
 
 			return { ok: true };
 		}),
 
 	refuse: protectedProcedure
-		.input(z.object({ id: z.string(), reason: z.string().max(500).optional() }))
+		.input(bookingRefuseSchema)
 		.mutation(async ({ ctx, input }) => {
 			const userId = ctx.session.user.id;
 
@@ -308,16 +438,27 @@ export const bookingRouter = router({
 				});
 			}
 
-			await ctx.db.booking.update({
-				where: { id: input.id },
-				data: { status: "REFUSED" },
+			const updated = await ctx.db.booking.updateMany({
+				where: { id: input.id, status: "PENDING" },
+				data: {
+					status: "REFUSED",
+					refusalReason: normalizeOptionalReason(input.reason),
+				},
 			});
+
+			if (updated.count !== 1) {
+				throw new TRPCError({
+					code: "CONFLICT",
+					message:
+						"Cette proposition a changé d'état entre-temps. Rechargez la page avant de réessayer.",
+				});
+			}
 
 			return { ok: true };
 		}),
 
 	cancel: protectedProcedure
-		.input(z.object({ id: z.string() }))
+		.input(bookingByIdSchema)
 		.mutation(async ({ ctx, input }) => {
 			const userId = ctx.session.user.id;
 
@@ -346,10 +487,18 @@ export const bookingRouter = router({
 				});
 			}
 
-			await ctx.db.booking.update({
-				where: { id: input.id },
-				data: { status: "CANCELLED" },
+			const updated = await ctx.db.booking.updateMany({
+				where: { id: input.id, status: "PENDING" },
+				data: { status: "CANCELLED", refusalReason: null },
 			});
+
+			if (updated.count !== 1) {
+				throw new TRPCError({
+					code: "CONFLICT",
+					message:
+						"Cette proposition a changé d'état entre-temps. Rechargez la page avant de réessayer.",
+				});
+			}
 
 			return { ok: true };
 		}),

@@ -8,16 +8,19 @@ export const Input = forwardRef<
 	RNTextInput,
 	TextInputProps & { className?: string; variant?: InputVariant }
 >(({ className, variant = "default", ...props }, ref) => {
+	const isMultiline = props.multiline === true;
 	return (
 		<RNTextInput
 			ref={ref}
 			className={cn(
-				"min-h-12 rounded-xl border bg-input px-4 py-3 font-sans text-foreground",
+				"rounded-xl border bg-input px-4 py-3 font-sans text-foreground",
+				isMultiline ? "min-h-24" : "min-h-12",
 				"border-input",
 				"focus:border-primary",
 				variant === "error" && "border-destructive",
 				className,
 			)}
+			textAlignVertical={isMultiline ? "top" : props.textAlignVertical}
 			{...props}
 		/>
 	);

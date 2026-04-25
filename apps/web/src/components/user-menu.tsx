@@ -1,7 +1,6 @@
 import { useAuth } from "@rythmons/auth/client";
 import { useQuery } from "@tanstack/react-query";
-import { Building2, LogOut, Mic2, Search, User } from "lucide-react";
-import Image from "next/image";
+import { Building2, LogOut, Mic2, User } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -32,11 +31,6 @@ export default function UserMenu() {
 	const router = useRouter();
 	const authClient = useAuth();
 	const { data: session, isPending } = authClient.useSession();
-	const sessionRole = (session?.user as { role?: string | null } | undefined)
-		?.role;
-	const hasArtistRole = sessionRole === "ARTIST" || sessionRole === "BOTH";
-	const hasOrganizerRole =
-		sessionRole === "ORGANIZER" || sessionRole === "BOTH";
 
 	// Fetch Artists and Venues for the menu
 	const { data: artists } = useQuery({
@@ -48,16 +42,8 @@ export default function UserMenu() {
 		...trpc.venue.getMyVenues.queryOptions(),
 		enabled: !!session?.user,
 	});
-	const { data: medias } = useQuery({
-		...trpc.media.getMyMedias.queryOptions(),
-		enabled: !!session?.user,
-	});
 	const artistItems = (artists ?? []) as ArtistMenuItem[];
 	const venueItems = (venues ?? []) as VenueMenuItem[];
-	const canSearchVenues = hasArtistRole || artistItems.length > 0;
-	const canSearchArtists = hasOrganizerRole || venueItems.length > 0;
-	const canUseSearch = canSearchVenues || canSearchArtists;
-
 	if (isPending) {
 		return <Skeleton className="h-10 w-24" />;
 	}
@@ -75,29 +61,24 @@ export default function UserMenu() {
 			<DropdownMenuTrigger asChild>
 				<Button
 					variant="ghost"
-					className="relative h-10 w-full justify-start gap-2 overflow-hidden bg-card p-0 pr-4 text-left shadow-sm hover:bg-accent sm:w-auto"
+					className="relative h-10 gap-2 overflow-hidden px-2 hover:bg-white/5 sm:px-4"
 				>
-					{/* Default state: Show User Info (or maybe the first profile?) */}
-					{/* For now, replicating the 'User' state styled like a profile */}
-					<div className="flex h-full items-center">
-						<div className="flex h-full w-12 items-center justify-center bg-zinc-800 font-bold text-[10px] text-white">
-							UTIL.
+					<div className="flex items-center gap-2">
+						<div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-[#17011F]">
+							{session.user.image ? (
+								/* biome-ignore lint/performance/noImgElement: menu avatars use uploaded remote URLs */
+								<img
+									src={session.user.image}
+									alt={session.user.name}
+									className="h-full w-full rounded-full object-cover"
+								/>
+							) : (
+								<User className="h-4 w-4" />
+							)}
 						</div>
-						<div className="ml-3 flex items-center gap-3">
-							<div className="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800">
-								{session.user.image ? (
-									/* biome-ignore lint/performance/noImgElement: menu avatars use uploaded remote URLs */
-									<img
-										src={session.user.image}
-										alt={session.user.name}
-										className="h-full w-full rounded-full object-cover"
-									/>
-								) : (
-									<User className="h-4 w-4" />
-								)}
-							</div>
-							<span className="font-semibold">{session.user.name}</span>
-						</div>
+						<span className="hidden max-w-[100px] truncate font-display text-xs uppercase tracking-wider sm:block">
+							{session.user.name}
+						</span>
 					</div>
 				</Button>
 			</DropdownMenuTrigger>
@@ -108,11 +89,11 @@ export default function UserMenu() {
 					{artistItems.map((artist) => (
 						<Link
 							key={artist.id}
-							href={`/artist/${artist.id}` as any}
+							href={`/artist/${artist.id}`}
 							className="group relative flex h-14 w-full cursor-pointer items-center overflow-hidden border-white/10 border-b transition-colors hover:bg-white/5"
 						>
 							{/* Tag */}
-							<div className="flex h-full w-12 shrink-0 items-center justify-center bg-gradient-to-br from-violet-600 to-indigo-600 font-semibold text-[10px] text-white tracking-wide">
+							<div className="flex h-full w-12 items-center justify-center bg-gradient-to-br from-violet-600 to-indigo-600 font-bold text-[10px] text-white">
 								INDÉ
 							</div>
 							{/* Content */}
@@ -144,7 +125,7 @@ export default function UserMenu() {
 							className="group relative flex h-14 w-full cursor-pointer items-center overflow-hidden border-white/10 border-b transition-colors hover:bg-white/5"
 						>
 							{/* Tag */}
-							<div className="flex h-full w-12 shrink-0 items-center justify-center bg-gradient-to-br from-red-600 to-orange-600 font-semibold text-[10px] text-white tracking-wide">
+							<div className="flex h-full w-12 items-center justify-center bg-gradient-to-br from-red-600 to-orange-600 font-bold text-[10px] text-white">
 								PRO
 							</div>
 							{/* Content */}
@@ -167,52 +148,9 @@ export default function UserMenu() {
 							</div>
 						</Link>
 					))}
-
-					{/* Medias */}
-					{(medias as any[])?.map((media) => (
-						<Link
-							key={media.id}
-							href={`/media/${media.id}` as any}
-							className="group relative flex h-14 w-full cursor-pointer items-center overflow-hidden border-white/10 border-b transition-colors hover:bg-white/5"
-						>
-							{/* Tag */}
-							<div className="flex h-full w-12 items-center justify-center bg-gradient-to-br from-red-600 to-orange-600 font-bold text-[10px] text-white">
-								PRO
-							</div>
-							{/* Content */}
-							<div className="ml-3 flex items-center gap-3">
-								<div className="flex h-9 w-9 items-center justify-center rounded-lg bg-zinc-800">
-									{media.logoUrl ? (
-										<Image
-											src={media.logoUrl}
-											alt={media.name}
-											className="h-full w-full rounded-lg object-cover"
-										/>
-									) : (
-										<Building2 className="h-4 w-4 text-zinc-400" />
-									)}
-								</div>
-								<span className="font-bold text-sm tracking-wide">
-									{media.name}
-								</span>
-							</div>
-						</Link>
-					))}
 				</div>
 
 				<DropdownMenuSeparator className="bg-white/10" />
-
-				{canUseSearch ? (
-					<DropdownMenuItem
-						className="flex cursor-pointer items-center gap-2 p-4 text-zinc-400 hover:text-white focus:bg-white/5 focus:text-white"
-						onClick={() => {
-							router.push("/dashboard/search");
-						}}
-					>
-						<Search className="h-4 w-4" />
-						<span>Recherche</span>
-					</DropdownMenuItem>
-				) : null}
 
 				<DropdownMenuItem
 					className="flex cursor-pointer items-center gap-2 p-4 text-zinc-400 hover:text-white focus:bg-white/5 focus:text-white"

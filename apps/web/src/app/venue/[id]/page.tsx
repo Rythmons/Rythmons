@@ -14,6 +14,7 @@ import {
 	Pencil,
 	Plus,
 	Save,
+	Share2,
 	Trash2,
 	Users,
 	X,
@@ -117,6 +118,22 @@ export default function VenueProfilePage() {
 		...trpc.venue.getById.queryOptions({ id: venueId }),
 		enabled: !!venueId,
 	});
+
+	const handleShare = useCallback(() => {
+		const url = window.location.href;
+		if (navigator.share) {
+			navigator
+				.share({
+					title: venue?.name || "Rythmons",
+					text: `Découvrez le lieu ${venue?.name || ""} sur Rythmons !`,
+					url: url,
+				})
+				.catch(() => {});
+		} else {
+			navigator.clipboard.writeText(url);
+			toast.success("Lien copié dans le presse-papier !");
+		}
+	}, [venue]);
 
 	// Get the correct query key
 	const venueQueryOptions = trpc.venue.getById.queryOptions({ id: venueId });
@@ -377,10 +394,15 @@ export default function VenueProfilePage() {
 									</Button>
 								</>
 							) : (
-								<Button onClick={enterEditMode}>
-									<Pencil className="mr-2 h-4 w-4" />
-									Modifier
-								</Button>
+								<div className="flex gap-2">
+									<Button variant="outline" size="icon" onClick={handleShare}>
+										<Share2 className="h-4 w-4" />
+									</Button>
+									<Button onClick={enterEditMode}>
+										<Pencil className="mr-2 h-4 w-4" />
+										Modifier
+									</Button>
+								</div>
 							)}
 						</div>
 					</div>
@@ -486,17 +508,37 @@ export default function VenueProfilePage() {
 									</>
 								)}
 
-								<p className="mt-3 flex items-center justify-center gap-1 text-sm text-white/50">
-									<MapPin className="h-3 w-3" />
-									{displayData.city}
-									{displayData.capacity && (
-										<>
-											<span className="mx-1">•</span>
-											<Users className="h-3 w-3" />
-											{displayData.capacity}
-										</>
-									)}
-								</p>
+								{isEditMode ? (
+									<div className="mt-3 grid grid-cols-2 gap-2">
+										<Input
+											value={formData?.city || ""}
+											onChange={(e) => updateFormField("city", e.target.value)}
+											className="text-center text-sm"
+											placeholder="Ville"
+										/>
+										<Input
+											value={formData?.postalCode || ""}
+											onChange={(e) =>
+												updateFormField("postalCode", e.target.value)
+											}
+											className="text-center text-sm"
+											placeholder="CP"
+											maxLength={5}
+										/>
+									</div>
+								) : (
+									<p className="mt-3 flex items-center justify-center gap-1 text-sm text-white/50">
+										<MapPin className="h-3 w-3" />
+										{displayData.city}
+										{displayData.capacity && (
+											<>
+												<span className="mx-1">•</span>
+												<Users className="h-3 w-3" />
+												{displayData.capacity}
+											</>
+										)}
+									</p>
+								)}
 
 								{/* Action Buttons */}
 								{!isOwner && session?.user && (
@@ -517,6 +559,14 @@ export default function VenueProfilePage() {
 										<Button variant="outline" className="rounded-full px-6">
 											<Plus className="mr-2 h-4 w-4" />
 											Suivre
+										</Button>
+										<Button
+											variant="outline"
+											size="icon"
+											className="rounded-full"
+											onClick={handleShare}
+										>
+											<Share2 className="h-4 w-4" />
 										</Button>
 									</div>
 								)}

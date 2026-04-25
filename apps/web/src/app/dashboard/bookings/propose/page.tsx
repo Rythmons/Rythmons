@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
+import type { Route } from "next";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
@@ -42,6 +43,9 @@ function ProposeContent() {
 	const queryClient = useQueryClient();
 	const venueId = searchParams.get("venueId");
 	const artistId = searchParams.get("artistId");
+	const bookingsRoute = "/dashboard/bookings" as Route;
+	const venueSearchRoute = "/dashboard/search?tab=venues" as Route;
+	const artistSearchRoute = "/dashboard/search?tab=artists" as Route;
 
 	const { data: session, isPending: sessionPending } = authClient.useSession();
 	const { data: myArtists } = useQuery({
@@ -79,7 +83,7 @@ function ProposeContent() {
 		onSuccess: () => {
 			queryClient.invalidateQueries();
 			toast.success("Proposition envoyée !");
-			router.push("/dashboard/bookings");
+			router.push(bookingsRoute);
 		},
 		onError: (err) => {
 			toast.error(err.message || "Erreur lors de l'envoi");
@@ -94,12 +98,17 @@ function ProposeContent() {
 		return (
 			<div className="container mx-auto max-w-lg py-12">
 				<p className="text-muted-foreground">
-					Paramètre manquant. Utilisez le bouton &quot;Proposer un booking&quot;
-					depuis une fiche lieu ou artiste.
+					Sélectionnez d'abord une fiche artiste ou lieu depuis la recherche
+					pour lancer une proposition de booking.
 				</p>
-				<Button asChild className="mt-4">
-					<Link href="/dashboard">Retour au tableau de bord</Link>
-				</Button>
+				<div className="mt-4 flex flex-wrap gap-3">
+					<Button asChild>
+						<Link href={venueSearchRoute}>Chercher un lieu</Link>
+					</Button>
+					<Button asChild variant="outline">
+						<Link href={artistSearchRoute}>Chercher un artiste</Link>
+					</Button>
+				</div>
 			</div>
 		);
 	}
@@ -265,7 +274,7 @@ function ProposeContent() {
 						)}
 					</Button>
 					<Button type="button" variant="outline" asChild>
-						<Link href="/dashboard/bookings">Annuler</Link>
+						<Link href={bookingsRoute}>Annuler</Link>
 					</Button>
 				</div>
 			</form>

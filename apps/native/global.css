@@ -64,14 +64,14 @@
 	.dark:root {
 		/* Dark Mode - Full brand experience */
 		/* Background: Noir profond #0A010E */
-		--background: 278 86% 3%;
+		--background: 278 70% 4%;
 		--foreground: 289 10% 95%;
 
 		/* Card: Violet très foncé #17011F */
-		--card: 280 93% 6%;
+		--card: 280 45% 9%;
 		--card-foreground: 289 10% 95%;
 
-		--popover: 280 93% 6%;
+		--popover: 280 45% 9%;
 		--popover-foreground: 289 10% 95%;
 
 		/* Primary: Rouge vif #EA0D40 */
@@ -79,21 +79,21 @@
 		--primary-foreground: 0 0% 100%;
 
 		/* Secondary: Darker violet blend */
-		--secondary: 280 60% 12%;
+		--secondary: 280 38% 15%;
 		--secondary-foreground: 289 10% 95%;
 
 		/* Muted: Based on brand-dark */
-		--muted: 280 50% 10%;
-		--muted-foreground: 289 15% 60%;
+		--muted: 280 32% 13%;
+		--muted-foreground: 289 18% 72%;
 
 		/* Accent: Violet foncé mixed */
-		--accent: 289 80% 14%;
+		--accent: 289 55% 18%;
 		--accent-foreground: 289 10% 95%;
 
 		--destructive: 348 80% 55%;
 		--destructive-foreground: 0 0% 100%;
-		--border: 280 40% 14%;
-		--input: 280 50% 12%;
+		--border: 280 22% 22%;
+		--input: 280 28% 16%;
 		--ring: 348 91% 52%;
 		--success: 142 68% 45%;
 		--success-foreground: 0 0% 100%;

@@ -10,6 +10,7 @@ import {
 	View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useNotice } from "@/components/ui/notice";
 
 type DevVerificationLinkResponse = {
 	preview: {
@@ -20,6 +21,7 @@ type DevVerificationLinkResponse = {
 
 export default function VerifyEmailScreen() {
 	const router = useRouter();
+	const { showNotice } = useNotice();
 	const authClient = useAuth();
 	const { data: session } = authClient.useSession();
 	const params = useLocalSearchParams<{ email?: string | string[] }>();
@@ -72,7 +74,11 @@ export default function VerifyEmailScreen() {
 				callbackURL: "/",
 			});
 			await loadDevVerificationLink();
-			Alert.alert("Succès", "E-mail de vérification renvoyé !");
+			showNotice({
+				title: "E-mail renvoye",
+				message: "Le lien de verification vient d'etre renvoye.",
+				kind: "success",
+			});
 		} catch {
 			Alert.alert("Erreur", "Échec de l'envoi. Réessayez plus tard.");
 		} finally {

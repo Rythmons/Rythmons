@@ -41,6 +41,13 @@ function VenuePageContent() {
 	const editId = searchParams.get("id");
 	const { data: session, isPending: sessionPending } = authClient.useSession();
 	const queryClient = useQueryClient();
+
+	useEffect(() => {
+		if (!sessionPending && !session?.user) {
+			router.replace("/login");
+		}
+	}, [sessionPending, session, router]);
+
 	const {
 		data: venues,
 		isLoading,

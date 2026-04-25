@@ -18,7 +18,6 @@ export type {
 	AvailabilitySlot,
 	Booking,
 	Genre,
-	Media,
 	Session,
 	User,
 	Venue,

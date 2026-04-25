@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -33,7 +34,10 @@ function getDaysInMonth(year: number, month: number) {
 }
 
 function dayKey(d: Date) {
-	return d.toISOString().slice(0, 10);
+	const year = d.getFullYear();
+	const month = String(d.getMonth() + 1).padStart(2, "0");
+	const day = String(d.getDate()).padStart(2, "0");
+	return `${year}-${month}-${day}`;
 }
 
 function slotCoversDay(
@@ -113,6 +117,7 @@ type CalendarState = {
 };
 
 export default function CalendarPage() {
+	const router = useRouter();
 	const queryClient = useQueryClient();
 	const [calendarState, setCalendarState] = useState<CalendarState>(
 		getInitialCalendarState,
@@ -131,6 +136,42 @@ export default function CalendarPage() {
 		setCalendarState((s) => ({ ...s, ownerId: id }));
 	}, []);
 
+	const { data: session, isPending: sessionPending } = authClient.useSession();
+
+	const { data: myArtists } = useQuery({
+		...trpc.artist.myArtists.queryOptions(),
+		enabled: !!session?.user,
+	});
+	const { data: myVenues } = useQuery({
+		...trpc.venue.getMyVenues.queryOptions(),
+		enabled: !!session?.user,
+	});
+
+	useEffect(() => {
+		if (typeof window === "undefined") return;
+		try {
+			const saved = window.sessionStorage.getItem(CALENDAR_STATE_KEY);
+			if (saved) {
+				const state = JSON.parse(saved);
+				setCalendarState(state);
+			}
+		} catch {
+			// Ignore storage failures
+		}
+	}, []);
+
+	useEffect(() => {
+		if (
+			ownerType === "VENUE" &&
+			!ownerId &&
+			myVenues &&
+			myVenues.length > 0 &&
+			myVenues[0]?.id
+		) {
+			setOwnerId(myVenues[0].id);
+		}
+	}, [ownerType, ownerId, myVenues, setOwnerId]);
+
 	useEffect(() => {
 		if (typeof window === "undefined") return;
 		try {
@@ -143,15 +184,11 @@ export default function CalendarPage() {
 		}
 	}, [calendarState]);
 
-	const { data: session, isPending: sessionPending } = authClient.useSession();
-	const { data: myArtists } = useQuery({
-		...trpc.artist.myArtists.queryOptions(),
-		enabled: !!session?.user,
-	});
-	const { data: myVenues } = useQuery({
-		...trpc.venue.getMyVenues.queryOptions(),
-		enabled: !!session?.user,
-	});
+	useEffect(() => {
+		if (!sessionPending && !session?.user) {
+			router.replace("/login");
+		}
+	}, [sessionPending, session, router]);
 
 	const effectiveOwnerId =
 		ownerType === "ARTIST"
@@ -409,21 +446,31 @@ export default function CalendarPage() {
 							const isBooked = slot?.type === "BOOKED";
 							const isUnavailable = slot?.type === "UNAVAILABLE";
 							const isOpen = slot?.type === "OPEN";
+							const isToday = dayKey(day) === dayKey(new Date());
 							const bg = isBooked
-								? "bg-blue-500/20 hover:bg-blue-500/30"
+								? "bg-blue-500/40 hover:bg-blue-500/50"
 								: isUnavailable
-									? "bg-red-500/20 hover:bg-red-500/30"
+									? "bg-red-500/40 hover:bg-red-500/50"
 									: isOpen
-										? "bg-green-500/20 hover:bg-green-500/30"
+										? "bg-green-500/40 hover:bg-green-500/50"
 										: "hover:bg-muted/50";
 							return (
 								<button
 									key={dayKey(day)}
 									type="button"
-									className={`min-h-[80px] p-2 text-left text-sm transition-colors ${bg}`}
+									className={`relative min-h-[80px] p-2 text-left text-sm transition-colors ${bg} ${
+										isToday ? "border-2 border-primary" : ""
+									}`}
 									onClick={() => handleDayClick(day)}
 								>
-									<span className="font-medium">{day.getDate()}</span>
+									<div className="flex items-center justify-between font-medium">
+										<span>{day.getDate()}</span>
+										{isToday && (
+											<span className="rounded bg-primary px-1 text-[10px] text-primary-foreground">
+												Aujourd&apos;hui
+											</span>
+										)}
+									</div>
 									{slot?.booking && (
 										<div className="mt-1 space-y-0.5 truncate text-muted-foreground text-xs">
 											<span className="block truncate">
