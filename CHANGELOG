@@ -1,0 +1,26 @@
+Changelog
+All notable changes to Rythmons will be documented in this file.
+The format is based on Keep a Changelog,
+and this project adheres to Semantic Versioning.
+
+Unreleased
+
+Added:
+Artist profiles with stage name, bio, photo, banner, and image gallery
+Venue profiles with address, capacity, type, and image gallery
+Media (press/label) profiles linked to artists
+Genre tagging for artists and venues (many-to-many)
+Geolocation support for artists and venues via French Government Address API (api-adresse.data.gouv.fr)
+Radius-based search with Haversine distance filtering for both artists and venues
+Full-text search across name, city, bio, genres and owner for artists and venues
+Budget range filtering for artists (feeMin/feeMax) and venues (budgetMin/budgetMax)
+User role system (ARTIST, ORGANIZER, BOTH) managed via account.updateRole
+tRPC API with type-safe end-to-end client/server communication
+protectedProcedure middleware for session-based authentication (Better Auth)
+prisma-compat.ts for progressive schema migration — optional columns handled gracefully without downtime
+Per-user limits: 5 artists, 5 venues, 5 media profiles maximum
+Seed script with 3 demo accounts (artist, organizer, both roles)
+Turborepo monorepo setup with apps/web, packages/api, packages/db, packages/validation, packages/auth
+Deployment pipeline via Vercel with automatic Prisma migration on build (pnpm db:deploy)
+MIT License
+CONTRIBUTING.md and CHANGELOG.md
