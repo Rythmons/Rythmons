@@ -1,0 +1,196 @@
+# Contributing to Rythmons
+
+Thank you for your interest in contributing to Rythmons! This document explains how to set up the project locally and how to submit your contributions.
+
+---
+
+## Table of Contents
+
+- [Code of Conduct](#code-of-conduct)
+- [Getting Started](#getting-started)
+- [Project Structure](#project-structure)
+- [Development Workflow](#development-workflow)
+- [Branching Strategy](#branching-strategy)
+- [Commit Convention](#commit-convention)
+- [Pull Request Process](#pull-request-process)
+- [Code Style](#code-style)
+- [Reporting Bugs](#reporting-bugs)
+- [Suggesting Features](#suggesting-features)
+
+---
+
+## Code of Conduct
+
+Be respectful, inclusive, and constructive. We welcome contributors of all backgrounds and experience levels. Harassment or discrimination of any kind will not be tolerated.
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+- **Node.js** ≥ 20
+- **pnpm** ≥ 9 (`npm install -g pnpm`)
+- **Docker Desktop** (for PostgreSQL)
+- A `.env` file — copy `.env.example` and fill in the values
+
+### Installation
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/Rythmons/Rythmons.git
+cd Rythmons
+
+# 2. Install dependencies
+pnpm install
+
+# 3. Start the database
+docker compose up -d
+
+# 4. Run migrations
+pnpm db:migrate
+
+# 5. Seed the database with demo data
+pnpm db:seed
+
+# 6. Start the dev server
+pnpm dev
+```
+
+### Demo accounts (after seed)
+
+| Email | Password | Role |
+|---|---|---|
+| demo.artist@rythmons.local | Rythmons123! | Artist |
+| demo.organizer@rythmons.local | Rythmons123! | Organizer |
+| demo.both@rythmons.local | Rythmons123! | Both |
+
+---
+
+## Project Structure
+
+This is a **Turborepo** monorepo. The main packages are:
+
+```
+apps/
+  web/          → Next.js application (App Router)
+packages/
+  api/          → tRPC routers & server logic
+  db/           → Prisma schema & migrations
+  validation/   → Zod schemas shared across packages
+  auth/         → Better Auth configuration
+```
+
+---
+
+## Development Workflow
+
+1. **Fork** the repository and create your branch from `main`
+2. Make your changes
+3. Run checks before committing:
+
+```bash
+pnpm check          # Biome lint + format
+pnpm check-types    # TypeScript strict check
+```
+
+4. Commit your changes (see [Commit Convention](#commit-convention))
+5. Push and open a Pull Request
+
+---
+
+## Branching Strategy
+
+| Branch pattern | Purpose |
+|---|---|
+| `main` | Stable, production-ready code |
+| `feat/short-description` | New features |
+| `fix/short-description` | Bug fixes |
+| `chore/short-description` | Maintenance, deps updates |
+| `docs/short-description` | Documentation only |
+
+Branch names should be lowercase and use hyphens. Example: `feat/booking-calendar`.
+
+---
+
+## Commit Convention
+
+We follow [Conventional Commits](https://www.conventionalcommits.org/):
+
+```
+<type>(optional scope): short description
+
+Examples:
+feat(artist): add genre filter to search
+fix(venue): correct haversine radius filtering
+chore(deps): update @trpc/server to v11
+docs: update contributing guide
+```
+
+| Type | When to use |
+|---|---|
+| `feat` | New feature |
+| `fix` | Bug fix |
+| `chore` | Build, tooling, dependencies |
+| `docs` | Documentation only |
+| `refactor` | Code change without feature/fix |
+| `test` | Adding or fixing tests |
+| `style` | Formatting, no logic change |
+
+---
+
+## Pull Request Process
+
+- Keep PRs focused — one concern per PR
+- Link any related issue in the PR description (`Closes #42`)
+- Ensure `pnpm check` and `pnpm check-types` pass before opening
+- Add a short description of **what** changed and **why**
+- Screenshots or demo clips are welcome for UI changes
+- A maintainer will review within a few days
+
+---
+
+## Code Style
+
+This project uses **[Biome](https://biomejs.dev/)** for linting and formatting — no Prettier, no ESLint.
+
+```bash
+# Check everything
+pnpm check
+
+# Auto-fix formatting
+pnpm check --write
+```
+
+Key conventions:
+- TypeScript strict mode — no `any`, use proper types
+- Zod schemas live in `packages/validation`
+- Prisma queries go through `ctx.db` (server) or direct `db` import (routers that import directly)
+- New columns that may not exist in all environments must go through `getColumnAvailability` in `prisma-compat.ts`
+
+---
+
+## Reporting Bugs
+
+Open an issue using the **Bug Report** template. Please include:
+
+- A clear description of the bug
+- Steps to reproduce
+- Expected vs actual behaviour
+- Environment (OS, Node version, browser if relevant)
+
+---
+
+## Suggesting Features
+
+Open an issue using the **Feature Request** template. Describe:
+
+- The problem you're trying to solve
+- Your proposed solution
+- Any alternatives you considered
+
+---
+
+## Questions?
+
+Open a **Discussion** on GitHub rather than an issue. We're happy to help!
