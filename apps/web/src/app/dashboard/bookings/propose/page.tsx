@@ -1,5 +1,9 @@
 "use client";
 
+import {
+	DEFAULT_BOOKING_TIME,
+	wallClockUtcFromInputs,
+} from "@rythmons/validation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import type { Route } from "next";
@@ -60,7 +64,7 @@ function ProposeContent() {
 	const [selectedArtistId, setSelectedArtistId] = useState<string>("");
 	const [selectedVenueId, setSelectedVenueId] = useState<string>("");
 	const [proposedDate, setProposedDate] = useState("");
-	const [proposedTime, setProposedTime] = useState("20:00");
+	const [proposedTime, setProposedTime] = useState(DEFAULT_BOOKING_TIME);
 	const [proposedFee, setProposedFee] = useState("");
 	const [initialMessage, setInitialMessage] = useState("");
 
@@ -81,7 +85,7 @@ function ProposeContent() {
 	const createMutation = useMutation({
 		...trpc.booking.create.mutationOptions(),
 		onSuccess: () => {
-			queryClient.invalidateQueries();
+			queryClient.invalidateQueries(trpc.booking.pathFilter());
 			toast.success("Proposition envoyée !");
 			router.push(bookingsRoute);
 		},
@@ -134,12 +138,14 @@ function ProposeContent() {
 	const handleSubmit = (e: React.FormEvent) => {
 		e.preventDefault();
 		if (!canSubmit) return;
-		const date = new Date(`${proposedDate}T${proposedTime}:00`);
+		const date = wallClockUtcFromInputs(proposedDate, proposedTime);
+		const parsedFee = Number.parseInt(proposedFee, 10);
 		createMutation.mutate({
 			artistId: effectiveArtistId,
 			venueId: effectiveVenueId,
 			proposedDate: date,
-			proposedFee: proposedFee ? Number.parseInt(proposedFee, 10) : undefined,
+			proposedFee:
+				Number.isFinite(parsedFee) && parsedFee >= 0 ? parsedFee : undefined,
 			initialMessage: initialMessage || undefined,
 		});
 	};

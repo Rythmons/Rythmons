@@ -1,4 +1,5 @@
 import { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
+import { DEFAULT_BOOKING_TIME, pinWallClockToUtc } from "@rythmons/validation";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
@@ -21,6 +22,9 @@ import { Text, Title } from "@/components/ui/typography";
 import { authClient } from "@/lib/auth-client";
 import { useContextualBackNavigation } from "@/lib/use-contextual-back-navigation";
 import { queryClient, trpc } from "@/utils/trpc";
+
+const [DEFAULT_BOOKING_HOUR, DEFAULT_BOOKING_MINUTE] =
+	DEFAULT_BOOKING_TIME.split(":").map(Number);
 
 function showError(error: unknown, fallback: string) {
 	const message = error instanceof Error ? error.message : fallback;
@@ -70,7 +74,7 @@ export default function ProposeBookingScreen() {
 	const [proposedDateTime, setProposedDateTime] = useState(() => {
 		const next = new Date();
 		next.setMinutes(0, 0, 0);
-		next.setHours(20, 0, 0, 0);
+		next.setHours(DEFAULT_BOOKING_HOUR, DEFAULT_BOOKING_MINUTE, 0, 0);
 		return next;
 	});
 	const [timeTouched, setTimeTouched] = useState(false);
@@ -112,7 +116,7 @@ export default function ProposeBookingScreen() {
 	const createMutation = useMutation({
 		...trpc.booking.create.mutationOptions(),
 		onSuccess: async () => {
-			await queryClient.invalidateQueries();
+			await queryClient.invalidateQueries(trpc.booking.pathFilter());
 			showNotice({
 				title: "Proposition envoyee",
 				message: "Le booking est maintenant visible dans votre suivi.",
@@ -198,7 +202,7 @@ export default function ProposeBookingScreen() {
 						selectedDate.getDate(),
 					);
 					if (!timeTouched) {
-						next.setHours(20, 0, 0, 0);
+						next.setHours(DEFAULT_BOOKING_HOUR, DEFAULT_BOOKING_MINUTE, 0, 0);
 					}
 					return next;
 				});
@@ -411,13 +415,15 @@ export default function ProposeBookingScreen() {
 								);
 								return;
 							}
+							const parsedFee = Number.parseInt(proposedFee, 10);
 							createMutation.mutate({
 								artistId: effectiveArtistId,
 								venueId: effectiveVenueId,
-								proposedDate: proposedDateTime,
-								proposedFee: proposedFee.trim()
-									? Number.parseInt(proposedFee, 10)
-									: undefined,
+								proposedDate: pinWallClockToUtc(proposedDateTime),
+								proposedFee:
+									Number.isFinite(parsedFee) && parsedFee >= 0
+										? parsedFee
+										: undefined,
 								initialMessage: initialMessage.trim() || undefined,
 							});
 						}}

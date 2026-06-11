@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 const DEFAULT_THROTTLE_MS = 2000;
 
@@ -8,15 +8,21 @@ export function useFormDraft<T>(
 	key: string,
 	options?: { throttleMs?: number },
 ) {
-	const [draft, setDraft] = useState<T | null>(() => {
-		if (typeof window === "undefined") return null;
+	// Chargé après le montage (et non dans l'initialiseur) pour rendre le
+	// même HTML côté serveur et client, et exposer `hasLoaded` comme le hook
+	// natif équivalent.
+	const [draft, setDraft] = useState<T | null>(null);
+	const [hasLoaded, setHasLoaded] = useState(false);
+
+	useEffect(() => {
 		try {
 			const raw = window.localStorage.getItem(key);
-			return raw ? (JSON.parse(raw) as T) : null;
+			setDraft(raw ? (JSON.parse(raw) as T) : null);
 		} catch {
-			return null;
+			setDraft(null);
 		}
-	});
+		setHasLoaded(true);
+	}, [key]);
 	const throttleRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const throttleMs = options?.throttleMs ?? DEFAULT_THROTTLE_MS;
 
@@ -49,5 +55,6 @@ export function useFormDraft<T>(
 		saveDraft,
 		clearDraft,
 		hasDraft: draft !== null,
+		hasLoaded,
 	};
 }

@@ -26,6 +26,40 @@ export function normalizePostalCode(value: string): string {
 	return value.replace(/\s/g, "").trim();
 }
 
+// ---- Dates de booking et de calendrier : convention « heure murale » ----
+//
+// Les dates de booking représentent une heure murale au lieu du concert
+// (« le 10 juillet à 20:00 »), pas un instant absolu. Elles sont stockées
+// épinglées en UTC : 20:00 saisi = 20:00 stocké en UTC = 20:00 affiché,
+// quel que soit le fuseau de l'utilisateur. Cela garantit aussi que le
+// regroupement par jour côté serveur (en UTC) correspond toujours au jour
+// choisi par l'utilisateur. Toujours formater ces dates avec
+// `timeZone: "UTC"`.
+
+/** Heure de concert proposée par défaut (format HH:MM, heure murale). */
+export const DEFAULT_BOOKING_TIME = "20:00";
+
+/** Épingle en UTC les composantes locales (année/mois/jour/heure/minute) d'une date. */
+export function pinWallClockToUtc(date: Date): Date {
+	return new Date(
+		Date.UTC(
+			date.getFullYear(),
+			date.getMonth(),
+			date.getDate(),
+			date.getHours(),
+			date.getMinutes(),
+		),
+	);
+}
+
+/** Construit une date épinglée en UTC depuis des champs « YYYY-MM-DD » et « HH:MM ». */
+export function wallClockUtcFromInputs(
+	dateInput: string,
+	timeInput: string,
+): Date {
+	return new Date(`${dateInput}T${timeInput}:00.000Z`);
+}
+
 const optionalUrlSchema = z
 	.union([z.string().url("URL invalide"), z.literal("")])
 	.optional();

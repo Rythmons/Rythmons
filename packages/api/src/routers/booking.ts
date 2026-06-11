@@ -5,6 +5,7 @@ import {
 	bookingRefuseSchema,
 } from "@rythmons/validation";
 import { TRPCError } from "@trpc/server";
+import { carveRangeFromSlots } from "../lib/slots";
 import { protectedProcedure, router } from "../trpc";
 
 function getBookingDayRange(date: Date) {
@@ -27,7 +28,7 @@ export const bookingRouter = router({
 			const userId = ctx.session.user.id;
 			const { startOfDay, endOfDay } = getBookingDayRange(input.proposedDate);
 
-			const [artist, venue, existingPendingBooking] = await Promise.all([
+			const [artist, venue] = await Promise.all([
 				ctx.db.artist.findUnique({
 					where: { id: input.artistId },
 					select: { id: true, userId: true },
@@ -35,18 +36,6 @@ export const bookingRouter = router({
 				ctx.db.venue.findUnique({
 					where: { id: input.venueId },
 					select: { id: true, ownerId: true },
-				}),
-				ctx.db.booking.findFirst({
-					where: {
-						artistId: input.artistId,
-						venueId: input.venueId,
-						status: "PENDING",
-						proposedDate: {
-							gte: startOfDay,
-							lte: endOfDay,
-						},
-					},
-					select: { id: true },
 				}),
 			]);
 
@@ -76,46 +65,68 @@ export const bookingRouter = router({
 				});
 			}
 
-			if (existingPendingBooking) {
-				throw new TRPCError({
-					code: "CONFLICT",
-					message:
-						"Une proposition en attente existe déjà entre cet artiste et ce lieu pour cette date.",
-				});
-			}
+			// Verrous consultatifs par jour (mêmes clés que `accept`) pour que la
+			// vérification de doublon et la création soient atomiques face à deux
+			// propositions simultanées.
+			const dayLockKey = startOfDay.toISOString().slice(0, 10);
+			const booking = await ctx.db.$transaction(async (tx) => {
+				await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`booking:artist:${input.artistId}:${dayLockKey}`}))`;
+				await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`booking:venue:${input.venueId}:${dayLockKey}`}))`;
 
-			const booking = await ctx.db.booking.create({
-				data: {
-					artistId: input.artistId,
-					venueId: input.venueId,
-					proposedDate: input.proposedDate,
-					proposedFee: input.proposedFee ?? null,
-					initialMessage: input.initialMessage?.trim() || null,
-					createdByUserId: userId,
-					status: "PENDING",
-				},
-				include: {
-					artist: {
-						select: {
-							id: true,
-							stageName: true,
-							photoUrl: true,
-							user: { select: { id: true, name: true, image: true } },
+				const existingPendingBooking = await tx.booking.findFirst({
+					where: {
+						artistId: input.artistId,
+						venueId: input.venueId,
+						status: "PENDING",
+						proposedDate: {
+							gte: startOfDay,
+							lte: endOfDay,
 						},
 					},
-					venue: {
-						select: {
-							id: true,
-							name: true,
-							logoUrl: true,
-							city: true,
-							owner: { select: { id: true, name: true, image: true } },
+					select: { id: true },
+				});
+
+				if (existingPendingBooking) {
+					throw new TRPCError({
+						code: "CONFLICT",
+						message:
+							"Une proposition en attente existe déjà entre cet artiste et ce lieu pour cette date.",
+					});
+				}
+
+				return tx.booking.create({
+					data: {
+						artistId: input.artistId,
+						venueId: input.venueId,
+						proposedDate: input.proposedDate,
+						proposedFee: input.proposedFee ?? null,
+						initialMessage: input.initialMessage?.trim() || null,
+						createdByUserId: userId,
+						status: "PENDING",
+					},
+					include: {
+						artist: {
+							select: {
+								id: true,
+								stageName: true,
+								photoUrl: true,
+								user: { select: { id: true, name: true, image: true } },
+							},
+						},
+						venue: {
+							select: {
+								id: true,
+								name: true,
+								logoUrl: true,
+								city: true,
+								owner: { select: { id: true, name: true, image: true } },
+							},
+						},
+						createdBy: {
+							select: { id: true, name: true },
 						},
 					},
-					createdBy: {
-						select: { id: true, name: true },
-					},
-				},
+				});
 			});
 
 			return booking;
@@ -353,26 +364,19 @@ export const bookingRouter = router({
 					});
 				}
 
-				await Promise.all([
-					tx.availabilitySlot.deleteMany({
-						where: {
-							ownerType: "ARTIST",
-							ownerId: booking.artistId,
-							bookingId: null,
-							startDate: { lte: endOfDay },
-							endDate: { gte: startOfDay },
-						},
-					}),
-					tx.availabilitySlot.deleteMany({
-						where: {
-							ownerType: "VENUE",
-							ownerId: booking.venueId,
-							bookingId: null,
-							startDate: { lte: endOfDay },
-							endDate: { gte: startOfDay },
-						},
-					}),
-				]);
+				const overlappingSlots = await tx.availabilitySlot.findMany({
+					where: {
+						OR: [
+							{ ownerType: "ARTIST", ownerId: booking.artistId },
+							{ ownerType: "VENUE", ownerId: booking.venueId },
+						],
+						bookingId: null,
+						startDate: { lte: endOfDay },
+						endDate: { gte: startOfDay },
+					},
+				});
+
+				await carveRangeFromSlots(tx, overlappingSlots, startOfDay, endOfDay);
 
 				await tx.availabilitySlot.createMany({
 					data: [

@@ -46,10 +46,30 @@ export default function BookingDetailScreen() {
 		enabled: Boolean(session?.user) && Boolean(id),
 	});
 
+	const handleAcceptError = (error: unknown) => {
+		const message =
+			error instanceof Error
+				? error.message
+				: "Impossible d’accepter la proposition.";
+		const needsOpenDate =
+			typeof message === "string" &&
+			message.includes("Le lieu n'est pas ouvert");
+
+		if (!needsOpenDate) {
+			showError(error, "Impossible d’accepter la proposition.");
+			return;
+		}
+
+		setAcceptBlockedByVenueDate(true);
+	};
+
 	const acceptMutation = useMutation({
 		...trpc.booking.accept.mutationOptions(),
+		onError: handleAcceptError,
 		onSuccess: async () => {
-			await queryClient.invalidateQueries();
+			// L'acceptation crée aussi des créneaux BOOKED dans le calendrier.
+			await queryClient.invalidateQueries(trpc.booking.pathFilter());
+			await queryClient.invalidateQueries(trpc.availability.pathFilter());
 			showNotice({
 				title: "Proposition acceptee",
 				message: "Le booking est confirme.",
@@ -62,7 +82,7 @@ export default function BookingDetailScreen() {
 	const refuseMutation = useMutation({
 		...trpc.booking.refuse.mutationOptions(),
 		onSuccess: async () => {
-			await queryClient.invalidateQueries();
+			await queryClient.invalidateQueries(trpc.booking.pathFilter());
 			showNotice({
 				title: "Proposition refusee",
 				message: "Le statut du booking a ete mis a jour.",
@@ -77,7 +97,7 @@ export default function BookingDetailScreen() {
 	const cancelMutation = useMutation({
 		...trpc.booking.cancel.mutationOptions(),
 		onSuccess: async () => {
-			await queryClient.invalidateQueries();
+			await queryClient.invalidateQueries(trpc.booking.pathFilter());
 			showNotice({
 				title: "Proposition annulee",
 				message: "Le booking n'est plus actif.",
@@ -156,23 +176,6 @@ export default function BookingDetailScreen() {
 	const canRefuse = canAccept;
 	const canCancel = isCreator && booking.status === "PENDING";
 
-	const handleAcceptError = (error: unknown) => {
-		const message =
-			error instanceof Error
-				? error.message
-				: "Impossible d’accepter la proposition.";
-		const needsOpenDate =
-			typeof message === "string" &&
-			message.includes("Le lieu n'est pas ouvert");
-
-		if (!needsOpenDate) {
-			showError(error, "Impossible d’accepter la proposition.");
-			return;
-		}
-
-		setAcceptBlockedByVenueDate(true);
-	};
-
 	return (
 		<Container>
 			<KeyboardFormScreen
@@ -208,6 +211,7 @@ export default function BookingDetailScreen() {
 						{new Date(booking.proposedDate).toLocaleString("fr-FR", {
 							dateStyle: "long",
 							timeStyle: "short",
+							timeZone: "UTC",
 						})}
 					</Text>
 					{booking.proposedFee != null ? (
@@ -246,12 +250,7 @@ export default function BookingDetailScreen() {
 								loading={acceptMutation.isPending}
 								onPress={() => {
 									setAcceptBlockedByVenueDate(false);
-									acceptMutation.mutate(
-										{ id },
-										{
-											onError: handleAcceptError,
-										},
-									);
+									acceptMutation.mutate({ id });
 								}}
 							/>
 						</View>
@@ -347,14 +346,7 @@ export default function BookingDetailScreen() {
 							label="Accepter"
 							loading={acceptMutation.isPending}
 							disabled={acceptBlockedByVenueDate}
-							onPress={() =>
-								acceptMutation.mutate(
-									{ id },
-									{
-										onError: handleAcceptError,
-									},
-								)
-							}
+							onPress={() => acceptMutation.mutate({ id })}
 						/>
 					) : null}
 					{canRefuse ? (

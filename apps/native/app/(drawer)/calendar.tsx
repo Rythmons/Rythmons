@@ -21,18 +21,25 @@ import { queryClient, trpc } from "@/utils/trpc";
 
 type SlotItem = inferRouterOutputs<AppRouter>["availability"]["list"][number];
 
+// Les jours du calendrier sont des dates « murales » épinglées en UTC
+// (voir la convention dans @rythmons/validation) : toute la construction,
+// la comparaison et le formatage passent par les accesseurs UTC.
 function getMonthRange(year: number, month: number) {
 	return {
-		startDate: new Date(year, month, 1),
-		endDate: new Date(year, month + 1, 0, 23, 59, 59, 999),
+		startDate: new Date(Date.UTC(year, month, 1)),
+		endDate: new Date(Date.UTC(year, month + 1, 0, 23, 59, 59, 999)),
 	};
 }
 
 function getDaysInMonth(year: number, month: number) {
-	const first = new Date(year, month, 1);
-	const last = new Date(year, month + 1, 0);
+	const first = new Date(Date.UTC(year, month, 1));
+	const last = new Date(Date.UTC(year, month + 1, 0));
 	const days: Date[] = [];
-	for (let day = new Date(first); day <= last; day.setDate(day.getDate() + 1)) {
+	for (
+		let day = new Date(first);
+		day <= last;
+		day.setUTCDate(day.getUTCDate() + 1)
+	) {
 		days.push(new Date(day));
 	}
 	return days;
@@ -40,11 +47,11 @@ function getDaysInMonth(year: number, month: number) {
 
 function slotCoversDay(slot: SlotItem, day: Date) {
 	const current = new Date(day);
-	current.setHours(0, 0, 0, 0);
+	current.setUTCHours(0, 0, 0, 0);
 	const start = new Date(slot.startDate);
-	start.setHours(0, 0, 0, 0);
+	start.setUTCHours(0, 0, 0, 0);
 	const end = new Date(slot.endDate);
-	end.setHours(23, 59, 59, 999);
+	end.setUTCHours(23, 59, 59, 999);
 	return current >= start && current <= end;
 }
 
@@ -60,15 +67,15 @@ function getSlotForDay(slots: SlotItem[], day: Date) {
 
 function isSameDay(left: Date, right: Date) {
 	return (
-		left.getFullYear() === right.getFullYear() &&
-		left.getMonth() === right.getMonth() &&
-		left.getDate() === right.getDate()
+		left.getUTCFullYear() === right.getUTCFullYear() &&
+		left.getUTCMonth() === right.getUTCMonth() &&
+		left.getUTCDate() === right.getUTCDate()
 	);
 }
 
 function buildCalendarCells(days: Date[]) {
 	if (days.length === 0) return [];
-	const leadingEmptyCells = (days[0].getDay() + 6) % 7;
+	const leadingEmptyCells = (days[0].getUTCDay() + 6) % 7;
 	return [...Array.from({ length: leadingEmptyCells }, () => null), ...days];
 }
 
@@ -109,7 +116,7 @@ export default function CalendarScreen() {
 	const [ownerTypeTouched, setOwnerTypeTouched] = useState(false);
 	const [ownerId, setOwnerId] = useState("");
 	const [selectedDay, setSelectedDay] = useState(
-		new Date(today.getFullYear(), today.getMonth(), today.getDate()),
+		new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate())),
 	);
 
 	const myArtistsQuery = useQuery({
@@ -142,7 +149,7 @@ export default function CalendarScreen() {
 	const upsertMutation = useMutation({
 		...trpc.availability.upsert.mutationOptions(),
 		onSuccess: async () => {
-			await queryClient.invalidateQueries();
+			await queryClient.invalidateQueries(trpc.availability.pathFilter());
 		},
 		onError: (error) =>
 			showError(error, "Impossible de mettre à jour ce créneau."),
@@ -150,7 +157,7 @@ export default function CalendarScreen() {
 	const deleteMutation = useMutation({
 		...trpc.availability.delete.mutationOptions(),
 		onSuccess: async () => {
-			await queryClient.invalidateQueries();
+			await queryClient.invalidateQueries(trpc.availability.pathFilter());
 		},
 		onError: (error) => showError(error, "Impossible de supprimer ce créneau."),
 	});
@@ -192,9 +199,17 @@ export default function CalendarScreen() {
 		if (targetDayRaw) {
 			const parsed = new Date(targetDayRaw);
 			if (!Number.isNaN(parsed.getTime())) {
-				setMonthCursor(new Date(parsed.getFullYear(), parsed.getMonth(), 1));
+				setMonthCursor(
+					new Date(parsed.getUTCFullYear(), parsed.getUTCMonth(), 1),
+				);
 				setSelectedDay(
-					new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate()),
+					new Date(
+						Date.UTC(
+							parsed.getUTCFullYear(),
+							parsed.getUTCMonth(),
+							parsed.getUTCDate(),
+						),
+					),
 				);
 			}
 		}
@@ -229,23 +244,25 @@ export default function CalendarScreen() {
 	}, [ownerId, ownerOptions]);
 
 	useEffect(() => {
-		const selectedMonth = selectedDay.getMonth();
-		const selectedYear = selectedDay.getFullYear();
+		const selectedMonth = selectedDay.getUTCMonth();
+		const selectedYear = selectedDay.getUTCFullYear();
 		if (
 			selectedMonth !== monthCursor.getMonth() ||
 			selectedYear !== monthCursor.getFullYear()
 		) {
 			setSelectedDay(
-				new Date(monthCursor.getFullYear(), monthCursor.getMonth(), 1),
+				new Date(
+					Date.UTC(monthCursor.getFullYear(), monthCursor.getMonth(), 1),
+				),
 			);
 		}
 	}, [monthCursor, selectedDay]);
 
 	const createSlotForSelectedDay = () => {
 		const startDate = new Date(selectedDay);
-		startDate.setHours(0, 0, 0, 0);
+		startDate.setUTCHours(0, 0, 0, 0);
 		const endDate = new Date(selectedDay);
-		endDate.setHours(23, 59, 59, 999);
+		endDate.setUTCHours(23, 59, 59, 999);
 		upsertMutation.mutate({
 			ownerType,
 			ownerId: effectiveOwnerId,
@@ -420,7 +437,11 @@ export default function CalendarScreen() {
 							onPress={() => {
 								const now = new Date();
 								setMonthCursor(new Date(now.getFullYear(), now.getMonth(), 1));
-								setSelectedDay(now);
+								setSelectedDay(
+									new Date(
+										Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()),
+									),
+								);
 							}}
 						>
 							<Text className="font-sans-medium text-foreground text-sm">
@@ -500,7 +521,7 @@ export default function CalendarScreen() {
 											return (
 												<View key={day.toISOString()} className="w-[13.5%]">
 													<Button
-														label={String(day.getDate())}
+														label={String(day.getUTCDate())}
 														variant={isSelected ? "primary" : "secondary"}
 														className={`min-h-14 rounded-xl border px-0 ${isSelected ? "" : cellClasses}`}
 														textClassName={`text-sm ${!isSelected && isBooked ? "text-blue-200" : !isSelected && isUnavailable ? "text-red-200" : !isSelected && isOpen ? "text-green-200" : ""}`}
@@ -520,6 +541,7 @@ export default function CalendarScreen() {
 										day: "numeric",
 										month: "long",
 										year: "numeric",
+										timeZone: "UTC",
 									})}
 								</Text>
 								<Text className="mt-2 text-muted-foreground">

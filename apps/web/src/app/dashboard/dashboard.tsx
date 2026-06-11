@@ -392,6 +392,7 @@ export default function Dashboard({ session }: { session: Session }) {
 												{new Date(b.proposedDate).toLocaleDateString("fr-FR", {
 													day: "numeric",
 													month: "short",
+													timeZone: "UTC",
 												})}
 											</span>
 										</div>

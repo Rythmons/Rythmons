@@ -1,5 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { carveRangeFromSlots } from "../lib/slots";
 import { protectedProcedure, router } from "../trpc";
 
 const listInput = z.object({
@@ -123,24 +124,37 @@ export const availabilityRouter = router({
 				input.ownerId,
 			);
 
-			await ctx.db.availabilitySlot.deleteMany({
-				where: {
-					ownerType: input.ownerType,
-					ownerId: input.ownerId,
-					startDate: { gte: input.startDate },
-					endDate: { lte: input.endDate },
-					bookingId: null,
-				},
-			});
+			// Le nouveau créneau remplace tout chevauchement (même partiel) :
+			// les créneaux qui débordent de la plage sont découpés, pas
+			// supprimés, pour ne jamais avoir deux types contradictoires sur
+			// un même jour ni perdre la disponibilité hors plage.
+			const slot = await ctx.db.$transaction(async (tx) => {
+				const overlapping = await tx.availabilitySlot.findMany({
+					where: {
+						ownerType: input.ownerType,
+						ownerId: input.ownerId,
+						bookingId: null,
+						startDate: { lte: input.endDate },
+						endDate: { gte: input.startDate },
+					},
+				});
 
-			const slot = await ctx.db.availabilitySlot.create({
-				data: {
-					ownerType: input.ownerType,
-					ownerId: input.ownerId,
-					startDate: input.startDate,
-					endDate: input.endDate,
-					type: input.type,
-				},
+				await carveRangeFromSlots(
+					tx,
+					overlapping,
+					input.startDate,
+					input.endDate,
+				);
+
+				return tx.availabilitySlot.create({
+					data: {
+						ownerType: input.ownerType,
+						ownerId: input.ownerId,
+						startDate: input.startDate,
+						endDate: input.endDate,
+						type: input.type,
+					},
+				});
 			});
 
 			return slot;

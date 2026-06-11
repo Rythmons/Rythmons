@@ -128,6 +128,7 @@ export default function BookingsPage() {
 											{new Date(b.proposedDate).toLocaleString("fr-FR", {
 												dateStyle: "medium",
 												timeStyle: "short",
+												timeZone: "UTC",
 											})}
 											{b.proposedFee != null && ` • ${b.proposedFee} €`}
 										</p>

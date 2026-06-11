@@ -61,7 +61,9 @@ export default function BookingDetailPage() {
 	const acceptMutation = useMutation({
 		...trpc.booking.accept.mutationOptions(),
 		onSuccess: () => {
-			queryClient.invalidateQueries();
+			// L'acceptation crée aussi des créneaux BOOKED dans le calendrier.
+			queryClient.invalidateQueries(trpc.booking.pathFilter());
+			queryClient.invalidateQueries(trpc.availability.pathFilter());
 			setAcceptBlockedByVenueDate(false);
 			toast.success("Proposition acceptée !");
 			router.push(bookingsRoute);
@@ -78,7 +80,7 @@ export default function BookingDetailPage() {
 	const refuseMutation = useMutation({
 		...trpc.booking.refuse.mutationOptions(),
 		onSuccess: () => {
-			queryClient.invalidateQueries();
+			queryClient.invalidateQueries(trpc.booking.pathFilter());
 			toast.success("Proposition refusée.");
 			router.push(bookingsRoute);
 		},
@@ -88,7 +90,7 @@ export default function BookingDetailPage() {
 	const cancelMutation = useMutation({
 		...trpc.booking.cancel.mutationOptions(),
 		onSuccess: () => {
-			queryClient.invalidateQueries();
+			queryClient.invalidateQueries(trpc.booking.pathFilter());
 			toast.success("Proposition annulée.");
 			router.push(bookingsRoute);
 		},
@@ -158,6 +160,7 @@ export default function BookingDetailPage() {
 							{new Date(booking.proposedDate).toLocaleString("fr-FR", {
 								dateStyle: "long",
 								timeStyle: "short",
+								timeZone: "UTC",
 							})}
 						</p>
 						{booking.proposedFee != null && (

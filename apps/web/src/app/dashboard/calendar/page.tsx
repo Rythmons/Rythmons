@@ -1,5 +1,6 @@
 "use client";
 
+import { pinWallClockToUtc } from "@rythmons/validation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import Link from "next/link";
@@ -17,26 +18,29 @@ import {
 import { authClient } from "@/lib/auth-client";
 import { trpc } from "@/utils/trpc";
 
+// Les jours du calendrier sont des dates « murales » épinglées en UTC
+// (voir la convention dans @rythmons/validation) : toute la construction,
+// la comparaison et le formatage passent par les accesseurs UTC.
 function getMonthRange(year: number, month: number) {
-	const start = new Date(year, month, 1);
-	const end = new Date(year, month + 1, 0, 23, 59, 59, 999);
+	const start = new Date(Date.UTC(year, month, 1));
+	const end = new Date(Date.UTC(year, month + 1, 0, 23, 59, 59, 999));
 	return { start, end };
 }
 
 function getDaysInMonth(year: number, month: number) {
-	const first = new Date(year, month, 1);
-	const last = new Date(year, month + 1, 0);
+	const first = new Date(Date.UTC(year, month, 1));
+	const last = new Date(Date.UTC(year, month + 1, 0));
 	const days: Date[] = [];
-	for (let d = new Date(first); d <= last; d.setDate(d.getDate() + 1)) {
+	for (let d = new Date(first); d <= last; d.setUTCDate(d.getUTCDate() + 1)) {
 		days.push(new Date(d));
 	}
 	return days;
 }
 
 function dayKey(d: Date) {
-	const year = d.getFullYear();
-	const month = String(d.getMonth() + 1).padStart(2, "0");
-	const day = String(d.getDate()).padStart(2, "0");
+	const year = d.getUTCFullYear();
+	const month = String(d.getUTCMonth() + 1).padStart(2, "0");
+	const day = String(d.getUTCDate()).padStart(2, "0");
 	return `${year}-${month}-${day}`;
 }
 
@@ -50,12 +54,20 @@ function slotCoversDay(
 	day: Date,
 ) {
 	const d = new Date(day);
-	d.setHours(0, 0, 0, 0);
+	d.setUTCHours(0, 0, 0, 0);
 	const start = new Date(slot.startDate);
-	start.setHours(0, 0, 0, 0);
+	start.setUTCHours(0, 0, 0, 0);
 	const end = new Date(slot.endDate);
-	end.setHours(23, 59, 59, 999);
+	end.setUTCHours(23, 59, 59, 999);
 	return d >= start && d <= end;
+}
+
+function utcDayBounds(day: Date) {
+	const start = new Date(day);
+	start.setUTCHours(0, 0, 0, 0);
+	const end = new Date(day);
+	end.setUTCHours(23, 59, 59, 999);
+	return { start, end };
 }
 
 const CALENDAR_STATE_KEY = "rythmons:web:calendar-state";
@@ -178,8 +190,8 @@ function CalendarPageContent() {
 		if (dayParam) {
 			const parsed = new Date(dayParam);
 			if (!Number.isNaN(parsed.getTime())) {
-				setYear(parsed.getFullYear());
-				setMonth(parsed.getMonth());
+				setYear(parsed.getUTCFullYear());
+				setMonth(parsed.getUTCMonth());
 				setFocusedDayKey(dayKey(parsed));
 			}
 		}
@@ -253,7 +265,7 @@ function CalendarPageContent() {
 	const upsertMutation = useMutation({
 		...trpc.availability.upsert.mutationOptions(),
 		onSuccess: () => {
-			queryClient.invalidateQueries();
+			queryClient.invalidateQueries(trpc.availability.pathFilter());
 			toast.success("Créneau mis à jour");
 		},
 		onError: (e) => toast.error(e.message),
@@ -262,14 +274,14 @@ function CalendarPageContent() {
 	const deleteMutation = useMutation({
 		...trpc.availability.delete.mutationOptions(),
 		onSuccess: () => {
-			queryClient.invalidateQueries();
+			queryClient.invalidateQueries(trpc.availability.pathFilter());
 			toast.success("Créneau supprimé");
 		},
 		onError: (e) => toast.error(e.message),
 	});
 
 	const days = getDaysInMonth(year, month);
-	const firstDay = new Date(year, month, 1).getDay();
+	const firstDay = new Date(Date.UTC(year, month, 1)).getUTCDay();
 	const padStart = (firstDay + 6) % 7;
 
 	const getSlotForDay = useCallback(
@@ -290,10 +302,7 @@ function CalendarPageContent() {
 			if (!effectiveOwnerId) return;
 			setFocusedDayKey(dayKey(day));
 			const slot = getSlotForDay(day);
-			const start = new Date(day);
-			start.setHours(0, 0, 0, 0);
-			const end = new Date(day);
-			end.setHours(23, 59, 59, 999);
+			const { start, end } = utcDayBounds(day);
 
 			if (slot?.type === "BOOKED") {
 				toast.info("Ce créneau est réservé par un booking confirmé.");
@@ -455,10 +464,7 @@ function CalendarPageContent() {
 						<Button
 							onClick={() => {
 								if (!effectiveOwnerId) return;
-								const start = new Date(focusedDay);
-								start.setHours(0, 0, 0, 0);
-								const end = new Date(focusedDay);
-								end.setHours(23, 59, 59, 999);
+								const { start, end } = utcDayBounds(focusedDay);
 								upsertMutation.mutate({
 									ownerType: "VENUE",
 									ownerId: effectiveOwnerId,
@@ -470,7 +476,10 @@ function CalendarPageContent() {
 							disabled={upsertMutation.isPending || !effectiveOwnerId}
 						>
 							Ouvrir le{" "}
-							{focusedDay.toLocaleDateString("fr-FR", { dateStyle: "long" })}
+							{focusedDay.toLocaleDateString("fr-FR", {
+								dateStyle: "long",
+								timeZone: "UTC",
+							})}
 						</Button>
 					</div>
 				</div>
@@ -514,7 +523,7 @@ function CalendarPageContent() {
 							// Padding cells represent the days of the previous month.
 							// Use a stable key derived from the actual date (not the index)
 							// to avoid React/Biome warnings and potential state mismatches.
-							const padDate = new Date(year, month, 1 - padStart + i);
+							const padDate = new Date(Date.UTC(year, month, 1 - padStart + i));
 							return (
 								<div
 									key={dayKey(padDate)}
@@ -527,7 +536,8 @@ function CalendarPageContent() {
 							const isBooked = slot?.type === "BOOKED";
 							const isUnavailable = slot?.type === "UNAVAILABLE";
 							const isOpen = slot?.type === "OPEN";
-							const isToday = dayKey(day) === dayKey(new Date());
+							const isToday =
+								dayKey(day) === dayKey(pinWallClockToUtc(new Date()));
 							const isFocused =
 								focusedDayKey != null && dayKey(day) === focusedDayKey;
 							const bg = isBooked
@@ -537,17 +547,34 @@ function CalendarPageContent() {
 									: isOpen
 										? "bg-green-500/40 hover:bg-green-500/50"
 										: "hover:bg-muted/50";
+							const stateLabel = isBooked
+								? "booking confirmé"
+								: isUnavailable
+									? "indisponible"
+									: isOpen
+										? "ouvert à la programmation"
+										: "aucun créneau";
+							const dateLabel = day.toLocaleDateString("fr-FR", {
+								weekday: "long",
+								day: "numeric",
+								month: "long",
+								year: "numeric",
+								timeZone: "UTC",
+							});
 							return (
 								<button
 									key={dayKey(day)}
 									type="button"
+									aria-label={`${dateLabel}, ${stateLabel}`}
+									aria-pressed={isFocused}
+									aria-current={isToday ? "date" : undefined}
 									className={`relative min-h-[80px] p-2 text-left text-sm transition-colors ${bg} ${
 										isToday ? "border-2 border-primary" : ""
 									} ${isFocused ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : ""}`}
 									onClick={() => handleDayClick(day)}
 								>
 									<div className="flex items-center justify-between font-medium">
-										<span>{day.getDate()}</span>
+										<span>{day.getUTCDate()}</span>
 										{isToday && (
 											<span className="rounded bg-primary px-1 text-[10px] text-primary-foreground">
 												Aujourd&apos;hui
