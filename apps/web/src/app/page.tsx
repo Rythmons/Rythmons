@@ -1,39 +1,66 @@
-"use client";
-import { useQuery } from "@tanstack/react-query";
-import { trpc } from "@/utils/trpc";
+import type { Metadata, Route } from "next";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { getServerSession } from "@/lib/auth-server";
 
-const TITLE_TEXT = `
- ██████╗ ██╗   ██╗████████╗██╗  ██╗███╗   ███╗ ██████╗ ███╗   ██╗███████╗
- ██╔══██╗╚██╗ ██╔╝╚══██╔══╝██║  ██║████╗ ████║██╔═══██╗████╗  ██║██╔════╝
- ██████╔╝ ╚████╔╝    ██║   ███████║██╔████╔██║██║   ██║██╔██╗ ██║███████╗
- ██╔══██╗  ╚██╔╝     ██║   ██╔══██║██║╚██╔╝██║██║   ██║██║╚██╗██║╚════██║
- ██║  ██║   ██║      ██║   ██║  ██║██║ ╚═╝ ██║╚██████╔╝██║ ╚████║███████║
- ╚═╝  ╚═╝   ╚═╝      ╚═╝   ╚═╝  ╚═╝╚═╝     ╚═╝ ╚═════╝ ╚═╝  ╚═══╝╚══════╝
-`;
+export const metadata: Metadata = {
+	title: "Rythmons — Par les indés, pour les indés",
+	description: "La plateforme de booking intuitive pour la scène locale.",
+};
 
-export default function Home() {
-	const healthCheck = useQuery(trpc.healthCheck.queryOptions());
+const ctaPrimary =
+	"h-14 w-full min-w-0 bg-[color:var(--brand-primary)] px-8 text-base font-display font-bold uppercase tracking-widest text-white shadow-[0_0_28px_rgba(235,13,65,0.35)] rounded-[13px] transition-all hover:brightness-110 hover:shadow-[0_0_40px_rgba(235,13,65,0.45)] sm:w-auto sm:px-12";
+
+const ctaOutline =
+	"h-14 w-full min-w-0 border-white bg-transparent px-8 text-base font-display font-bold uppercase tracking-widest text-white rounded-[13px] transition-all hover:bg-white/10 sm:w-auto sm:px-12";
+
+export default async function Home() {
+	const { data: session } = await getServerSession();
 
 	return (
-		<div className="container mx-auto max-w-3xl px-4 py-2">
-			<pre className="overflow-x-auto font-mono text-sm">{TITLE_TEXT}</pre>
-			<div className="grid gap-6">
-				<section className="rounded-lg border p-4">
-					<h2 className="mb-2 font-medium">Statut de l’API</h2>
-					<div className="flex items-center gap-2">
-						<div
-							className={`h-2 w-2 rounded-full ${healthCheck.data ? "bg-green-500" : "bg-red-500"}`}
-						/>
-						<span className="text-muted-foreground text-sm">
-							{healthCheck.isLoading
-								? "Vérification…"
-								: healthCheck.data
-									? "Connecté"
-									: "Déconnecté"}
-						</span>
+		<main className="flex min-h-[calc(100vh-64px)] items-center bg-black text-white">
+			<div className="container mx-auto px-4 py-8 sm:px-6 sm:py-12 lg:py-24">
+				<div className="space-y-6 lg:space-y-10">
+					<div className="space-y-2">
+						<h1 className="whitespace-nowrap font-display text-5xl not-italic tracking-tighter sm:text-7xl lg:text-8xl">
+							RYTHMONS !
+						</h1>
+						<p className="font-bold font-display text-[color:var(--brand-primary)] text-lg uppercase tracking-[0.15em] sm:text-xl sm:tracking-[0.25em]">
+							Par les indés, pour les indés
+						</p>
 					</div>
-				</section>
+
+					<div className="flex max-w-xl flex-col space-y-6 sm:space-y-8">
+						<p className="text-lg text-zinc-400 leading-relaxed sm:text-xl">
+							La plateforme de booking qui simplifie la rencontre entre les
+							artistes locaux et les lieux de diffusion. Ne laissez plus la
+							logistique freiner votre talent.
+						</p>
+
+						<div className="flex flex-col gap-3 pt-2 sm:flex-row sm:flex-wrap sm:gap-4 sm:pt-4">
+							{session?.user ? (
+								<Button size="lg" className={ctaPrimary} asChild>
+									<Link href={"/dashboard" as Route}>Tableau de bord</Link>
+								</Button>
+							) : (
+								<>
+									<Button size="lg" className={ctaPrimary} asChild>
+										<Link href={"/login" as Route}>Connexion</Link>
+									</Button>
+									<Button
+										size="lg"
+										variant="outline"
+										className={ctaOutline}
+										asChild
+									>
+										<Link href={"/login?signup=1" as Route}>Inscription</Link>
+									</Button>
+								</>
+							)}
+						</div>
+					</div>
+				</div>
 			</div>
-		</div>
+		</main>
 	);
 }

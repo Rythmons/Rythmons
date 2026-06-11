@@ -8,16 +8,17 @@ import {
 	ActivityIndicator,
 	Alert,
 	Image,
-	KeyboardAvoidingView,
-	Platform,
 	ScrollView,
 	TouchableOpacity,
 	View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Container } from "@/components/container";
 import { AddressAutocomplete } from "@/components/ui/address-autocomplete";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { Input } from "@/components/ui/input";
+import { KeyboardFormScreen } from "@/components/ui/keyboard-form-screen";
+import { useNotice } from "@/components/ui/notice";
 import { Text, Title } from "@/components/ui/typography";
 import { authClient } from "@/lib/auth-client";
 import { useContextualBackNavigation } from "@/lib/use-contextual-back-navigation";
@@ -68,6 +69,7 @@ interface FormData {
 }
 
 export default function EditVenueScreen() {
+	const { showNotice } = useNotice();
 	const params = useLocalSearchParams<{
 		id: string;
 		backTo?: string;
@@ -94,6 +96,8 @@ export default function EditVenueScreen() {
 
 	const { data: session, isPending: sessionPending } = authClient.useSession();
 	const handleBack = useContextualBackNavigation(detailHref);
+	const insets = useSafeAreaInsets();
+	const contentPaddingBottom = insets.bottom + 220;
 	const {
 		data: venue,
 		isLoading: venueLoading,
@@ -225,12 +229,16 @@ export default function EditVenueScreen() {
 					id: venue.id,
 					data: submitData,
 				});
-				Alert.alert("Succès", "Lieu mis à jour !");
+				showNotice({
+					title: "Lieu mis a jour",
+					message: "Les changements sont enregistres.",
+					kind: "success",
+				});
 			}
 
 			await refetch();
 			await queryClient.invalidateQueries();
-			router.replace(detailHref as any);
+			router.replace(detailHref as never);
 		} catch (error) {
 			const message =
 				error instanceof Error ? error.message : "Erreur lors de la sauvegarde";
@@ -247,32 +255,25 @@ export default function EditVenueScreen() {
 		);
 	};
 
-	const handleDelete = () => {
+	const handleDelete = async () => {
 		if (!venueId) return;
-		Alert.alert(
-			"Supprimer le lieu",
-			"Cette action est irréversible. Voulez-vous continuer ?",
-			[
-				{ text: "Annuler", style: "cancel" },
+		try {
+			await deleteMutation.mutateAsync({ id: venueId });
+			await queryClient.invalidateQueries();
+			Alert.alert("Lieu supprimé", "", [
 				{
-					text: "Supprimer",
-					style: "destructive",
-					onPress: async () => {
-						try {
-							await deleteMutation.mutateAsync({ id: venueId });
-							await queryClient.invalidateQueries();
-							router.replace((parentBackTo || "/(drawer)/venue") as any);
-						} catch (error) {
-							const message =
-								error instanceof Error
-									? error.message
-									: "Erreur lors de la suppression";
-							Alert.alert("Erreur", message);
-						}
-					},
+					text: "OK",
+					onPress: () =>
+						router.replace((parentBackTo || "/(drawer)/venue") as never),
 				},
-			],
-		);
+			]);
+		} catch (error) {
+			const message =
+				error instanceof Error
+					? error.message
+					: "Erreur lors de la suppression";
+			Alert.alert("Erreur", message);
+		}
 	};
 
 	if (sessionPending || venueLoading) {
@@ -308,11 +309,17 @@ export default function EditVenueScreen() {
 
 	return (
 		<Container>
-			<KeyboardAvoidingView
-				behavior={Platform.OS === "ios" ? "padding" : "height"}
-				className="flex-1"
-			>
-				<ScrollView className="flex-1 p-4">
+			<KeyboardFormScreen>
+				<ScrollView
+					className="flex-1"
+					contentContainerStyle={{
+						flexGrow: 1,
+						paddingBottom: contentPaddingBottom,
+					}}
+					keyboardShouldPersistTaps="handled"
+					keyboardDismissMode="interactive"
+					contentInsetAdjustmentBehavior="always"
+				>
 					{/* Header */}
 					<View className="mb-6 rounded-xl border border-border bg-card p-4">
 						<View className="flex-row items-center gap-3">
@@ -802,7 +809,7 @@ export default function EditVenueScreen() {
 						<View className="h-8" />
 					</View>
 				</ScrollView>
-			</KeyboardAvoidingView>
+			</KeyboardFormScreen>
 		</Container>
 	);
 }

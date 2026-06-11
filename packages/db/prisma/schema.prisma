@@ -1,7 +1,8 @@
 generator client {
   provider = "prisma-client-js"
 
-  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+  previewFeatures = ["driverAdapters"]
+  binaryTargets   = ["native", "rhel-openssl-3.0.x"]
 }
 
 datasource db {
@@ -22,7 +23,7 @@ model User {
   role          UserRole?
   artists       Artist[]
   venues        Venue[]
-  medias        Media[]
+  createdBookings Booking[]
 
   @@unique([email])
   @@map("user")
@@ -70,6 +71,7 @@ model Verification {
   createdAt  DateTime?
   updatedAt  DateTime?
 
+
   @@map("verification")
 }
 
@@ -95,10 +97,10 @@ model Artist {
   latitude         Float?
   longitude        Float?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  medias Media[]
+  bookings Booking[]
 
   @@map("artist")
 }
@@ -151,6 +153,8 @@ model Venue {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
+  bookings Booking[]
+
   @@map("venue")
 }
 
@@ -161,30 +165,69 @@ enum PaymentType {
   NEGOTIABLE
 }
 
-model Genre {
-  id      String   @id @default(cuid()) @map("_id")
-  name    String   @unique
-  venues  Venue[]
-  artists Artist[]
-
-  @@map("genre")
+enum BookingStatus {
+  PENDING
+  ACCEPTED
+  REFUSED
+  CANCELLED
 }
 
-model Media {
-  id          String  @id @default(cuid()) @map("_id")
-  name        String
-  description String? @db.Text
-  website     String?
-  logoUrl     String?
-  country     String? @default("France")
+enum AvailabilityOwnerType {
+  ARTIST
+  VENUE
+}
 
-  artists Artist[]
+enum SlotType {
+  UNAVAILABLE
+  OPEN
+  BOOKED
+}
 
-  ownerId String
-  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+model Booking {
+  id                String        @id @default(cuid()) @map("_id")
+  artistId          String
+  venueId           String
+  proposedDate      DateTime
+  proposedFee       Int?
+  status            BookingStatus @default(PENDING)
+  initialMessage    String?       @db.Text
+  refusalReason     String?       @db.Text
+  createdByUserId   String
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  artist    Artist   @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  venue     Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  createdBy User     @relation(fields: [createdByUserId], references: [id], onDelete: Cascade)
 
-  @@map("media")
+  availabilitySlots AvailabilitySlot[]
+
+  @@map("booking")
+}
+
+model AvailabilitySlot {
+  id         String                 @id @default(cuid()) @map("_id")
+  ownerType AvailabilityOwnerType
+  ownerId   String
+  startDate DateTime
+  endDate   DateTime
+  type      SlotType
+  bookingId String?
+  createdAt DateTime               @default(now())
+  updatedAt DateTime               @updatedAt
+
+  booking Booking? @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+
+  @@index([ownerType, ownerId])
+  @@index([ownerType, ownerId, startDate, endDate])
+  @@map("availability_slot")
+}
+
+model Genre {
+  id        String   @id @default(cuid()) @map("_id")
+  name      String   @unique
+  venues    Venue[]
+  artists   Artist[]
+
+  @@map("genre")
 }

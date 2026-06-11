@@ -1,6 +1,10 @@
 "use client";
 
-import { type ArtistSocialLinks, MUSIC_GENRES } from "@rythmons/validation";
+import {
+	type ArtistSocialLinks,
+	MUSIC_GENRES,
+	normalizePostalCode,
+} from "@rythmons/validation";
 import { useMutation } from "@tanstack/react-query";
 import {
 	Euro,
@@ -13,16 +17,17 @@ import {
 	Music,
 	Sparkles,
 } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useId, useState as useReactState } from "react";
+import { useEffect, useId, useState as useReactState } from "react";
 import { toast } from "sonner";
-
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { useFormDraft } from "@/hooks/use-form-draft";
 import { trpc } from "@/utils/trpc";
 import { UploadDropzone } from "@/utils/uploadthing";
 
@@ -93,6 +98,16 @@ export function ArtistForm({ initialData, mode, onSuccess }: ArtistFormProps) {
 		Partial<Record<keyof ArtistFormData, string>>
 	>({});
 
+	const DRAFT_KEY = "rythmons:web:draft:artist-create";
+	const { draft, saveDraft, clearDraft, hasDraft } =
+		useFormDraft<ArtistFormData>(DRAFT_KEY, { throttleMs: 2000 });
+
+	useEffect(() => {
+		if (mode === "create") {
+			saveDraft(formData);
+		}
+	}, [mode, formData, saveDraft]);
+
 	const createMutation = useMutation(trpc.artist.create.mutationOptions());
 	const updateMutation = useMutation(trpc.artist.update.mutationOptions());
 
@@ -120,10 +135,8 @@ export function ArtistForm({ initialData, mode, onSuccess }: ArtistFormProps) {
 		) {
 			newErrors.feeMax = "Le cachet max doit être supérieur ou égal au minimum";
 		}
-		if (
-			formData.postalCode.trim() !== "" &&
-			!/^\d{5}$/.test(formData.postalCode.trim())
-		) {
+		const normalizedPostal = normalizePostalCode(formData.postalCode ?? "");
+		if (normalizedPostal !== "" && !/^\d{5}$/.test(normalizedPostal)) {
 			newErrors.postalCode = "Le code postal doit contenir 5 chiffres";
 		}
 
@@ -158,12 +171,11 @@ export function ArtistForm({ initialData, mode, onSuccess }: ArtistFormProps) {
 					value.trim(),
 				]),
 			) as ArtistSocialLinks;
+			const normalizedPostal = normalizePostalCode(formData.postalCode ?? "");
 			const submitData = {
 				...restData,
 				city: formData.city.trim() || null,
-				postalCode: formData.postalCode.trim()
-					? formData.postalCode.trim()
-					: null,
+				postalCode: normalizedPostal || null,
 				feeMin: formData.feeMin ?? null,
 				feeMax: formData.feeMax ?? null,
 				isNegotiable: formData.isNegotiable,
@@ -179,6 +191,7 @@ export function ArtistForm({ initialData, mode, onSuccess }: ArtistFormProps) {
 
 			if (mode === "create") {
 				const createdArtist = await createMutation.mutateAsync(submitData);
+				clearDraft();
 				toast.success("Profil artiste créé avec succès !");
 				onSuccess?.(createdArtist.id);
 			} else {
@@ -201,6 +214,58 @@ export function ArtistForm({ initialData, mode, onSuccess }: ArtistFormProps) {
 		}
 	};
 
+	function validateField(
+		field: keyof ArtistFormData,
+		value: ArtistFormData[keyof ArtistFormData],
+	): boolean {
+		let message: string | undefined;
+		switch (field) {
+			case "stageName":
+				message =
+					!value || (value as string).length < 2
+						? "Le nom de scène doit contenir au moins 2 caractères"
+						: undefined;
+				break;
+			case "website":
+				message =
+					value && !isValidUrl(value as string) ? "URL invalide" : undefined;
+				break;
+			case "postalCode": {
+				const normalized = normalizePostalCode((value as string) ?? "");
+				message =
+					normalized !== "" && !/^\d{5}$/.test(normalized)
+						? "Le code postal doit contenir 5 chiffres"
+						: undefined;
+				break;
+			}
+			case "socialLinks": {
+				const links = value as ArtistFormData["socialLinks"];
+				for (const v of Object.values(links ?? {})) {
+					if (v && !isValidUrl(v)) {
+						message = "Tous les liens musique doivent être des URLs valides";
+						break;
+					}
+				}
+				break;
+			}
+			case "feeMax":
+				if (
+					formData.feeMin != null &&
+					formData.feeMax != null &&
+					formData.feeMax < formData.feeMin
+				) {
+					message = "Le cachet max doit être supérieur ou égal au minimum";
+				}
+				break;
+			default:
+				return true;
+		}
+		setErrors((prev) =>
+			message ? { ...prev, [field]: message } : { ...prev, [field]: undefined },
+		);
+		return !message;
+	}
+
 	const updateField = <K extends keyof ArtistFormData>(
 		key: K,
 		value: ArtistFormData[K],
@@ -213,6 +278,38 @@ export function ArtistForm({ initialData, mode, onSuccess }: ArtistFormProps) {
 
 	return (
 		<form onSubmit={handleSubmit} className="space-y-8">
+			{mode === "create" && hasDraft && draft && (
+				<div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-primary/30 bg-primary/5 p-4">
+					<p className="text-muted-foreground text-sm">
+						Un brouillon est disponible.
+					</p>
+					<div className="flex gap-2">
+						<Button
+							type="button"
+							variant="outline"
+							size="sm"
+							onClick={() => {
+								setFormData(draft);
+								clearDraft();
+								toast.success("Brouillon restauré");
+							}}
+						>
+							Restaurer
+						</Button>
+						<Button
+							type="button"
+							variant="ghost"
+							size="sm"
+							onClick={() => {
+								clearDraft();
+								toast.success("Brouillon ignoré");
+							}}
+						>
+							Ignorer
+						</Button>
+					</div>
+				</div>
+			)}
 			{/* Basic Information */}
 			<div className="space-y-6">
 				<div className="flex items-center gap-2 font-semibold text-lg">
@@ -278,6 +375,7 @@ export function ArtistForm({ initialData, mode, onSuccess }: ArtistFormProps) {
 									id={`${id}-stageName`}
 									value={formData.stageName}
 									onChange={(e) => updateField("stageName", e.target.value)}
+									onBlur={() => validateField("stageName", formData.stageName)}
 									placeholder="Ex: The Rolling Stones"
 									aria-invalid={!!errors.stageName}
 								/>
@@ -290,8 +388,10 @@ export function ArtistForm({ initialData, mode, onSuccess }: ArtistFormProps) {
 										<Input
 											id={`${id}-website`}
 											type="url"
+											inputMode="url"
 											value={formData.website}
 											onChange={(e) => updateField("website", e.target.value)}
+											onBlur={() => validateField("website", formData.website)}
 											placeholder="https://monsite.com"
 											aria-invalid={!!errors.website}
 										/>
@@ -326,12 +426,20 @@ export function ArtistForm({ initialData, mode, onSuccess }: ArtistFormProps) {
 								<Label htmlFor={`${id}-postalCode`}>Code postal</Label>
 								<Input
 									id={`${id}-postalCode`}
+									type="text"
+									inputMode="numeric"
+									autoComplete="postal-code"
 									value={formData.postalCode}
 									onChange={(e) =>
 										updateField(
 											"postalCode",
-											e.target.value.replace(/\D/g, "").slice(0, 5),
+											normalizePostalCode(e.target.value)
+												.replace(/\D/g, "")
+												.slice(0, 5),
 										)
+									}
+									onBlur={() =>
+										validateField("postalCode", formData.postalCode)
 									}
 									placeholder="75001"
 									maxLength={5}
@@ -643,18 +751,18 @@ export function ArtistForm({ initialData, mode, onSuccess }: ArtistFormProps) {
 										<Euro className="absolute top-2.5 left-2.5 h-4 w-4 text-muted-foreground" />
 										<Input
 											id={`${id}-feeMin`}
-											type="number"
-											min={0}
+											type="text"
+											inputMode="numeric"
 											className="pl-9"
 											value={formData.feeMin ?? ""}
-											onChange={(e) =>
+											onChange={(e) => {
+												const v = e.target.value.replace(/\D/g, "");
 												updateField(
 													"feeMin",
-													e.target.value
-														? Number.parseInt(e.target.value, 10)
-														: null,
-												)
-											}
+													v ? Number.parseInt(v, 10) : null,
+												);
+											}}
+											onBlur={() => validateField("feeMax", formData.feeMax)}
 											placeholder="0"
 										/>
 									</div>
@@ -665,19 +773,20 @@ export function ArtistForm({ initialData, mode, onSuccess }: ArtistFormProps) {
 										<Euro className="absolute top-2.5 left-2.5 h-4 w-4 text-muted-foreground" />
 										<Input
 											id={`${id}-feeMax`}
-											type="number"
-											min={0}
+											type="text"
+											inputMode="numeric"
 											className="pl-9"
 											value={formData.feeMax ?? ""}
-											onChange={(e) =>
+											onChange={(e) => {
+												const v = e.target.value.replace(/\D/g, "");
 												updateField(
 													"feeMax",
-													e.target.value
-														? Number.parseInt(e.target.value, 10)
-														: null,
-												)
-											}
+													v ? Number.parseInt(v, 10) : null,
+												);
+											}}
+											onBlur={() => validateField("feeMax", formData.feeMax)}
 											placeholder="0"
+											aria-invalid={!!errors.feeMax}
 										/>
 									</div>
 									{errors.feeMax && (
@@ -714,13 +823,8 @@ export function ArtistForm({ initialData, mode, onSuccess }: ArtistFormProps) {
 							? "Créer mon profil"
 							: "Enregistrer"}
 				</Button>
-				<Button
-					type="button"
-					variant="outline"
-					onClick={() => router.back()}
-					disabled={isLoading}
-				>
-					Annuler
+				<Button variant="outline" disabled={isLoading} asChild>
+					<Link href="/dashboard">Annuler</Link>
 				</Button>
 			</div>
 		</form>

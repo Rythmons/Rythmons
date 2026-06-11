@@ -4,7 +4,13 @@ import type { TRPCClientErrorLike } from "@trpc/client";
 import type { inferRouterOutputs } from "@trpc/server";
 import type { TRPCQueryKey } from "@trpc/tanstack-react-query";
 import { router } from "expo-router";
-import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import {
+	RefreshControl,
+	ScrollView,
+	Text,
+	TouchableOpacity,
+	View,
+} from "react-native";
 import { Container } from "@/components/container";
 import { Loader } from "@/components/loader";
 import { authClient } from "@/lib/auth-client";
@@ -83,10 +89,24 @@ export default function DashboardScreen() {
 
 	const venues = (venuesQuery.data ?? []) as VenueListItem[];
 	const artists = (artistsQuery.data ?? []) as ArtistListItem[];
+	const isRefreshing =
+		privateDataQuery.isFetching ||
+		venuesQuery.isFetching ||
+		artistsQuery.isFetching;
+	const handleRefresh = () => {
+		void privateDataQuery.refetch();
+		void venuesQuery.refetch();
+		void artistsQuery.refetch();
+	};
 
 	return (
 		<Container>
-			<ScrollView className="flex-1">
+			<ScrollView
+				className="flex-1"
+				refreshControl={
+					<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />
+				}
+			>
 				<View className="gap-6 px-4 py-8">
 					<View className="rounded-lg border border-border bg-card p-4">
 						<Text className="mb-1 font-semibold text-foreground text-lg">
@@ -122,7 +142,7 @@ export default function DashboardScreen() {
 							<Text className="font-medium text-foreground">Mes lieux</Text>
 							<TouchableOpacity
 								className="rounded-md bg-primary px-3 py-2"
-								onPress={() => router.push("/(drawer)/venue" as any)}
+								onPress={() => router.push("/(drawer)/venue" as never)}
 							>
 								<Text className="font-medium text-primary-foreground">
 									{venues.length ? "Gérer" : "Créer"}
@@ -146,7 +166,7 @@ export default function DashboardScreen() {
 											router.push({
 												pathname: "/(drawer)/venue/[id]",
 												params: { id: venue.id, backTo: "/(tabs)/dashboard" },
-											} as any)
+											} as never)
 										}
 									>
 										<Text className="font-medium text-foreground">
@@ -174,7 +194,7 @@ export default function DashboardScreen() {
 									router.push({
 										pathname: "/(drawer)/artist/new",
 										params: { backTo: "/(tabs)/dashboard" },
-									} as any)
+									} as never)
 								}
 							>
 								<Text className="font-medium text-primary-foreground">
@@ -199,7 +219,7 @@ export default function DashboardScreen() {
 											router.push({
 												pathname: "/(drawer)/artist/[id]",
 												params: { id: artist.id, backTo: "/(tabs)/dashboard" },
-											} as any)
+											} as never)
 										}
 									>
 										<Text className="font-medium text-foreground">
@@ -218,7 +238,7 @@ export default function DashboardScreen() {
 
 								<TouchableOpacity
 									className="self-start rounded-md border border-border px-4 py-2"
-									onPress={() => router.push("/(drawer)/artist" as any)}
+									onPress={() => router.push("/(drawer)/artist" as never)}
 								>
 									<Text className="font-medium text-foreground">
 										Voir tous mes artistes
@@ -230,6 +250,35 @@ export default function DashboardScreen() {
 								Vous n’avez pas encore créé d’artiste.
 							</Text>
 						)}
+					</View>
+
+					<View className="rounded-lg border border-border bg-card p-4">
+						<Text className="mb-3 font-medium text-foreground">
+							Booking & calendrier
+						</Text>
+						<Text className="mb-4 text-muted-foreground text-sm">
+							Les bookings sont aussi accessibles directement depuis la barre de
+							navigation. Utilisez cet espace pour ouvrir votre planning ou
+							revenir vite sur vos propositions.
+						</Text>
+						<View className="flex-row flex-wrap gap-3">
+							<TouchableOpacity
+								className="rounded-md bg-primary px-4 py-3"
+								onPress={() => router.push("/(drawer)/bookings" as never)}
+							>
+								<Text className="font-medium text-primary-foreground">
+									Voir mes bookings
+								</Text>
+							</TouchableOpacity>
+							<TouchableOpacity
+								className="rounded-md border border-border px-4 py-3"
+								onPress={() => router.push("/(drawer)/calendar" as never)}
+							>
+								<Text className="font-medium text-foreground">
+									Ouvrir mon calendrier
+								</Text>
+							</TouchableOpacity>
+						</View>
 					</View>
 
 					<View className="rounded-lg border border-border bg-card p-4">

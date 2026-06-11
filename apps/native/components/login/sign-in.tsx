@@ -1,37 +1,53 @@
 import { useSignInForm } from "@rythmons/auth/client";
 import { router } from "expo-router";
-import {
-	ActivityIndicator,
-	Alert,
-	Text,
-	TextInput,
-	TouchableOpacity,
-	View,
-} from "react-native";
+import { Alert, TouchableOpacity, View } from "react-native";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Field } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { useNotice } from "@/components/ui/notice";
+import { Text, Title } from "@/components/ui/typography";
 import { queryClient } from "@/utils/trpc";
 import { GoogleAuthButton } from "../google-auth-button";
 
 type Props = {
 	onSwitchToSignUp: () => void;
 	onSwitchToForgotPassword: () => void;
+	onInputFocus?: (target: number | null) => void;
 };
 
-export function SignIn({ onSwitchToSignUp, onSwitchToForgotPassword }: Props) {
+export function SignIn({
+	onSwitchToSignUp,
+	onSwitchToForgotPassword,
+	onInputFocus,
+}: Props) {
+	const { showNotice } = useNotice();
 	const { form, isLoading } = useSignInForm({
 		onSuccess: async () => {
 			void queryClient.refetchQueries();
 			router.replace("/(drawer)/profile");
-			Alert.alert("Succès", "Connexion réussie");
+			showNotice({
+				title: "Connexion reussie",
+				message: "Bienvenue sur votre espace Rythmons.",
+				kind: "success",
+			});
 		},
 		onError: (error) => {
 			Alert.alert("Connexion impossible", error);
 		},
 	});
 
+	const quickLogin = (email: string) => {
+		form.setFieldValue("email", email);
+		form.setFieldValue("password", "Rythmons123!");
+		void form.handleSubmit();
+	};
+
 	return (
-		<View className="mt-6 rounded-lg border border-border bg-card p-4">
-			<Text className="mb-4 font-semibold text-foreground text-lg">
-				Se connecter
+		<Card className="mt-6 p-5">
+			<Title className="mb-1 text-foreground text-xl">Se connecter</Title>
+			<Text className="mb-4 text-muted-foreground text-sm">
+				Retrouve tes artistes, lieux et recommandations.
 			</Text>
 
 			<View className="mb-4">
@@ -46,64 +62,95 @@ export function SignIn({ onSwitchToSignUp, onSwitchToForgotPassword }: Props) {
 				<View className="h-px flex-1 bg-border" />
 			</View>
 
+			{process.env.EXPO_PUBLIC_E2E === "1" ? (
+				<View className="mb-4 gap-2">
+					<Text className="text-muted-foreground text-xs uppercase">
+						Quick login (E2E)
+					</Text>
+					<View className="flex-row gap-2">
+						<Button
+							variant="secondary"
+							className="flex-1"
+							label="Demo Artiste"
+							disabled={isLoading}
+							onPress={() => quickLogin("demo.artist@rythmons.local")}
+						/>
+						<Button
+							variant="secondary"
+							className="flex-1"
+							label="Demo Organisateur"
+							disabled={isLoading}
+							onPress={() => quickLogin("demo.organizer@rythmons.local")}
+						/>
+					</View>
+				</View>
+			) : null}
+
 			<form.Field name="email">
 				{(field) => (
-					<View className="mb-3">
-						<TextInput
-							className="rounded-md border border-input bg-input p-4 text-foreground"
-							placeholder="Adresse email"
+					<Field
+						label="Adresse email"
+						error={
+							field.state.meta.errors.length > 0
+								? typeof field.state.meta.errors[0] === "object"
+									? (field.state.meta.errors[0] as { message: string }).message
+									: String(field.state.meta.errors[0])
+								: undefined
+						}
+						className="mb-3"
+					>
+						<Input
+							placeholder="nom@domaine.com"
 							value={field.state.value}
 							onChangeText={field.handleChange}
 							onBlur={field.handleBlur}
+							onFocus={(event) =>
+								onInputFocus?.(event.nativeEvent.target ?? null)
+							}
 							placeholderTextColor="#9CA3AF"
 							keyboardType="email-address"
 							autoCapitalize="none"
+							textContentType="emailAddress"
+							autoComplete="email"
 						/>
-						{field.state.meta.errors.length > 0 && (
-							<Text className="mt-1 text-destructive text-sm">
-								{typeof field.state.meta.errors[0] === "object"
-									? (field.state.meta.errors[0] as { message: string }).message
-									: String(field.state.meta.errors[0])}
-							</Text>
-						)}
-					</View>
+					</Field>
 				)}
 			</form.Field>
 			<form.Field name="password">
 				{(field) => (
-					<View className="mb-4">
-						<TextInput
-							className="rounded-md border border-input bg-input p-4 text-foreground"
+					<Field
+						label="Mot de passe"
+						error={
+							field.state.meta.errors.length > 0
+								? typeof field.state.meta.errors[0] === "object"
+									? (field.state.meta.errors[0] as { message: string }).message
+									: String(field.state.meta.errors[0])
+								: undefined
+						}
+						className="mb-4"
+					>
+						<Input
 							placeholder="Mot de passe"
 							value={field.state.value}
 							onChangeText={field.handleChange}
 							onBlur={field.handleBlur}
+							onFocus={(event) =>
+								onInputFocus?.(event.nativeEvent.target ?? null)
+							}
 							placeholderTextColor="#9CA3AF"
 							secureTextEntry
+							textContentType="password"
+							autoComplete="password"
 						/>
-						{field.state.meta.errors.length > 0 && (
-							<Text className="mt-1 text-destructive text-sm">
-								{typeof field.state.meta.errors[0] === "object"
-									? (field.state.meta.errors[0] as { message: string }).message
-									: String(field.state.meta.errors[0])}
-							</Text>
-						)}
-					</View>
+					</Field>
 				)}
 			</form.Field>
-			<TouchableOpacity
+			<Button
 				onPress={form.handleSubmit}
 				disabled={isLoading}
-				className="flex-row items-center justify-center rounded-md bg-primary p-4"
-			>
-				{isLoading ? (
-					<ActivityIndicator size="small" color="#fff" />
-				) : (
-					<Text className="font-medium text-primary-foreground">
-						Se connecter
-					</Text>
-				)}
-			</TouchableOpacity>
+				loading={isLoading}
+				label="Se connecter"
+			/>
 			<View className="mt-4 gap-3">
 				<TouchableOpacity onPress={onSwitchToForgotPassword}>
 					<Text className="text-center text-primary text-sm">
@@ -120,6 +167,6 @@ export function SignIn({ onSwitchToSignUp, onSwitchToForgotPassword }: Props) {
 					</TouchableOpacity>
 				</View>
 			</View>
-		</View>
+		</Card>
 	);
 }

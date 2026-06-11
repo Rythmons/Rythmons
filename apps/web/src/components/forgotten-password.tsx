@@ -80,6 +80,7 @@ export default function ForgottenPassword({
 									id={field.name}
 									name={field.name}
 									type="email"
+									autoComplete="email"
 									value={field.state.value}
 									onBlur={field.handleBlur}
 									onChange={(e) => field.handleChange(e.target.value)}

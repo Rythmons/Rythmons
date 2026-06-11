@@ -1,6 +1,7 @@
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { Tabs } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { authClient } from "@/lib/auth-client";
 import { trpc } from "@/utils/trpc";
 
@@ -13,6 +14,7 @@ type VenueMenuItem = {
 };
 
 export default function TabLayout() {
+	const insets = useSafeAreaInsets();
 	const { data: session } = authClient.useSession();
 	const sessionRole = (
 		session?.user as
@@ -39,26 +41,37 @@ export default function TabLayout() {
 	const canUseSearch = canSearchVenues || canSearchArtists;
 	const canManageArtists = canSearchVenues;
 	const canManageVenues = canSearchArtists;
+	const shouldShowArtistTab = canManageArtists && !canManageVenues;
+	const shouldShowVenueTab = canManageVenues && !canManageArtists;
 
 	return (
 		<Tabs
 			screenOptions={{
-				headerShown: true, // shows header on top
-				headerTitleStyle: {
-					fontFamily: "FugazOne-Regular",
+				headerShown: false,
+				tabBarHideOnKeyboard: true,
+				sceneStyle: {
+					backgroundColor: "hsl(278 86% 3%)",
 				},
 				tabBarLabelStyle: {
 					fontFamily: "Montserrat-Medium",
-					fontSize: 10,
+					fontSize: 11,
 				},
-				tabBarActiveTintColor: "#7c3aed", // matching primary color
+				tabBarStyle: {
+					height: 60 + insets.bottom,
+					paddingTop: 8,
+					paddingBottom: Math.max(8, insets.bottom),
+					backgroundColor: "hsl(280 93% 6%)",
+					borderTopColor: "hsl(280 40% 14%)",
+				},
+				tabBarActiveTintColor: "hsl(348 91% 52%)",
+				tabBarInactiveTintColor: "hsl(289 15% 60%)",
 			}}
 		>
 			{/* Accueil */}
 			<Tabs.Screen
 				name="index"
 				options={{
-					headerTitle: "Accueil",
+					headerShown: false,
 					tabBarLabel: "Accueil",
 					tabBarIcon: ({ color, size }) => (
 						<Ionicons name="home-outline" size={size} color={color} />
@@ -69,7 +82,6 @@ export default function TabLayout() {
 			<Tabs.Screen
 				name="profile"
 				options={{
-					headerTitle: "Mon Profil",
 					tabBarLabel: "Profil",
 					tabBarIcon: ({ color, size }) => (
 						<Ionicons name="person-circle-outline" size={size} color={color} />
@@ -79,9 +91,8 @@ export default function TabLayout() {
 			<Tabs.Screen
 				name="artist"
 				options={{
-					headerTitle: "Mes Artistes",
 					tabBarLabel: "Artistes",
-					href: canManageArtists ? undefined : null,
+					href: shouldShowArtistTab ? undefined : null,
 					tabBarIcon: ({ color, size }) => (
 						<Ionicons name="musical-notes-outline" size={size} color={color} />
 					),
@@ -90,7 +101,6 @@ export default function TabLayout() {
 			<Tabs.Screen
 				name="search"
 				options={{
-					headerTitle: "Recherche",
 					tabBarLabel: "Recherche",
 					href: canUseSearch ? undefined : null,
 					tabBarIcon: ({ color, size }) => (
@@ -99,11 +109,20 @@ export default function TabLayout() {
 				}}
 			/>
 			<Tabs.Screen
+				name="bookings"
+				options={{
+					href: session?.user ? undefined : null,
+					tabBarLabel: "Bookings",
+					tabBarIcon: ({ color, size }) => (
+						<Ionicons name="calendar-outline" size={size} color={color} />
+					),
+				}}
+			/>
+			<Tabs.Screen
 				name="venue"
 				options={{
-					headerTitle: "Mon Lieu",
 					tabBarLabel: "Lieu",
-					href: canManageVenues ? undefined : null,
+					href: shouldShowVenueTab ? undefined : null,
 					tabBarIcon: ({ color, size }) => (
 						<Ionicons name="business-outline" size={size} color={color} />
 					),
@@ -114,7 +133,7 @@ export default function TabLayout() {
 			<Tabs.Screen
 				name="login"
 				options={{
-					headerTitle: "Se connecter",
+					headerShown: false,
 					tabBarLabel: "Connexion",
 					href: session?.user ? null : undefined, // Cache l'onglet si l'utilisateur est connecté
 					tabBarIcon: ({ color, size }) => (
@@ -134,35 +153,48 @@ export default function TabLayout() {
 			<Tabs.Screen
 				name="artist/new"
 				options={{
-					headerTitle: "Nouvel Artiste",
 					href: null,
 				}}
 			/>
 			<Tabs.Screen
 				name="artist/[id]"
 				options={{
-					headerTitle: "Fiche Artiste",
 					href: null,
 				}}
 			/>
 			<Tabs.Screen
 				name="venue/[id]"
 				options={{
-					headerTitle: "Fiche Lieu",
 					href: null,
 				}}
 			/>
 			<Tabs.Screen
 				name="venue/new"
 				options={{
-					headerTitle: "Nouveau Lieu",
 					href: null,
 				}}
 			/>
 			<Tabs.Screen
 				name="venue/edit/[id]"
 				options={{
-					headerTitle: "Modification Lieu",
+					href: null,
+				}}
+			/>
+			<Tabs.Screen
+				name="bookings/[id]"
+				options={{
+					href: null,
+				}}
+			/>
+			<Tabs.Screen
+				name="bookings/propose"
+				options={{
+					href: null,
+				}}
+			/>
+			<Tabs.Screen
+				name="calendar"
+				options={{
 					href: null,
 				}}
 			/>

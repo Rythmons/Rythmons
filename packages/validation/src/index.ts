@@ -21,6 +21,45 @@ export const nameSchema = z
 	.string()
 	.min(2, "Le nom doit contenir au moins 2 caractères");
 
+/** Normalise un code postal (trim + suppression des espaces) pour accepter la saisie brute. */
+export function normalizePostalCode(value: string): string {
+	return value.replace(/\s/g, "").trim();
+}
+
+// ---- Dates de booking et de calendrier : convention « heure murale » ----
+//
+// Les dates de booking représentent une heure murale au lieu du concert
+// (« le 10 juillet à 20:00 »), pas un instant absolu. Elles sont stockées
+// épinglées en UTC : 20:00 saisi = 20:00 stocké en UTC = 20:00 affiché,
+// quel que soit le fuseau de l'utilisateur. Cela garantit aussi que le
+// regroupement par jour côté serveur (en UTC) correspond toujours au jour
+// choisi par l'utilisateur. Toujours formater ces dates avec
+// `timeZone: "UTC"`.
+
+/** Heure de concert proposée par défaut (format HH:MM, heure murale). */
+export const DEFAULT_BOOKING_TIME = "20:00";
+
+/** Épingle en UTC les composantes locales (année/mois/jour/heure/minute) d'une date. */
+export function pinWallClockToUtc(date: Date): Date {
+	return new Date(
+		Date.UTC(
+			date.getFullYear(),
+			date.getMonth(),
+			date.getDate(),
+			date.getHours(),
+			date.getMinutes(),
+		),
+	);
+}
+
+/** Construit une date épinglée en UTC depuis des champs « YYYY-MM-DD » et « HH:MM ». */
+export function wallClockUtcFromInputs(
+	dateInput: string,
+	timeInput: string,
+): Date {
+	return new Date(`${dateInput}T${timeInput}:00.000Z`);
+}
+
 const optionalUrlSchema = z
 	.union([z.string().url("URL invalide"), z.literal("")])
 	.optional();
@@ -112,7 +151,11 @@ export const artistSchema = z.object({
 	city: z.string().optional().nullable(),
 	postalCode: z
 		.string()
-		.regex(/^\d{5}$/, "Code postal invalide (5 chiffres)")
+		.transform((s) => normalizePostalCode(s))
+		.refine(
+			(s) => s === "" || /^\d{5}$/.test(s),
+			"Code postal invalide (5 chiffres)",
+		)
 		.optional()
 		.nullable()
 		.or(z.literal("")),
@@ -141,6 +184,7 @@ export const artistSearchSchema = z.object({
 	userLng: z.number().optional().nullable(),
 	feeMin: z.number().int().nonnegative().optional().nullable(),
 	feeMax: z.number().int().nonnegative().optional().nullable(),
+	availabilityDate: z.string().optional().nullable(),
 });
 
 export type ArtistSearchInput = z.infer<typeof artistSearchSchema>;
@@ -149,7 +193,10 @@ export const venueSchema = z.object({
 	name: z.string().min(2, "Le nom doit contenir au moins 2 caractères"),
 	address: z.string().min(5, "L'adresse est requise"),
 	city: z.string().min(2, "La ville est requise"),
-	postalCode: z.string().regex(/^\d{5}$/, "Code postal invalide (5 chiffres)"),
+	postalCode: z
+		.string()
+		.transform((s) => normalizePostalCode(s))
+		.refine((s) => /^\d{5}$/.test(s), "Code postal invalide (5 chiffres)"),
 	country: z.string().default("France"),
 	venueType: z.enum(venueTypeValues),
 	capacity: z.number().int().positive().optional().nullable(),
@@ -178,9 +225,44 @@ export const venueSearchSchema = z.object({
 	venueTypes: z.array(z.enum(venueTypeValues)).default([]),
 	budgetMin: z.number().int().nonnegative().optional().nullable(),
 	budgetMax: z.number().int().nonnegative().optional().nullable(),
+	availabilityDate: z.string().optional().nullable(),
 });
 
 export type VenueSearchInput = z.infer<typeof venueSearchSchema>;
+
+export const bookingStatusValues = [
+	"PENDING",
+	"ACCEPTED",
+	"REFUSED",
+	"CANCELLED",
+] as const;
+
+export const bookingStatusSchema = z.enum(bookingStatusValues);
+
+export const bookingByIdSchema = z.object({
+	id: z.string().min(1),
+});
+
+export const bookingCreateSchema = z.object({
+	artistId: z.string().min(1),
+	venueId: z.string().min(1),
+	proposedDate: z.coerce.date(),
+	proposedFee: z.number().int().min(0).nullable().optional(),
+	initialMessage: z.string().trim().max(2000).optional(),
+});
+
+export const bookingRefuseSchema = bookingByIdSchema.extend({
+	reason: z.string().trim().max(500).optional(),
+});
+
+export const bookingListFilterSchema = z.object({
+	status: bookingStatusSchema.optional(),
+});
+
+export type BookingCreateInput = z.infer<typeof bookingCreateSchema>;
+export type BookingRefuseInput = z.infer<typeof bookingRefuseSchema>;
+export type BookingByIdInput = z.infer<typeof bookingByIdSchema>;
+export type BookingListFilterInput = z.infer<typeof bookingListFilterSchema>;
 
 // Sign-in validation schema
 export const signInSchema = z.object({

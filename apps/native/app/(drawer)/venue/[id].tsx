@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { router, useLocalSearchParams } from "expo-router";
+import { useState } from "react";
 import {
 	ActivityIndicator,
 	Alert,
@@ -27,16 +28,22 @@ export default function VenueProfileScreen() {
 
 	const { data: session } = authClient.useSession();
 	const handleBack = useContextualBackNavigation(backTo ?? "/(drawer)/venue");
+	const [venueLogoFailed, setVenueLogoFailed] = useState(false);
 
 	const { data: venue, isLoading } = useQuery({
 		...trpc.venue.getById.queryOptions({ id: venueId ?? "" }),
 		enabled: Boolean(venueId),
+	});
+	const myArtistsQuery = useQuery({
+		...trpc.artist.myArtists.queryOptions(),
+		enabled: Boolean(session?.user) && Boolean(venueId),
 	});
 
 	const isOwner =
 		Boolean(session?.user) &&
 		Boolean(venue?.owner?.id) &&
 		session?.user.id === venue?.owner.id;
+	const canProposeBooking = !isOwner && (myArtistsQuery.data?.length ?? 0) > 0;
 
 	const openMaps = async () => {
 		if (!venue) return;
@@ -99,6 +106,9 @@ export default function VenueProfileScreen() {
 		venue.genres?.length > 0
 			? venue.genres.map((g) => g.name).join(" • ")
 			: null;
+	const detailBackHref = backTo
+		? `/(drawer)/venue/${venue.id}?backTo=${encodeURIComponent(backTo)}`
+		: `/(drawer)/venue/${venue.id}`;
 
 	return (
 		<Container>
@@ -116,10 +126,11 @@ export default function VenueProfileScreen() {
 				<View className="-mt-10 px-4">
 					<View className="rounded-2xl border border-border bg-card p-4">
 						<View className="flex-row items-center gap-3">
-							{venue.logoUrl ? (
+							{venue.logoUrl && !venueLogoFailed ? (
 								<Image
 									source={{ uri: venue.logoUrl }}
 									className="h-16 w-16 rounded-2xl border border-border"
+									onError={() => setVenueLogoFailed(true)}
 								/>
 							) : (
 								<View className="h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
@@ -146,6 +157,67 @@ export default function VenueProfileScreen() {
 									Genres
 								</Text>
 								<Text className="mt-1 text-muted-foreground">{genreLabel}</Text>
+							</View>
+						) : null}
+
+						{!isOwner && session?.user ? (
+							<View className="mt-4 rounded-xl border border-border bg-background px-4 py-4">
+								<Text className="font-sans-bold text-foreground">Booking</Text>
+								<Text className="mt-2 text-muted-foreground">
+									{canProposeBooking
+										? "Cette fiche est prete pour une proposition de booking."
+										: "Il vous manque un profil artiste pour contacter ce lieu."}
+								</Text>
+								<View className="mt-3 gap-3">
+									{canProposeBooking ? (
+										<TouchableOpacity
+											className="flex-row items-center justify-center rounded-xl bg-primary p-4"
+											onPress={() =>
+												router.push({
+													pathname: "/(drawer)/bookings/propose",
+													params: {
+														venueId: venue.id,
+														backTo: detailBackHref,
+													},
+												} as never)
+											}
+										>
+											<Ionicons
+												name="calendar-outline"
+												size={20}
+												color="white"
+												style={{ marginRight: 8 }}
+											/>
+											<Text className="font-sans-bold text-primary-foreground">
+												Proposer un booking
+											</Text>
+										</TouchableOpacity>
+									) : (
+										<>
+											<TouchableOpacity
+												className="rounded-xl bg-primary px-4 py-3"
+												onPress={() =>
+													router.push({
+														pathname: "/(drawer)/artist/new",
+														params: { backTo: `/(drawer)/venue/${venue.id}` },
+													} as never)
+												}
+											>
+												<Text className="text-center font-sans-bold text-primary-foreground">
+													Creer un artiste
+												</Text>
+											</TouchableOpacity>
+											<TouchableOpacity
+												className="rounded-xl border border-border bg-card px-4 py-3"
+												onPress={() => router.push("/(drawer)/artist" as never)}
+											>
+												<Text className="text-center font-sans-medium text-foreground">
+													Choisir un artiste existant
+												</Text>
+											</TouchableOpacity>
+										</>
+									)}
+								</View>
 							</View>
 						) : null}
 
@@ -246,7 +318,7 @@ export default function VenueProfileScreen() {
 											backTo: `/(drawer)/venue/${venue.id}`,
 											parentBackTo: backTo ?? "",
 										},
-									} as any)
+									} as never)
 								}
 							>
 								<Ionicons

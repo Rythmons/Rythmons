@@ -11,9 +11,9 @@ import MapGL, {
 	Source,
 } from "react-map-gl/maplibre";
 
-// Stadia Maps — Alidade Smooth Dark (free on localhost; add domain to allowlist for production)
+// CartoDB Dark Matter — No token required for development
 const MAP_STYLE =
-	"https://tiles.stadiamaps.com/styles/alidade_smooth_dark.json";
+	"https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json";
 
 type VenueMarker = {
 	id: string;
@@ -233,20 +233,37 @@ export default function SearchMap({ venues }: SearchMapProps) {
 							<p style={{ color: "#6b7280", margin: "0 0 10px", fontSize: 12 }}>
 								{popupInfo.city}
 							</p>
-							<a
-								href={`/venue/${popupInfo.id}`}
-								style={{
-									display: "inline-block",
-									background: "#18181b",
-									color: "#fff",
-									padding: "4px 14px",
-									borderRadius: 6,
-									textDecoration: "none",
-									fontSize: 12,
-								}}
-							>
-								Voir profil →
-							</a>
+							<div className="flex items-center gap-2">
+								<a
+									href={`/venue/${popupInfo.id}`}
+									style={{
+										display: "inline-block",
+										border: "1px solid #e5e7eb",
+										color: "#18181b",
+										padding: "4px 10px",
+										borderRadius: 6,
+										textDecoration: "none",
+										fontSize: 12,
+									}}
+								>
+									Profil
+								</a>
+								<a
+									href={`/dashboard/bookings/propose?venueId=${popupInfo.id}`}
+									style={{
+										display: "inline-block",
+										background: "#18181b",
+										color: "#fff",
+										padding: "4px 10px",
+										borderRadius: 6,
+										textDecoration: "none",
+										fontSize: 12,
+										fontWeight: 500,
+									}}
+								>
+									Proposer →
+								</a>
+							</div>
 						</div>
 					</Popup>
 				) : null}

@@ -244,6 +244,7 @@ export function ImageCropper({
 								circularCrop && "[&_.ReactCrop__crop-selection]:rounded-full",
 							)}
 						>
+							{/* biome-ignore lint/performance/noImgElement: cropper needs a direct HTMLImageElement ref */}
 							<img
 								ref={imgRef}
 								alt="À recadrer"

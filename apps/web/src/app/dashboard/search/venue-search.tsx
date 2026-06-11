@@ -21,6 +21,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { NavbarSearch } from "@/components/navbar-search";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -124,6 +125,7 @@ export function VenueSearch({
 	const appliedBudgetMax = searchParams.get("bmax") ?? "";
 	const appliedFeeMin = searchParams.get("fmin") ?? "";
 	const appliedFeeMax = searchParams.get("fmax") ?? "";
+	const appliedAvailabilityDate = searchParams.get("date") ?? "";
 	const appliedLatRaw = searchParams.get("lat");
 	const appliedLngRaw = searchParams.get("lng");
 	const appliedLat =
@@ -147,6 +149,9 @@ export function VenueSearch({
 	const [budgetMax, setBudgetMax] = useState(appliedBudgetMax);
 	const [feeMin, setFeeMin] = useState(appliedFeeMin);
 	const [feeMax, setFeeMax] = useState(appliedFeeMax);
+	const [availabilityDate, setAvailabilityDate] = useState(
+		appliedAvailabilityDate,
+	);
 	const [radiusKm, setRadiusKm] = useState<string>(appliedRadiusKm);
 	const [useMyLocation, setUseMyLocation] = useState(appliedUserCoords != null);
 	const [myLocationCoords, setMyLocationCoords] = useState<{
@@ -159,6 +164,37 @@ export function VenueSearch({
 	const [showAllGenres, setShowAllGenres] = useState(false);
 	const normalizedQuery = searchParams.get("q")?.trim() ?? "";
 	const requestedPage = Number.parseInt(searchParams.get("page") ?? "1", 10);
+
+	// Keep draft filter state in sync with URL when searchParams change (e.g. back/forward)
+	useEffect(() => {
+		setCity(appliedCity);
+		setPostalCode(appliedPostalCode);
+		setSelectedGenres(
+			appliedGenresRaw ? appliedGenresRaw.split(",").filter(Boolean) : [],
+		);
+		setSelectedVenueType(appliedVenueType);
+		setBudgetMin(appliedBudgetMin);
+		setBudgetMax(appliedBudgetMax);
+		setFeeMin(appliedFeeMin);
+		setFeeMax(appliedFeeMax);
+		setAvailabilityDate(appliedAvailabilityDate);
+		setRadiusKm(appliedRadiusKm);
+		setUseMyLocation(appliedUserCoords != null);
+		setMyLocationCoords(appliedUserCoords);
+		setLocationStatus(appliedUserCoords != null ? "success" : "idle");
+	}, [
+		appliedCity,
+		appliedPostalCode,
+		appliedGenresRaw,
+		appliedVenueType,
+		appliedBudgetMin,
+		appliedBudgetMax,
+		appliedFeeMin,
+		appliedFeeMax,
+		appliedAvailabilityDate,
+		appliedRadiusKm,
+		appliedUserCoords,
+	]);
 	const currentPage =
 		Number.isFinite(requestedPage) && requestedPage > 0 ? requestedPage : 1;
 	const showFilters = searchParams.get("filters") === "1";
@@ -179,6 +215,9 @@ export function VenueSearch({
 					: [appliedVenueType as (typeof venueTypeValues)[number]],
 			budgetMin: parseOptionalNumber(appliedBudgetMin),
 			budgetMax: parseOptionalNumber(appliedBudgetMax),
+			availabilityDate: appliedAvailabilityDate.trim()
+				? appliedAvailabilityDate.trim()
+				: undefined,
 		}),
 		[
 			normalizedQuery,
@@ -191,6 +230,7 @@ export function VenueSearch({
 			appliedVenueType,
 			appliedBudgetMin,
 			appliedBudgetMax,
+			appliedAvailabilityDate,
 		],
 	);
 
@@ -206,6 +246,9 @@ export function VenueSearch({
 			userLng: appliedUserCoords?.lng,
 			feeMin: parseOptionalNumber(appliedFeeMin),
 			feeMax: parseOptionalNumber(appliedFeeMax),
+			availabilityDate: appliedAvailabilityDate.trim()
+				? appliedAvailabilityDate.trim()
+				: undefined,
 		}),
 		[
 			normalizedQuery,
@@ -217,6 +260,7 @@ export function VenueSearch({
 			appliedUserCoords?.lng,
 			appliedFeeMin,
 			appliedFeeMax,
+			appliedAvailabilityDate,
 		],
 	);
 
@@ -262,7 +306,8 @@ export function VenueSearch({
 		budgetMin !== appliedBudgetMin ||
 		budgetMax !== appliedBudgetMax ||
 		feeMin !== appliedFeeMin ||
-		feeMax !== appliedFeeMax;
+		feeMax !== appliedFeeMax ||
+		availabilityDate !== appliedAvailabilityDate;
 
 	const resultLabel =
 		hasSearchError && !hasResults
@@ -403,6 +448,7 @@ export function VenueSearch({
 		setBudgetMax("");
 		setFeeMin("");
 		setFeeMax("");
+		setAvailabilityDate("");
 		updateRouteSearchParams((params) => {
 			params.delete("q");
 			params.delete("city");
@@ -414,6 +460,7 @@ export function VenueSearch({
 			params.delete("bmax");
 			params.delete("fmin");
 			params.delete("fmax");
+			params.delete("date");
 			params.delete("lat");
 			params.delete("lng");
 			params.delete("filters");
@@ -423,6 +470,11 @@ export function VenueSearch({
 
 	function applyFilters() {
 		updateRouteSearchParams((params) => {
+			if (normalizedQuery) {
+				params.set("q", normalizedQuery);
+			} else {
+				params.delete("q");
+			}
 			if (city.trim()) {
 				params.set("city", city.trim());
 			} else {
@@ -468,6 +520,11 @@ export function VenueSearch({
 			} else {
 				params.delete("fmax");
 			}
+			if (availabilityDate.trim()) {
+				params.set("date", availabilityDate.trim());
+			} else {
+				params.delete("date");
+			}
 			if (useMyLocation && myLocationCoords) {
 				params.set("lat", String(myLocationCoords.lat));
 				params.set("lng", String(myLocationCoords.lng));
@@ -486,6 +543,7 @@ export function VenueSearch({
 		postalCode.trim().length > 0 ||
 		radiusKm !== "none" ||
 		useMyLocation ||
+		availabilityDate.trim().length > 0 ||
 		selectedGenres.length > 0 ||
 		(activeTab === "venues"
 			? selectedVenueType !== "all" ||
@@ -499,6 +557,9 @@ export function VenueSearch({
 		...(appliedPostalCode ? [`CP: ${appliedPostalCode}`] : []),
 		...(appliedUserCoords != null ? ["Ma position"] : []),
 		...(appliedRadiusKm !== "none" ? [`Rayon: ${appliedRadiusKm} km`] : []),
+		...(appliedAvailabilityDate
+			? [`Disponible le: ${appliedAvailabilityDate}`]
+			: []),
 		...(appliedGenresRaw ? appliedGenresRaw.split(",") : []),
 		...(activeTab === "venues"
 			? [
@@ -529,38 +590,51 @@ export function VenueSearch({
 
 	return (
 		<div className="container mx-auto max-w-6xl px-4 py-5">
+			<p className="mb-4">
+				<Link
+					href={"/dashboard" as Route}
+					className="text-muted-foreground text-sm hover:text-foreground"
+				>
+					← Retour au tableau de bord
+				</Link>
+			</p>
+			<div className="mb-4">
+				<NavbarSearch className="mx-0 max-w-none flex-none sm:mx-0" />
+			</div>
 			<div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-				<div className="flex flex-wrap gap-2">
-					{canSearchVenues && canSearchArtists ? (
-						<>
+				<div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center">
+					<div className="flex flex-wrap gap-2">
+						{canSearchVenues && canSearchArtists ? (
+							<>
+								<Button
+									type="button"
+									size="sm"
+									variant={activeTab === "venues" ? "default" : "outline"}
+									onClick={() => handleTabChange("venues")}
+								>
+									Lieux
+								</Button>
+								<Button
+									type="button"
+									size="sm"
+									variant={activeTab === "artists" ? "default" : "outline"}
+									onClick={() => handleTabChange("artists")}
+								>
+									Artistes
+								</Button>
+							</>
+						) : null}
+						{hasAdvancedFilters || appliedFilterChips.length > 0 ? (
 							<Button
 								type="button"
 								size="sm"
-								variant={activeTab === "venues" ? "default" : "outline"}
-								onClick={() => handleTabChange("venues")}
+								variant="ghost"
+								onClick={resetFilters}
 							>
-								Lieux
+								Tout effacer
 							</Button>
-							<Button
-								type="button"
-								size="sm"
-								variant={activeTab === "artists" ? "default" : "outline"}
-								onClick={() => handleTabChange("artists")}
-							>
-								Artistes
-							</Button>
-						</>
-					) : null}
-					{hasAdvancedFilters || appliedFilterChips.length > 0 ? (
-						<Button
-							type="button"
-							size="sm"
-							variant="ghost"
-							onClick={resetFilters}
-						>
-							Tout effacer
-						</Button>
-					) : null}
+						) : null}
+					</div>
 				</div>
 				<p className="text-muted-foreground text-xs">{description}</p>
 			</div>
@@ -678,11 +752,16 @@ export function VenueSearch({
 			) : viewMode === "map" && activeTab === "venues" ? (
 				<SearchMap venues={venueItems} />
 			) : (
-				<div className="grid gap-6 xl:grid-cols-2 2xl:grid-cols-3">
+				<div
+					className={`grid gap-6 transition-opacity duration-300 lg:grid-cols-3 ${isFetching ? "pointer-events-none opacity-50" : "opacity-100"}`}
+				>
 					{activeTab === "venues"
 						? paginatedVenueItems.map((venue) => (
-								<Card key={venue.id} className="h-full">
-									<div className="relative h-40 overflow-hidden rounded-t-xl border-b bg-muted">
+								<Card
+									key={venue.id}
+									className="h-full w-full gap-0 overflow-hidden py-0"
+								>
+									<div className="relative h-40 overflow-hidden border-b bg-muted">
 										{venue.photoUrl ? (
 											/* biome-ignore lint/performance/noImgElement: venue photos are user-provided remote assets */
 											<img
@@ -696,14 +775,6 @@ export function VenueSearch({
 											</div>
 										)}
 										<div className="absolute inset-0 bg-gradient-to-t from-background/85 via-background/20 to-transparent" />
-										{venue.images.length > 0 ? (
-											<Badge
-												className="absolute top-3 right-3"
-												variant="secondary"
-											>
-												{venue.images.length} photo(s)
-											</Badge>
-										) : null}
 									</div>
 									<CardHeader className="flex flex-row items-start gap-4 space-y-0">
 										<div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border bg-muted">
@@ -759,18 +830,32 @@ export function VenueSearch({
 										</p>
 									</CardContent>
 
-									<CardFooter className="mt-auto flex items-center justify-between gap-3">
+									<CardFooter className="mt-auto flex items-center justify-between gap-3 pt-2 pb-6">
 										<span className="text-muted-foreground text-xs">
 											{venue.postalCode}
 										</span>
-										<Button asChild>
-											<Link href={`/venue/${venue.id}`}>Voir profil</Link>
-										</Button>
+										<div className="flex items-center gap-2">
+											<Button asChild variant="outline">
+												<Link href={`/venue/${venue.id}`}>Voir profil</Link>
+											</Button>
+											{canSearchVenues && (
+												<Button asChild>
+													<Link
+														href={`/dashboard/bookings/propose?venueId=${venue.id}`}
+													>
+														Proposer
+													</Link>
+												</Button>
+											)}
+										</div>
 									</CardFooter>
 								</Card>
 							))
 						: paginatedArtistItems.map((artist) => (
-								<Card key={artist.id} className="h-full overflow-hidden">
+								<Card
+									key={artist.id}
+									className="h-full w-full gap-0 overflow-hidden py-0"
+								>
 									<div className="relative h-40 overflow-hidden border-b bg-muted">
 										{artist.bannerUrl || artist.photoUrl ? (
 											/* biome-ignore lint/performance/noImgElement: artist media are user-provided remote assets */
@@ -797,11 +882,6 @@ export function VenueSearch({
 													</span>
 												</CardDescription>
 											</div>
-											{artist.images.length > 0 ? (
-												<Badge variant="secondary">
-													{artist.images.length} photo(s)
-												</Badge>
-											) : null}
 										</div>
 									</div>
 									<CardHeader className="flex flex-row items-start gap-4 space-y-0">
@@ -856,13 +936,24 @@ export function VenueSearch({
 										</p>
 									</CardContent>
 
-									<CardFooter className="mt-auto flex items-center justify-between gap-3">
+									<CardFooter className="mt-auto flex items-center justify-between gap-3 pt-2 pb-6">
 										<span className="text-muted-foreground text-xs">
 											{artist.postalCode || ""}
 										</span>
-										<Button asChild>
-											<Link href={`/artist/${artist.id}`}>Voir profil</Link>
-										</Button>
+										<div className="flex items-center gap-2">
+											<Button asChild variant="outline">
+												<Link href={`/artist/${artist.id}`}>Voir profil</Link>
+											</Button>
+											{canSearchArtists && (
+												<Button asChild>
+													<Link
+														href={`/dashboard/bookings/propose?artistId=${artist.id}`}
+													>
+														Proposer
+													</Link>
+												</Button>
+											)}
+										</div>
 									</CardFooter>
 								</Card>
 							))}
@@ -1006,6 +1097,25 @@ export function VenueSearch({
 										</p>
 									) : null}
 								</div>
+							</div>
+
+							<div className="mt-5 space-y-2">
+								<Label htmlFor="search-availability-date">
+									{activeTab === "venues"
+										? "Lieu disponible le (date)"
+										: "Artiste disponible le (date)"}
+								</Label>
+								<Input
+									id="search-availability-date"
+									type="date"
+									value={availabilityDate}
+									onChange={(e) => setAvailabilityDate(e.target.value)}
+								/>
+								<p className="text-muted-foreground text-xs">
+									{activeTab === "venues"
+										? "Ne garder que les lieux ayant au moins un créneau ouvert ce jour."
+										: "Exclure les artistes indisponibles ou déjà bookés ce jour."}
+								</p>
 							</div>
 
 							{activeTab === "venues" ? (
