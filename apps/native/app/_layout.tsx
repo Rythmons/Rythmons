@@ -23,6 +23,7 @@ import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect, useRef, useState } from "react";
 import { Platform } from "react-native";
 import { TamaguiProvider } from "tamagui";
+import { AuthCacheSync } from "@/components/auth-cache-sync";
 import { NoticeProvider, NoticeViewport } from "@/components/ui/notice";
 import { setAndroidNavigationBar } from "@/lib/android-navigation-bar";
 import { authClient } from "@/lib/auth-client";
@@ -131,6 +132,7 @@ export default function RootLayout() {
 					maxAge: 24 * 60 * 60 * 1000,
 				}}
 			>
+				<AuthCacheSync />
 				<ThemeProvider value={isDarkColorScheme ? DARK_THEME : LIGHT_THEME}>
 					<TamaguiProvider
 						config={tamaguiConfig}

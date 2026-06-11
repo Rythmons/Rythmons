@@ -24,7 +24,9 @@ export function SignIn({
 	const { showNotice } = useNotice();
 	const { form, isLoading } = useSignInForm({
 		onSuccess: async () => {
-			void queryClient.refetchQueries();
+			// Vide le cache (mémoire + disque) pour ne jamais montrer les
+			// données d'un compte précédemment connecté sur cet appareil.
+			queryClient.clear();
 			router.replace("/(drawer)/profile");
 			showNotice({
 				title: "Connexion reussie",
