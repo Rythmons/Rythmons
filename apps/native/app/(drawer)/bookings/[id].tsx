@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { KeyboardFormScreen } from "@/components/ui/keyboard-form-screen";
 import { useNotice } from "@/components/ui/notice";
+import { RolePill } from "@/components/ui/role-pill";
 import { Text, Title } from "@/components/ui/typography";
 import { authClient } from "@/lib/auth-client";
 import { queryClient, trpc } from "@/utils/trpc";
@@ -29,7 +30,16 @@ export default function BookingDetailScreen() {
 	const params = useLocalSearchParams<{ id: string }>();
 	const id = Array.isArray(params.id) ? params.id[0] : params.id;
 	const { data: session, isPending: sessionPending } = authClient.useSession();
+	const sessionRole = (
+		session?.user as
+			| {
+					role?: "ARTIST" | "ORGANIZER" | "BOTH" | null;
+			  }
+			| undefined
+	)?.role;
 	const [refusalReason, setRefusalReason] = useState("");
+	const [acceptBlockedByVenueDate, setAcceptBlockedByVenueDate] =
+		useState(false);
 
 	const bookingQuery = useQuery({
 		...trpc.booking.getById.queryOptions({ id: id ?? "" }),
@@ -47,8 +57,6 @@ export default function BookingDetailScreen() {
 			});
 			router.replace("/(drawer)/bookings" as never);
 		},
-		onError: (error) =>
-			showError(error, "Impossible d’accepter la proposition."),
 	});
 
 	const refuseMutation = useMutation({
@@ -148,6 +156,23 @@ export default function BookingDetailScreen() {
 	const canRefuse = canAccept;
 	const canCancel = isCreator && booking.status === "PENDING";
 
+	const handleAcceptError = (error: unknown) => {
+		const message =
+			error instanceof Error
+				? error.message
+				: "Impossible d’accepter la proposition.";
+		const needsOpenDate =
+			typeof message === "string" &&
+			message.includes("Le lieu n'est pas ouvert");
+
+		if (!needsOpenDate) {
+			showError(error, "Impossible d’accepter la proposition.");
+			return;
+		}
+
+		setAcceptBlockedByVenueDate(true);
+	};
+
 	return (
 		<Container>
 			<KeyboardFormScreen
@@ -174,6 +199,7 @@ export default function BookingDetailScreen() {
 							{STATUS_LABELS[booking.status]}
 						</Text>
 					</View>
+					<RolePill role={sessionRole} />
 				</View>
 
 				<Card>
@@ -190,6 +216,47 @@ export default function BookingDetailScreen() {
 						</Text>
 					) : null}
 				</Card>
+
+				{canAccept && acceptBlockedByVenueDate ? (
+					<Card className="border border-amber-500/40 bg-amber-500/10">
+						<Text className="font-sans-bold text-foreground">
+							Action requise
+						</Text>
+						<Text className="mt-2 text-muted-foreground">
+							Pour accepter ce booking, ouvrez d&apos;abord cette date dans le
+							calendrier du lieu ({booking.venue.name}).
+						</Text>
+						<View className="mt-4 gap-3">
+							<Button
+								label="Ouvrir le calendrier du lieu"
+								onPress={() =>
+									router.push({
+										pathname: "/(drawer)/calendar",
+										params: {
+											ownerType: "VENUE",
+											ownerId: booking.venue.id,
+											day: booking.proposedDate,
+										},
+									} as never)
+								}
+							/>
+							<Button
+								label="Réessayer l'acceptation"
+								variant="secondary"
+								loading={acceptMutation.isPending}
+								onPress={() => {
+									setAcceptBlockedByVenueDate(false);
+									acceptMutation.mutate(
+										{ id },
+										{
+											onError: handleAcceptError,
+										},
+									);
+								}}
+							/>
+						</View>
+					</Card>
+				) : null}
 
 				<Card>
 					<Text className="font-sans-bold text-foreground">Participants</Text>
@@ -279,7 +346,15 @@ export default function BookingDetailScreen() {
 						<Button
 							label="Accepter"
 							loading={acceptMutation.isPending}
-							onPress={() => acceptMutation.mutate({ id })}
+							disabled={acceptBlockedByVenueDate}
+							onPress={() =>
+								acceptMutation.mutate(
+									{ id },
+									{
+										onError: handleAcceptError,
+									},
+								)
+							}
 						/>
 					) : null}
 					{canRefuse ? (

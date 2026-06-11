@@ -60,7 +60,7 @@ function ProposeContent() {
 	const [selectedArtistId, setSelectedArtistId] = useState<string>("");
 	const [selectedVenueId, setSelectedVenueId] = useState<string>("");
 	const [proposedDate, setProposedDate] = useState("");
-	const [proposedTime, setProposedTime] = useState("19:00");
+	const [proposedTime, setProposedTime] = useState("20:00");
 	const [proposedFee, setProposedFee] = useState("");
 	const [initialMessage, setInitialMessage] = useState("");
 

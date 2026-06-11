@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { router, useLocalSearchParams } from "expo-router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
 	ActivityIndicator,
 	Alert,
@@ -44,10 +44,6 @@ export default function VenueProfileScreen() {
 		Boolean(venue?.owner?.id) &&
 		session?.user.id === venue?.owner.id;
 	const canProposeBooking = !isOwner && (myArtistsQuery.data?.length ?? 0) > 0;
-
-	useEffect(() => {
-		setVenueLogoFailed(false);
-	}, [venueId]);
 
 	const openMaps = async () => {
 		if (!venue) return;

@@ -44,6 +44,8 @@ export default function BookingDetailPage() {
 	const queryClient = useQueryClient();
 	const id = params.id as string;
 	const [refusalReasonInput, setRefusalReasonInput] = useState("");
+	const [acceptBlockedByVenueDate, setAcceptBlockedByVenueDate] =
+		useState(false);
 	const bookingsRoute = "/dashboard/bookings" as Route;
 
 	const { data: session, isPending: sessionPending } = authClient.useSession();
@@ -60,24 +62,13 @@ export default function BookingDetailPage() {
 		...trpc.booking.accept.mutationOptions(),
 		onSuccess: () => {
 			queryClient.invalidateQueries();
+			setAcceptBlockedByVenueDate(false);
 			toast.success("Proposition acceptée !");
 			router.push(bookingsRoute);
 		},
 		onError: (e) => {
 			if (e.message.includes("Le lieu n'est pas ouvert")) {
-				toast.error(
-					<div className="flex flex-col gap-2">
-						<p>{e.message}</p>
-						<Button
-							variant="outline"
-							size="sm"
-							onClick={() => router.push("/dashboard/calendar")}
-						>
-							Ouvrir le calendrier
-						</Button>
-					</div>,
-					{ duration: 6000 },
-				);
+				setAcceptBlockedByVenueDate(true);
 			} else {
 				toast.error(e.message);
 			}
@@ -275,10 +266,42 @@ export default function BookingDetailPage() {
 
 				{(canAccept || canRefuse || canCancel) && (
 					<div className="flex flex-wrap gap-3 border-t pt-4">
+						{canAccept && acceptBlockedByVenueDate ? (
+							<div className="w-full rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">
+								<p className="font-medium">Action requise</p>
+								<p className="mt-1 text-muted-foreground text-sm">
+									Pour accepter ce booking, ouvrez d&apos;abord la date dans le
+									calendrier du lieu.
+								</p>
+								<div className="mt-3 flex flex-wrap gap-3">
+									<Button
+										variant="outline"
+										onClick={() =>
+											router.push(
+												`/dashboard/calendar?ownerType=VENUE&ownerId=${booking.venue.id}&day=${encodeURIComponent(
+													booking.proposedDate,
+												)}`,
+											)
+										}
+									>
+										Ouvrir le calendrier du lieu
+									</Button>
+									<Button
+										onClick={() => {
+											setAcceptBlockedByVenueDate(false);
+											acceptMutation.mutate({ id });
+										}}
+										disabled={acceptMutation.isPending}
+									>
+										Réessayer l&apos;acceptation
+									</Button>
+								</div>
+							</div>
+						) : null}
 						{canAccept && (
 							<Button
 								onClick={() => acceptMutation.mutate({ id })}
-								disabled={acceptMutation.isPending}
+								disabled={acceptMutation.isPending || acceptBlockedByVenueDate}
 							>
 								Accepter
 							</Button>

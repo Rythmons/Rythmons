@@ -12,6 +12,7 @@ import {
 import { Container } from "@/components/container";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { RolePill } from "@/components/ui/role-pill";
 import { Text, Title } from "@/components/ui/typography";
 import { authClient } from "@/lib/auth-client";
 import { trpc } from "@/utils/trpc";
@@ -49,6 +50,13 @@ function statusClasses(status: BookingItem["status"]) {
 
 export default function BookingsScreen() {
 	const { data: session, isPending: sessionPending } = authClient.useSession();
+	const sessionRole = (
+		session?.user as
+			| {
+					role?: "ARTIST" | "ORGANIZER" | "BOTH" | null;
+			  }
+			| undefined
+	)?.role;
 	const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
 	const bookingsQuery = useQuery({
 		...trpc.booking.listMine.queryOptions(
@@ -101,6 +109,7 @@ export default function BookingsScreen() {
 							Suivez vos propositions envoyées et reçues, puis ouvrez le détail
 							pour accepter, refuser ou annuler.
 						</Text>
+						<RolePill role={sessionRole} />
 					</View>
 
 					<View className="flex-row flex-wrap gap-2">

@@ -37,6 +37,12 @@ export function SignIn({
 		},
 	});
 
+	const quickLogin = (email: string) => {
+		form.setFieldValue("email", email);
+		form.setFieldValue("password", "Rythmons123!");
+		void form.handleSubmit();
+	};
+
 	return (
 		<Card className="mt-6 p-5">
 			<Title className="mb-1 text-foreground text-xl">Se connecter</Title>
@@ -55,6 +61,30 @@ export function SignIn({
 				</Text>
 				<View className="h-px flex-1 bg-border" />
 			</View>
+
+			{process.env.EXPO_PUBLIC_E2E === "1" ? (
+				<View className="mb-4 gap-2">
+					<Text className="text-muted-foreground text-xs uppercase">
+						Quick login (E2E)
+					</Text>
+					<View className="flex-row gap-2">
+						<Button
+							variant="secondary"
+							className="flex-1"
+							label="Demo Artiste"
+							disabled={isLoading}
+							onPress={() => quickLogin("demo.artist@rythmons.local")}
+						/>
+						<Button
+							variant="secondary"
+							className="flex-1"
+							label="Demo Organisateur"
+							disabled={isLoading}
+							onPress={() => quickLogin("demo.organizer@rythmons.local")}
+						/>
+					</View>
+				</View>
+			) : null}
 
 			<form.Field name="email">
 				{(field) => (

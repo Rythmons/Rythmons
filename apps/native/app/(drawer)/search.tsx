@@ -20,6 +20,7 @@ import { Button as TButton, XStack } from "tamagui";
 import { Container } from "@/components/container";
 import { Input } from "@/components/ui/input";
 import { KeyboardFormScreen } from "@/components/ui/keyboard-form-screen";
+import { RolePill } from "@/components/ui/role-pill";
 import { SearchMap } from "@/components/ui/search-map";
 import { Text, Title } from "@/components/ui/typography";
 import { authClient } from "@/lib/auth-client";
@@ -787,6 +788,7 @@ export default function VenueSearchScreen() {
 					) : null}
 
 					<View className="mb-4 gap-3">
+						<RolePill role={sessionRole} />
 						<View className="flex-row items-center gap-2">
 							<View className="flex-1 flex-row items-center rounded-2xl border border-border bg-card px-4">
 								<Ionicons name="search-outline" size={18} color="#b5a9c3" />

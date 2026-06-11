@@ -16,6 +16,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { KeyboardFormScreen } from "@/components/ui/keyboard-form-screen";
 import { useNotice } from "@/components/ui/notice";
+import { RolePill } from "@/components/ui/role-pill";
 import { Text, Title } from "@/components/ui/typography";
 import { authClient } from "@/lib/auth-client";
 import { useContextualBackNavigation } from "@/lib/use-contextual-back-navigation";
@@ -43,6 +44,13 @@ export default function ProposeBookingScreen() {
 		? params.backTo[0]
 		: params.backTo;
 	const { data: session, isPending: sessionPending } = authClient.useSession();
+	const sessionRole = (
+		session?.user as
+			| {
+					role?: "ARTIST" | "ORGANIZER" | "BOTH" | null;
+			  }
+			| undefined
+	)?.role;
 	const isArtistProposing = Boolean(venueId);
 	const handleBack = useContextualBackNavigation(
 		backTo ?? (artistId || venueId ? "/(drawer)/bookings" : "/(drawer)/search"),
@@ -62,9 +70,10 @@ export default function ProposeBookingScreen() {
 	const [proposedDateTime, setProposedDateTime] = useState(() => {
 		const next = new Date();
 		next.setMinutes(0, 0, 0);
-		next.setHours(19, 0, 0, 0);
+		next.setHours(20, 0, 0, 0);
 		return next;
 	});
+	const [timeTouched, setTimeTouched] = useState(false);
 	const [proposedFee, setProposedFee] = useState("");
 	const [initialMessage, setInitialMessage] = useState("");
 
@@ -188,6 +197,9 @@ export default function ProposeBookingScreen() {
 						selectedDate.getMonth(),
 						selectedDate.getDate(),
 					);
+					if (!timeTouched) {
+						next.setHours(20, 0, 0, 0);
+					}
 					return next;
 				});
 			},
@@ -205,6 +217,7 @@ export default function ProposeBookingScreen() {
 			is24Hour: true,
 			onChange: (_event, selectedTime) => {
 				if (!selectedTime) return;
+				setTimeTouched(true);
 				setProposedDateTime((current) => {
 					const next = new Date(current);
 					next.setHours(
@@ -249,6 +262,7 @@ export default function ProposeBookingScreen() {
 						Saisissez une date, un message et, côté lieu, un cachet initial si
 						besoin.
 					</Text>
+					<RolePill role={sessionRole} />
 				</View>
 
 				{isArtistProposing && (myArtistsQuery.data?.length ?? 0) > 1 ? (

@@ -1,7 +1,7 @@
 import type { AppRouter } from "@rythmons/api";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import type { inferRouterOutputs } from "@trpc/server";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import {
 	ActivityIndicator,
@@ -14,6 +14,7 @@ import {
 import { Container } from "@/components/container";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { RolePill } from "@/components/ui/role-pill";
 import { Text, Title } from "@/components/ui/typography";
 import { authClient } from "@/lib/auth-client";
 import { queryClient, trpc } from "@/utils/trpc";
@@ -71,13 +72,35 @@ function buildCalendarCells(days: Date[]) {
 	return [...Array.from({ length: leadingEmptyCells }, () => null), ...days];
 }
 
+const weekDayHeaders = [
+	{ key: "monday", label: "L" },
+	{ key: "tuesday", label: "M" },
+	{ key: "wednesday", label: "M" },
+	{ key: "thursday", label: "J" },
+	{ key: "friday", label: "V" },
+	{ key: "saturday", label: "S" },
+	{ key: "sunday", label: "D" },
+] as const;
+
 function showError(error: unknown, fallback: string) {
 	const message = error instanceof Error ? error.message : fallback;
 	Alert.alert("Erreur", message);
 }
 
 export default function CalendarScreen() {
+	const params = useLocalSearchParams<{
+		ownerType?: "ARTIST" | "VENUE";
+		ownerId?: string;
+		day?: string;
+	}>();
 	const { data: session, isPending: sessionPending } = authClient.useSession();
+	const sessionRole = (
+		session?.user as
+			| {
+					role?: "ARTIST" | "ORGANIZER" | "BOTH" | null;
+			  }
+			| undefined
+	)?.role;
 	const today = new Date();
 	const [monthCursor, setMonthCursor] = useState(
 		new Date(today.getFullYear(), today.getMonth(), 1),
@@ -141,6 +164,41 @@ export default function CalendarScreen() {
 		() => getSlotForDay((slotsQuery.data ?? []) as SlotItem[], selectedDay),
 		[selectedDay, slotsQuery.data],
 	);
+
+	useEffect(() => {
+		const targetOwnerType = params.ownerType;
+		const targetOwnerId = Array.isArray(params.ownerId)
+			? params.ownerId[0]
+			: params.ownerId;
+		const targetDayRaw = Array.isArray(params.day) ? params.day[0] : params.day;
+
+		if (!targetOwnerType && !targetOwnerId && !targetDayRaw) {
+			return;
+		}
+
+		setOwnerTypeTouched(true);
+
+		if (
+			targetOwnerType &&
+			(targetOwnerType === "ARTIST" || targetOwnerType === "VENUE")
+		) {
+			setOwnerType(targetOwnerType);
+		}
+
+		if (targetOwnerId) {
+			setOwnerId(targetOwnerId);
+		}
+
+		if (targetDayRaw) {
+			const parsed = new Date(targetDayRaw);
+			if (!Number.isNaN(parsed.getTime())) {
+				setMonthCursor(new Date(parsed.getFullYear(), parsed.getMonth(), 1));
+				setSelectedDay(
+					new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate()),
+				);
+			}
+		}
+	}, [params.day, params.ownerId, params.ownerType]);
 
 	useEffect(() => {
 		if (ownerTypeTouched) return;
@@ -263,6 +321,7 @@ export default function CalendarScreen() {
 					<View className="gap-1">
 						<Title className="text-3xl text-foreground">Calendrier</Title>
 					</View>
+					<RolePill role={sessionRole} />
 
 					<View className="flex-row gap-2">
 						<Button
@@ -400,53 +459,57 @@ export default function CalendarScreen() {
 						<View className="gap-3">
 							<Card>
 								<View className="flex-row justify-between">
-									{["L", "M", "M", "J", "V", "S", "D"].map((label, index) => (
-										<View key={`${label}-${index}`} className="w-[13.5%] py-2">
+									{weekDayHeaders.map((header) => (
+										<View key={header.key} className="w-[13.5%] py-2">
 											<Text className="text-center font-sans-medium text-muted-foreground text-xs">
-												{label}
+												{header.label}
 											</Text>
 										</View>
 									))}
 								</View>
 								<View className="mt-2 flex-row flex-wrap gap-y-2">
-									{calendarCells.map((day, index) => {
-										if (!day) {
-											return (
-												<View
-													key={`empty-${index}`}
-													className="w-[13.5%] py-6"
-												/>
+									{(() => {
+										let emptyCellCount = 0;
+										return calendarCells.map((day) => {
+											if (!day) {
+												emptyCellCount += 1;
+												return (
+													<View
+														key={`empty-${monthCursor.getFullYear()}-${monthCursor.getMonth()}-${emptyCellCount}`}
+														className="w-[13.5%] py-6"
+													/>
+												);
+											}
+
+											const slot = getSlotForDay(
+												(slotsQuery.data ?? []) as SlotItem[],
+												day,
 											);
-										}
+											const isBooked = slot?.type === "BOOKED";
+											const isUnavailable = slot?.type === "UNAVAILABLE";
+											const isOpen = slot?.type === "OPEN";
+											const isSelected = isSameDay(day, selectedDay);
+											const cellClasses = isBooked
+												? "border-blue-500/40 bg-blue-500/15"
+												: isUnavailable
+													? "border-red-500/40 bg-red-500/15"
+													: isOpen
+														? "border-green-500/40 bg-green-500/15"
+														: "border-border bg-background";
 
-										const slot = getSlotForDay(
-											(slotsQuery.data ?? []) as SlotItem[],
-											day,
-										);
-										const isBooked = slot?.type === "BOOKED";
-										const isUnavailable = slot?.type === "UNAVAILABLE";
-										const isOpen = slot?.type === "OPEN";
-										const isSelected = isSameDay(day, selectedDay);
-										const cellClasses = isBooked
-											? "border-blue-500/40 bg-blue-500/15"
-											: isUnavailable
-												? "border-red-500/40 bg-red-500/15"
-												: isOpen
-													? "border-green-500/40 bg-green-500/15"
-													: "border-border bg-background";
-
-										return (
-											<View key={day.toISOString()} className="w-[13.5%]">
-												<Button
-													label={String(day.getDate())}
-													variant={isSelected ? "primary" : "secondary"}
-													className={`min-h-14 rounded-xl border px-0 ${isSelected ? "" : cellClasses}`}
-													textClassName={`text-sm ${!isSelected && isBooked ? "text-blue-200" : !isSelected && isUnavailable ? "text-red-200" : !isSelected && isOpen ? "text-green-200" : ""}`}
-													onPress={() => setSelectedDay(day)}
-												/>
-											</View>
-										);
-									})}
+											return (
+												<View key={day.toISOString()} className="w-[13.5%]">
+													<Button
+														label={String(day.getDate())}
+														variant={isSelected ? "primary" : "secondary"}
+														className={`min-h-14 rounded-xl border px-0 ${isSelected ? "" : cellClasses}`}
+														textClassName={`text-sm ${!isSelected && isBooked ? "text-blue-200" : !isSelected && isUnavailable ? "text-red-200" : !isSelected && isOpen ? "text-green-200" : ""}`}
+														onPress={() => setSelectedDay(day)}
+													/>
+												</View>
+											);
+										});
+									})()}
 								</View>
 							</Card>
 

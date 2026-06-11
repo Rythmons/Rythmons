@@ -3,8 +3,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -116,12 +116,14 @@ type CalendarState = {
 	ownerId: string;
 };
 
-export default function CalendarPage() {
+function CalendarPageContent() {
 	const router = useRouter();
+	const searchParams = useSearchParams();
 	const queryClient = useQueryClient();
 	const [calendarState, setCalendarState] = useState<CalendarState>(
 		getInitialCalendarState,
 	);
+	const [focusedDayKey, setFocusedDayKey] = useState<string | null>(null);
 	const { year, month, ownerType, ownerId } = calendarState;
 	const setYear = useCallback((y: number) => {
 		setCalendarState((s) => ({ ...s, year: y }));
@@ -159,6 +161,29 @@ export default function CalendarPage() {
 			// Ignore storage failures
 		}
 	}, []);
+
+	useEffect(() => {
+		const ownerTypeParam = searchParams.get("ownerType");
+		const ownerIdParam = searchParams.get("ownerId");
+		const dayParam = searchParams.get("day");
+
+		if (!ownerTypeParam && !ownerIdParam && !dayParam) return;
+
+		if (ownerTypeParam === "ARTIST" || ownerTypeParam === "VENUE") {
+			setOwnerType(ownerTypeParam);
+		}
+		if (ownerIdParam) {
+			setOwnerId(ownerIdParam);
+		}
+		if (dayParam) {
+			const parsed = new Date(dayParam);
+			if (!Number.isNaN(parsed.getTime())) {
+				setYear(parsed.getFullYear());
+				setMonth(parsed.getMonth());
+				setFocusedDayKey(dayKey(parsed));
+			}
+		}
+	}, [searchParams, setMonth, setOwnerId, setOwnerType, setYear]);
 
 	useEffect(() => {
 		if (
@@ -244,6 +269,7 @@ export default function CalendarPage() {
 	const handleDayClick = useCallback(
 		(day: Date) => {
 			if (!effectiveOwnerId) return;
+			setFocusedDayKey(dayKey(day));
 			const slot = getSlotForDay(day);
 			const start = new Date(day);
 			start.setHours(0, 0, 0, 0);
@@ -302,6 +328,11 @@ export default function CalendarPage() {
 		ownerType === "ARTIST"
 			? (myArtists ?? []).map((a) => ({ id: a.id, name: a.stageName }))
 			: (myVenues ?? []).map((v) => ({ id: v.id, name: v.name }));
+
+	const focusedDay =
+		focusedDayKey != null
+			? (days.find((d) => dayKey(d) === focusedDayKey) ?? null)
+			: null;
 
 	return (
 		<div className="container mx-auto max-w-4xl py-8">
@@ -395,6 +426,37 @@ export default function CalendarPage() {
 					: "Cliquez sur un jour pour le marquer comme ouvert à la programmation (ou pour retirer le créneau)."}
 			</p>
 
+			{ownerType === "VENUE" && focusedDay ? (
+				<div className="mb-6 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">
+					<p className="font-medium">Action requise</p>
+					<p className="mt-1 text-muted-foreground text-sm">
+						Ouvrez cette date pour pouvoir accepter le booking.
+					</p>
+					<div className="mt-3 flex flex-wrap gap-3">
+						<Button
+							onClick={() => {
+								if (!effectiveOwnerId) return;
+								const start = new Date(focusedDay);
+								start.setHours(0, 0, 0, 0);
+								const end = new Date(focusedDay);
+								end.setHours(23, 59, 59, 999);
+								upsertMutation.mutate({
+									ownerType: "VENUE",
+									ownerId: effectiveOwnerId,
+									startDate: start,
+									endDate: end,
+									type: "OPEN",
+								});
+							}}
+							disabled={upsertMutation.isPending || !effectiveOwnerId}
+						>
+							Ouvrir le{" "}
+							{focusedDay.toLocaleDateString("fr-FR", { dateStyle: "long" })}
+						</Button>
+					</div>
+				</div>
+			) : null}
+
 			<div className="mb-4 flex gap-6 text-sm">
 				<span className="flex items-center gap-2">
 					<span className="h-4 w-4 rounded bg-red-500/30" />
@@ -447,6 +509,8 @@ export default function CalendarPage() {
 							const isUnavailable = slot?.type === "UNAVAILABLE";
 							const isOpen = slot?.type === "OPEN";
 							const isToday = dayKey(day) === dayKey(new Date());
+							const isFocused =
+								focusedDayKey != null && dayKey(day) === focusedDayKey;
 							const bg = isBooked
 								? "bg-blue-500/40 hover:bg-blue-500/50"
 								: isUnavailable
@@ -460,7 +524,7 @@ export default function CalendarPage() {
 									type="button"
 									className={`relative min-h-[80px] p-2 text-left text-sm transition-colors ${bg} ${
 										isToday ? "border-2 border-primary" : ""
-									}`}
+									} ${isFocused ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : ""}`}
 									onClick={() => handleDayClick(day)}
 								>
 									<div className="flex items-center justify-between font-medium">
@@ -496,5 +560,19 @@ export default function CalendarPage() {
 				</div>
 			)}
 		</div>
+	);
+}
+
+export default function CalendarPage() {
+	return (
+		<Suspense
+			fallback={
+				<div className="container mx-auto max-w-4xl py-12 text-center">
+					<Loader2 className="mx-auto h-8 w-8 animate-spin text-muted-foreground" />
+				</div>
+			}
+		>
+			<CalendarPageContent />
+		</Suspense>
 	);
 }
