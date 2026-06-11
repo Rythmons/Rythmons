@@ -10,7 +10,10 @@ export function useSignOut() {
 		setIsSigningOut(true);
 		try {
 			await authClient.signOut();
-			await queryClient.invalidateQueries();
+			// clear() et non invalidateQueries() : un refetch sans session échoue
+			// mais laisserait les données de l'ancien compte en cache (et sur
+			// disque via le persister).
+			queryClient.clear();
 		} finally {
 			setIsSigningOut(false);
 		}

@@ -6,8 +6,10 @@ import "server-only";
 
 import { expo } from "@better-auth/expo";
 import { db } from "@rythmons/db";
+import { signUpRoleValues, userRoleValues } from "@rythmons/validation";
 import { type BetterAuthOptions, betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
+import { APIError } from "better-auth/api";
 import { saveDevVerificationPreview } from "./dev-email-preview";
 import { sendMail } from "./email/mailer";
 import { resetPasswordTemplate, verifyEmailTemplate } from "./email/templates";
@@ -83,6 +85,14 @@ function getRequestOrigin(request?: Request) {
 	return null;
 }
 
+// `additionalFields.role` accepte n'importe quelle chaîne via un appel direct
+// à l'API : on impose côté serveur les mêmes valeurs que le client.
+function assertValidRole(role: unknown, allowed: readonly string[]) {
+	if (role != null && !allowed.includes(role as string)) {
+		throw new APIError("BAD_REQUEST", { message: "Rôle invalide." });
+	}
+}
+
 export const auth = betterAuth<BetterAuthOptions>({
 	database: prismaAdapter(db, {
 		provider: "postgresql",
@@ -103,7 +113,12 @@ export const auth = betterAuth<BetterAuthOptions>({
 
 		try {
 			const { hostname } = new URL(requestOrigin);
-			const isVercelPreviewHost = hostname.endsWith(".vercel.app");
+			// Restreint aux previews de CE projet : faire confiance à tout
+			// *.vercel.app reviendrait à accepter le site Vercel de n'importe qui
+			// comme origine de confiance (affaiblissement CSRF).
+			const isVercelPreviewHost = hostname.endsWith(
+				"-rythmons-projects.vercel.app",
+			);
 			const isLocalhost = hostname === "localhost" || hostname === "127.0.0.1";
 			if (
 				(isVercelPreviewHost || isLocalhost) &&
@@ -185,6 +200,24 @@ export const auth = betterAuth<BetterAuthOptions>({
 		},
 	},
 
+	databaseHooks: {
+		user: {
+			create: {
+				before: async (user) => {
+					assertValidRole((user as { role?: unknown }).role, signUpRoleValues);
+					return { data: user };
+				},
+			},
+			update: {
+				before: async (user) => {
+					if ("role" in user) {
+						assertValidRole((user as { role?: unknown }).role, userRoleValues);
+					}
+					return { data: user };
+				},
+			},
+		},
+	},
 	advanced: {
 		defaultCookieAttributes: {
 			sameSite: "lax", // First-party cookies for same-domain setup

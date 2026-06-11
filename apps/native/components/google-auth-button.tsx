@@ -65,7 +65,9 @@ export function GoogleAuthButton({ action }: GoogleAuthButtonProps) {
 						setIsLoading(false);
 					},
 					onSuccess: () => {
-						queryClient.invalidateQueries();
+						// Vide le cache (mémoire + disque) pour ne jamais montrer
+						// les données d'un compte précédemment connecté.
+						queryClient.clear();
 					},
 					onFinished: () => {
 						setIsLoading(false);
