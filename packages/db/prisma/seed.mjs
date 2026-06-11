@@ -1,9 +1,17 @@
 import { randomBytes, scryptSync } from "node:crypto";
 
 import { fakerFR as faker } from "@faker-js/faker";
+import { neonConfig } from "@neondatabase/serverless";
+import { PrismaNeon } from "@prisma/adapter-neon";
 import { PrismaClient } from "@prisma/client";
+import ws from "ws";
 
-const prisma = new PrismaClient();
+neonConfig.webSocketConstructor = ws;
+
+const adapter = new PrismaNeon({
+	connectionString: process.env.DATABASE_URL,
+});
+const prisma = new PrismaClient({ adapter });
 
 const DEMO_PASSWORD = "Rythmons123!";
 const GENERATED_NAMESPACE = "seed-generated";
@@ -130,10 +138,43 @@ const VENUE_STYLE_FIXTURES = [
 	"configuration adaptable pour soirees club et concerts",
 ];
 
-const MEDIA_PALETTES = {
-	artist: ["241137", "4c1d95", "be185d"],
-	venue: ["0f172a", "164e63", "0f766e"],
-	banner: ["1e1b4b", "581c87", "9d174d"],
+const IMMERSIVE_MEDIA_LIBRARY = {
+	artist: [
+		"https://images.unsplash.com/photo-1516280440614-37939bbacd81",
+		"https://images.unsplash.com/photo-1501386761578-eac5c94b800a",
+		"https://images.unsplash.com/photo-1464375117522-1311d6a5b81f",
+		"https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3",
+		"https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee",
+		"https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f",
+		"https://images.unsplash.com/photo-1506157786151-b8491531f063",
+		"https://images.unsplash.com/photo-1487180144351-b8472da7d491",
+		"https://images.unsplash.com/photo-1540039155733-5bb30b53aa14",
+		"https://images.unsplash.com/photo-1516450360452-9312f5e86fc7",
+	],
+	venue: [
+		"https://images.unsplash.com/photo-1514525253161-7a46d19cd819",
+		"https://images.unsplash.com/photo-1492684223066-81342ee5ff30",
+		"https://images.unsplash.com/photo-1470225620780-dba8ba36b745",
+		"https://images.unsplash.com/photo-1524368535928-5b5e00ddc76b",
+		"https://images.unsplash.com/photo-1468164016595-6108e4c60c8b",
+		"https://images.unsplash.com/photo-1472653431158-6364773b2a56",
+		"https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec",
+		"https://images.unsplash.com/photo-1511578314322-379afb476865",
+		"https://images.unsplash.com/photo-1517457373958-b7bdd4587205",
+		"https://images.unsplash.com/photo-1460723237483-7a6dc9d0b212",
+	],
+	banner: [
+		"https://images.unsplash.com/photo-1459749411175-04bf5292ceea",
+		"https://images.unsplash.com/photo-1497032205916-ac775f0649ae",
+		"https://images.unsplash.com/photo-1429514513361-8fa32282fd5f",
+		"https://images.unsplash.com/photo-1501386761578-eac5c94b800a",
+		"https://images.unsplash.com/photo-1540039155733-5bb30b53aa14",
+		"https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f",
+		"https://images.unsplash.com/photo-1511379938547-c1f69419868d",
+		"https://images.unsplash.com/photo-1458560871784-56d23406c091",
+		"https://images.unsplash.com/photo-1470225620780-dba8ba36b745",
+		"https://images.unsplash.com/photo-1514525253161-7a46d19cd819",
+	],
 };
 
 const demoUsers = [
@@ -410,6 +451,43 @@ const demoVenues = [
 	},
 ];
 
+/** Bookings de démo : artiste/lieu, statut, date. createdByKey = clé dans demoUsers (qui envoie la proposition). */
+const demoBookings = [
+	{
+		id: "seed-booking-luna-sonarium",
+		artistId: "seed-artist-luna-echo",
+		venueId: "seed-venue-sonarium-club",
+		createdByKey: "artistOwner",
+		proposedDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // dans 2 semaines, 00:00
+		proposedFee: 400,
+		status: "PENDING",
+		initialMessage:
+			"Bonjour, nous serions ravis de jouer chez vous un vendredi ou samedi. Notre set dure environ 1h15.",
+	},
+	{
+		id: "seed-booking-river-cordes",
+		artistId: "seed-artist-river-lights",
+		venueId: "seed-venue-cafe-cordes",
+		createdByKey: "artistOwner",
+		proposedDate: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000),
+		proposedFee: 250,
+		status: "ACCEPTED",
+		initialMessage:
+			"Nous proposons un set acoustique adapté à votre café. Disponibles en après-midi ou début de soirée.",
+	},
+	{
+		id: "seed-booking-maya-sonarium",
+		artistId: "seed-artist-maya-pulse",
+		venueId: "seed-venue-sonarium-club",
+		createdByKey: "organizerOwner",
+		proposedDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+		proposedFee: 500,
+		status: "PENDING",
+		initialMessage:
+			"Bonjour, nous aimerions programmer Maya Pulse pour une soirée club en mai. Merci de nous dire si la date vous convient.",
+	},
+];
+
 function lireEntierDepuisEnv(nomVariable, valeurParDefaut) {
 	const valeur = process.env[nomVariable];
 	if (!valeur) {
@@ -434,14 +512,31 @@ function creerSlug(valeur) {
 }
 
 function creerAvatarUrl(type, seed) {
-	return `https://api.dicebear.com/9.x/${type}/svg?seed=${encodeURIComponent(seed)}`;
+	return `https://api.dicebear.com/9.x/${type}/png?seed=${encodeURIComponent(seed)}`;
+}
+
+function hashDeterministe(valeur) {
+	return Array.from(valeur).reduce(
+		(acc, caractere) => (acc * 31 + caractere.charCodeAt(0)) % 2147483647,
+		7,
+	);
 }
 
 function creerPlaceholderMediaUrl({ type, slug, label, width, height }) {
-	const palette = MEDIA_PALETTES[type] ?? MEDIA_PALETTES.artist;
-	const background = palette[0];
-	const foreground = "f8fafc";
-	return `https://placehold.co/${width}x${height}/${background}/${foreground}.png?text=${encodeURIComponent(label)}&font=montserrat&seed=${encodeURIComponent(`${type}-${slug}`)}`;
+	const bibliotheque =
+		IMMERSIVE_MEDIA_LIBRARY[type] ?? IMMERSIVE_MEDIA_LIBRARY.artist;
+	const index =
+		hashDeterministe(`${type}:${slug}:${label}`) % bibliotheque.length;
+	const baseUrl = bibliotheque[index];
+	const query = new URLSearchParams({
+		auto: "format",
+		fit: "crop",
+		crop: "faces,entropy",
+		w: String(width),
+		h: String(height),
+		q: "80",
+	});
+	return `${baseUrl}?${query.toString()}`;
 }
 
 function creerGalerieMedia({ type, slug, baseLabel, count }) {
@@ -840,6 +935,170 @@ async function upsertSalle(salle, ownerId) {
 	});
 }
 
+function startOfDay(d) {
+	const x = new Date(d);
+	x.setUTCHours(0, 0, 0, 0);
+	return x;
+}
+
+function endOfDay(d) {
+	const x = new Date(d);
+	x.setUTCHours(23, 59, 59, 999);
+	return x;
+}
+
+async function upsertDemoBookings(usersByKey) {
+	for (const b of demoBookings) {
+		const createdBy = usersByKey.get(b.createdByKey);
+		if (!createdBy) {
+			throw new Error(
+				`Utilisateur de démo manquant pour le booking ${b.id} (createdByKey: ${b.createdByKey})`,
+			);
+		}
+		const proposedDate = new Date(b.proposedDate);
+		proposedDate.setUTCHours(20, 0, 0, 0);
+
+		await prisma.booking.upsert({
+			where: { id: b.id },
+			update: {
+				artistId: b.artistId,
+				venueId: b.venueId,
+				proposedDate,
+				proposedFee: b.proposedFee,
+				status: b.status,
+				initialMessage: b.initialMessage,
+				createdByUserId: createdBy.id,
+				updatedAt: new Date(),
+			},
+			create: {
+				id: b.id,
+				artistId: b.artistId,
+				venueId: b.venueId,
+				proposedDate,
+				proposedFee: b.proposedFee,
+				status: b.status,
+				initialMessage: b.initialMessage,
+				createdByUserId: createdBy.id,
+				createdAt: new Date(),
+				updatedAt: new Date(),
+			},
+		});
+	}
+}
+
+async function upsertDemoAvailabilitySlots() {
+	const now = new Date();
+
+	// Slots BOOKED pour le booking accepté (River Lights + Café des Cordes)
+	const acceptedBooking = demoBookings.find((b) => b.status === "ACCEPTED");
+	if (acceptedBooking) {
+		const dayStart = startOfDay(acceptedBooking.proposedDate);
+		const dayEnd = endOfDay(acceptedBooking.proposedDate);
+		for (const { ownerType, ownerId } of [
+			{ ownerType: "ARTIST", ownerId: acceptedBooking.artistId },
+			{ ownerType: "VENUE", ownerId: acceptedBooking.venueId },
+		]) {
+			await prisma.availabilitySlot.upsert({
+				where: {
+					id: `seed-slot-booked-${ownerType.toLowerCase()}-${acceptedBooking.id}`,
+				},
+				update: {
+					ownerType,
+					ownerId,
+					startDate: dayStart,
+					endDate: dayEnd,
+					type: "BOOKED",
+					bookingId: acceptedBooking.id,
+					updatedAt: now,
+				},
+				create: {
+					id: `seed-slot-booked-${ownerType.toLowerCase()}-${acceptedBooking.id}`,
+					ownerType,
+					ownerId,
+					startDate: dayStart,
+					endDate: dayEnd,
+					type: "BOOKED",
+					bookingId: acceptedBooking.id,
+					createdAt: now,
+					updatedAt: now,
+				},
+			});
+		}
+	}
+
+	// Quelques créneaux OPEN pour les lieux de démo (prochains jours)
+	const openDays = [7, 8, 14, 15, 21];
+	for (const venue of demoVenues) {
+		for (const dayOffset of openDays) {
+			const d = new Date(now);
+			d.setDate(d.getDate() + dayOffset);
+			const slotStart = startOfDay(d);
+			const slotEnd = endOfDay(d);
+			await prisma.availabilitySlot.upsert({
+				where: {
+					id: `seed-slot-venue-open-${venue.id}-${dayOffset}`,
+				},
+				update: {
+					ownerType: "VENUE",
+					ownerId: venue.id,
+					startDate: slotStart,
+					endDate: slotEnd,
+					type: "OPEN",
+					bookingId: null,
+					updatedAt: now,
+				},
+				create: {
+					id: `seed-slot-venue-open-${venue.id}-${dayOffset}`,
+					ownerType: "VENUE",
+					ownerId: venue.id,
+					startDate: slotStart,
+					endDate: slotEnd,
+					type: "OPEN",
+					bookingId: null,
+					createdAt: now,
+					updatedAt: now,
+				},
+			});
+		}
+	}
+
+	// Quelques créneaux UNAVAILABLE pour les artistes de démo
+	const unavailableDays = [3, 4, 10, 11];
+	for (const artist of demoArtists) {
+		for (const dayOffset of unavailableDays) {
+			const d = new Date(now);
+			d.setDate(d.getDate() + dayOffset);
+			const slotStart = startOfDay(d);
+			const slotEnd = endOfDay(d);
+			await prisma.availabilitySlot.upsert({
+				where: {
+					id: `seed-slot-artist-unavail-${artist.id}-${dayOffset}`,
+				},
+				update: {
+					ownerType: "ARTIST",
+					ownerId: artist.id,
+					startDate: slotStart,
+					endDate: slotEnd,
+					type: "UNAVAILABLE",
+					bookingId: null,
+					updatedAt: now,
+				},
+				create: {
+					id: `seed-slot-artist-unavail-${artist.id}-${dayOffset}`,
+					ownerType: "ARTIST",
+					ownerId: artist.id,
+					startDate: slotStart,
+					endDate: slotEnd,
+					type: "UNAVAILABLE",
+					bookingId: null,
+					createdAt: now,
+					updatedAt: now,
+				},
+			});
+		}
+	}
+}
+
 async function supprimerDonneesGenerees() {
 	await prisma.artist.deleteMany({
 		where: {
@@ -972,6 +1231,12 @@ async function main() {
 
 		await upsertSalle(generatedVenue, owner.id);
 	}
+
+	console.info(
+		"[seed] Création des propositions de booking et créneaux de disponibilité de démo...",
+	);
+	await upsertDemoBookings(usersByKey);
+	await upsertDemoAvailabilitySlots();
 
 	console.info("[seed] Remplissage terminé.");
 	console.info(

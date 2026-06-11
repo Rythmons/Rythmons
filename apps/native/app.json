@@ -7,7 +7,7 @@
 		"icon": "./assets/images/icon.png",
 		"scheme": "rythmons",
 		"userInterfaceStyle": "automatic",
-		"newArchEnabled": true,
+		"newArchEnabled": false,
 		"ios": {
 			"supportsTablet": true
 		},
@@ -19,6 +19,7 @@
 				"monochromeImage": "./assets/images/android-icon-monochrome.png"
 			},
 			"edgeToEdgeEnabled": true,
+			"softwareKeyboardLayoutMode": "resize",
 			"predictiveBackGestureEnabled": false,
 			"package": "com.rythmons"
 		},

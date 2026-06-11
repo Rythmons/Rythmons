@@ -7,15 +7,15 @@ import {
 	ActivityIndicator,
 	Alert,
 	Image,
-	KeyboardAvoidingView,
-	Platform,
 	ScrollView,
 	TouchableOpacity,
 	View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Container } from "@/components/container";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { Input } from "@/components/ui/input";
+import { KeyboardFormScreen } from "@/components/ui/keyboard-form-screen";
 import { Text, Title } from "@/components/ui/typography";
 import { authClient } from "@/lib/auth-client";
 import { useContextualBackNavigation } from "@/lib/use-contextual-back-navigation";
@@ -75,6 +75,8 @@ export default function NewArtistScreen() {
 		: params.backTo;
 	const { data: session, isPending: sessionPending } = authClient.useSession();
 	const handleBack = useContextualBackNavigation(backTo ?? "/(drawer)/artist");
+	const insets = useSafeAreaInsets();
+	const contentPaddingBottom = insets.bottom + 220;
 
 	const createMutation = useMutation(trpc.artist.create.mutationOptions());
 
@@ -199,7 +201,7 @@ export default function NewArtistScreen() {
 			router.replace({
 				pathname: "/(drawer)/artist/[id]",
 				params: backTo ? { id: created.id, backTo } : { id: created.id },
-			} as any);
+			} as never);
 		} catch (error) {
 			const message =
 				error instanceof Error ? error.message : "Erreur lors de la création";
@@ -241,11 +243,17 @@ export default function NewArtistScreen() {
 
 	return (
 		<Container>
-			<KeyboardAvoidingView
-				behavior={Platform.OS === "ios" ? "padding" : "height"}
-				className="flex-1"
-			>
-				<ScrollView className="flex-1 p-4">
+			<KeyboardFormScreen>
+				<ScrollView
+					className="flex-1"
+					contentContainerStyle={{
+						flexGrow: 1,
+						paddingBottom: contentPaddingBottom,
+					}}
+					keyboardShouldPersistTaps="handled"
+					keyboardDismissMode="interactive"
+					contentInsetAdjustmentBehavior="always"
+				>
 					<View className="mb-6">
 						<View className="mb-3 flex-row items-center gap-3">
 							<TouchableOpacity className="mr-1" onPress={handleBack}>
@@ -666,7 +674,7 @@ export default function NewArtistScreen() {
 						<View className="h-8" />
 					</View>
 				</ScrollView>
-			</KeyboardAvoidingView>
+			</KeyboardFormScreen>
 		</Container>
 	);
 }

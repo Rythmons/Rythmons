@@ -4,6 +4,7 @@ import { router } from "expo-router";
 import {
 	ActivityIndicator,
 	Image,
+	RefreshControl,
 	ScrollView,
 	TouchableOpacity,
 	View,
@@ -30,6 +31,7 @@ export default function ArtistListScreen() {
 		enabled: Boolean(session?.user),
 	});
 	const artists = (artistsQuery.data ?? []) as ArtistListItem[];
+	const { refetch, isFetching } = artistsQuery;
 
 	if (sessionPending || artistsQuery.isLoading) {
 		return (
@@ -65,7 +67,15 @@ export default function ArtistListScreen() {
 
 	return (
 		<Container>
-			<ScrollView className="flex-1 p-4">
+			<ScrollView
+				className="flex-1 p-4"
+				refreshControl={
+					<RefreshControl
+						refreshing={isFetching && !artistsQuery.isLoading}
+						onRefresh={() => refetch()}
+					/>
+				}
+			>
 				<View className="mb-6 flex-row items-center justify-between">
 					<View className="flex-1 pr-3">
 						<Title className="text-2xl text-foreground">Mes artistes</Title>
@@ -80,7 +90,7 @@ export default function ArtistListScreen() {
 							router.push({
 								pathname: "/(drawer)/artist/new",
 								params: { backTo: "/(drawer)/artist" },
-							} as any)
+							} as never)
 						}
 					>
 						<Ionicons name="add" size={22} color="white" />
@@ -102,7 +112,7 @@ export default function ArtistListScreen() {
 								router.push({
 									pathname: "/(drawer)/artist/new",
 									params: { backTo: "/(drawer)/artist" },
-								} as any)
+								} as never)
 							}
 						>
 							<Ionicons
@@ -131,7 +141,7 @@ export default function ArtistListScreen() {
 										router.push({
 											pathname: "/(drawer)/artist/[id]",
 											params: { id: artist.id, backTo: "/(drawer)/artist" },
-										} as any)
+										} as never)
 									}
 								>
 									{artist.bannerUrl ? (

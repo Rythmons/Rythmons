@@ -7,16 +7,17 @@ import {
 	ActivityIndicator,
 	Alert,
 	Image,
-	KeyboardAvoidingView,
 	Linking,
-	Platform,
 	ScrollView,
 	TouchableOpacity,
 	View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Container } from "@/components/container";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { Input } from "@/components/ui/input";
+import { KeyboardFormScreen } from "@/components/ui/keyboard-form-screen";
+import { useNotice } from "@/components/ui/notice";
 import { Text, Title } from "@/components/ui/typography";
 import { authClient } from "@/lib/auth-client";
 import { useContextualBackNavigation } from "@/lib/use-contextual-back-navigation";
@@ -101,6 +102,7 @@ function isValidUrl(value: string) {
 }
 
 export default function ArtistProfileScreen() {
+	const { showNotice } = useNotice();
 	const params = useLocalSearchParams<{ id: string; backTo?: string }>();
 	const artistId = Array.isArray(params.id) ? params.id[0] : params.id;
 	const backTo = Array.isArray(params.backTo)
@@ -109,6 +111,8 @@ export default function ArtistProfileScreen() {
 
 	const { data: session } = authClient.useSession();
 	const handleBack = useContextualBackNavigation(backTo ?? "/(drawer)/artist");
+	const insets = useSafeAreaInsets();
+	const contentPaddingBottom = insets.bottom + 220;
 
 	const {
 		data: artistData,
@@ -117,6 +121,10 @@ export default function ArtistProfileScreen() {
 	} = useQuery({
 		...trpc.artist.getById.queryOptions({ id: artistId ?? "" }),
 		enabled: Boolean(artistId),
+	});
+	const myVenuesQuery = useQuery({
+		...trpc.venue.getMyVenues.queryOptions(),
+		enabled: Boolean(session?.user) && Boolean(artistId),
 	});
 
 	const artist = artistData as ArtistScreenData | null;
@@ -128,6 +136,7 @@ export default function ArtistProfileScreen() {
 		if (!session?.user || !artist?.user?.id) return false;
 		return session.user.id === artist.user.id;
 	}, [artist?.user?.id, session?.user]);
+	const canProposeBooking = !isOwner && (myVenuesQuery.data?.length ?? 0) > 0;
 
 	const [isEditing, setIsEditing] = useState(false);
 	const [isSaving, setIsSaving] = useState(false);
@@ -276,7 +285,11 @@ export default function ArtistProfileScreen() {
 			await queryClient.invalidateQueries();
 			setIsEditing(false);
 			await refetch();
-			Alert.alert("Succès", "Artiste mis à jour !");
+			showNotice({
+				title: "Artiste mis a jour",
+				message: "Les informations de la fiche sont enregistrees.",
+				kind: "success",
+			});
 		} catch (error) {
 			const message =
 				error instanceof Error ? error.message : "Erreur lors de la sauvegarde";
@@ -286,32 +299,25 @@ export default function ArtistProfileScreen() {
 		}
 	};
 
-	const handleDelete = () => {
+	const handleDelete = async () => {
 		if (!artistId) return;
-		Alert.alert(
-			"Supprimer l’artiste",
-			"Cette action est irréversible. Voulez-vous continuer ?",
-			[
-				{ text: "Annuler", style: "cancel" },
+		try {
+			await deleteMutation.mutateAsync({ id: artistId });
+			await queryClient.invalidateQueries();
+			Alert.alert("Artiste supprimé", "", [
 				{
-					text: "Supprimer",
-					style: "destructive",
-					onPress: async () => {
-						try {
-							await deleteMutation.mutateAsync({ id: artistId });
-							await queryClient.invalidateQueries();
-							router.replace((backTo ?? "/(drawer)/artist") as any);
-						} catch (error) {
-							const message =
-								error instanceof Error
-									? error.message
-									: "Erreur lors de la suppression";
-							Alert.alert("Erreur", message);
-						}
-					},
+					text: "OK",
+					onPress: () =>
+						router.replace((backTo ?? "/(drawer)/artist") as never),
 				},
-			],
-		);
+			]);
+		} catch (error) {
+			const message =
+				error instanceof Error
+					? error.message
+					: "Erreur lors de la suppression";
+			Alert.alert("Erreur", message);
+		}
 	};
 
 	const handleOpenWebsite = async () => {
@@ -370,14 +376,23 @@ export default function ArtistProfileScreen() {
 	const genres = artist.genres ?? [];
 	const genreLabel =
 		genres.length > 0 ? genres.map((genre) => genre.name).join(" • ") : null;
+	const detailBackHref = backTo
+		? `/(drawer)/artist/${artist.id}?backTo=${encodeURIComponent(backTo)}`
+		: `/(drawer)/artist/${artist.id}`;
 
 	return (
 		<Container>
-			<KeyboardAvoidingView
-				behavior={Platform.OS === "ios" ? "padding" : "height"}
-				className="flex-1"
-			>
-				<ScrollView className="flex-1">
+			<KeyboardFormScreen>
+				<ScrollView
+					className="flex-1"
+					contentContainerStyle={{
+						flexGrow: 1,
+						paddingBottom: contentPaddingBottom,
+					}}
+					keyboardShouldPersistTaps="handled"
+					keyboardDismissMode="interactive"
+					contentInsetAdjustmentBehavior="always"
+				>
 					{artist.bannerUrl ? (
 						<Image
 							source={{ uri: artist.bannerUrl }}
@@ -420,6 +435,23 @@ export default function ArtistProfileScreen() {
 											{isEditing ? "Voir" : "Modifier"}
 										</Text>
 									</TouchableOpacity>
+								) : canProposeBooking ? (
+									<TouchableOpacity
+										className="rounded-lg bg-primary px-3 py-2"
+										onPress={() =>
+											router.push({
+												pathname: "/(drawer)/bookings/propose",
+												params: {
+													artistId: artist.id,
+													backTo: detailBackHref,
+												},
+											} as never)
+										}
+									>
+										<Text className="font-sans-medium text-primary-foreground">
+											Proposer
+										</Text>
+									</TouchableOpacity>
 								) : null}
 							</View>
 
@@ -442,6 +474,62 @@ export default function ArtistProfileScreen() {
 									</Text>
 									<Ionicons name="open-outline" size={18} color="#9ca3af" />
 								</TouchableOpacity>
+							) : null}
+
+							{!isEditing && !isOwner ? (
+								<View className="mt-4 rounded-xl border border-border bg-background p-4">
+									<Text className="font-sans-bold text-foreground">
+										Booking
+									</Text>
+									<Text className="mt-2 text-muted-foreground">
+										{canProposeBooking
+											? "Vous pouvez envoyer une proposition a cet artiste depuis ici."
+											: "Il vous manque un lieu pour envoyer une proposition a cet artiste."}
+									</Text>
+									<View className="mt-3 gap-3">
+										{canProposeBooking ? (
+											<TouchableOpacity
+												className="rounded-xl bg-primary px-4 py-3"
+												onPress={() =>
+													router.push({
+														pathname: "/(drawer)/bookings/propose",
+														params: {
+															artistId: artist.id,
+															backTo: detailBackHref,
+														},
+													} as never)
+												}
+											>
+												<Text className="text-center font-sans-bold text-primary-foreground">
+													Proposer un booking
+												</Text>
+											</TouchableOpacity>
+										) : (
+											<>
+												<TouchableOpacity
+													className="rounded-xl bg-primary px-4 py-3"
+													onPress={() =>
+														router.push("/(drawer)/venue" as never)
+													}
+												>
+													<Text className="text-center font-sans-bold text-primary-foreground">
+														Creer ou choisir un lieu
+													</Text>
+												</TouchableOpacity>
+												<TouchableOpacity
+													className="rounded-xl border border-border bg-card px-4 py-3"
+													onPress={() =>
+														router.push("/(drawer)/bookings" as never)
+													}
+												>
+													<Text className="text-center font-sans-medium text-foreground">
+														Voir mes bookings
+													</Text>
+												</TouchableOpacity>
+											</>
+										)}
+									</View>
+								</View>
 							) : null}
 
 							{!isEditing
@@ -1051,7 +1139,7 @@ export default function ArtistProfileScreen() {
 						</View>
 					</View>
 				</ScrollView>
-			</KeyboardAvoidingView>
+			</KeyboardFormScreen>
 		</Container>
 	);
 }

@@ -1,9 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { router } from "expo-router";
+import { useState } from "react";
 import {
 	ActivityIndicator,
 	Image,
+	RefreshControl,
 	ScrollView,
 	TouchableOpacity,
 	View,
@@ -16,8 +18,16 @@ import { getVenueTypeLabel } from "@/utils/venue-labels";
 
 export default function VenueListScreen() {
 	const { data: session, isPending: sessionPending } = authClient.useSession();
+	const [failedVenueLogoIds, setFailedVenueLogoIds] = useState<
+		Record<string, boolean>
+	>({});
 
-	const { data: venues = [], isLoading } = useQuery({
+	const {
+		data: venues = [],
+		isLoading,
+		refetch,
+		isFetching,
+	} = useQuery({
 		...trpc.venue.getMyVenues.queryOptions(),
 		enabled: Boolean(session?.user),
 	});
@@ -56,7 +66,15 @@ export default function VenueListScreen() {
 
 	return (
 		<Container>
-			<ScrollView className="flex-1 p-4">
+			<ScrollView
+				className="flex-1 p-4"
+				refreshControl={
+					<RefreshControl
+						refreshing={isFetching && !isLoading}
+						onRefresh={() => refetch()}
+					/>
+				}
+			>
 				<View className="mb-6 flex-row items-center justify-between">
 					<View className="flex-1 pr-3">
 						<Title className="text-2xl text-foreground">Mes lieux</Title>
@@ -71,7 +89,7 @@ export default function VenueListScreen() {
 							router.push({
 								pathname: "/(drawer)/venue/new",
 								params: { backTo: "/(drawer)/venue" },
-							} as any)
+							} as never)
 						}
 					>
 						<Ionicons name="add" size={22} color="white" />
@@ -92,7 +110,7 @@ export default function VenueListScreen() {
 								router.push({
 									pathname: "/(drawer)/venue/new",
 									params: { backTo: "/(drawer)/venue" },
-								} as any)
+								} as never)
 							}
 						>
 							<Ionicons
@@ -108,60 +126,64 @@ export default function VenueListScreen() {
 					</View>
 				) : (
 					<View className="space-y-3">
-						{venues.map((venue: any) => {
-							return (
-								<TouchableOpacity
-									key={venue.id}
-									className="overflow-hidden rounded-xl border border-border bg-card"
-									onPress={() =>
-										router.push({
-											pathname: "/(drawer)/venue/[id]",
-											params: { id: venue.id, backTo: "/(drawer)/venue" },
-										} as any)
-									}
-								>
-									{venue.photoUrl ? (
-										<Image
-											source={{ uri: venue.photoUrl }}
-											className="h-24 w-full"
-											resizeMode="cover"
-										/>
-									) : (
-										<View className="h-24 w-full bg-primary/10" />
-									)}
+						{venues.map((venue) => (
+							<TouchableOpacity
+								key={venue.id}
+								className="overflow-hidden rounded-xl border border-border bg-card"
+								onPress={() =>
+									router.push({
+										pathname: "/(drawer)/venue/[id]",
+										params: { id: venue.id, backTo: "/(drawer)/venue" },
+									} as never)
+								}
+							>
+								{venue.photoUrl ? (
+									<Image
+										source={{ uri: venue.photoUrl }}
+										className="h-24 w-full"
+										resizeMode="cover"
+									/>
+								) : (
+									<View className="h-24 w-full bg-primary/10" />
+								)}
 
-									<View className="p-4">
-										<View className="flex-row items-center gap-3">
-											{venue.logoUrl ? (
-												<Image
-													source={{ uri: venue.logoUrl }}
-													className="h-12 w-12 rounded-full border border-border"
-												/>
-											) : (
-												<View className="h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-													<Ionicons name="business" size={22} color="#7c3aed" />
-												</View>
-											)}
-
-											<View className="flex-1">
-												<Title className="text-foreground text-lg">
-													{venue.name}
-												</Title>
-												<Text className="text-muted-foreground text-sm">
-													{venue.city} • {getVenueTypeLabel(venue.venueType)}
-												</Text>
-											</View>
-
-											<Ionicons
-												name="chevron-forward"
-												size={18}
-												color="#9ca3af"
+								<View className="p-4">
+									<View className="flex-row items-center gap-3">
+										{venue.logoUrl && !failedVenueLogoIds[venue.id] ? (
+											<Image
+												source={{ uri: venue.logoUrl }}
+												className="h-12 w-12 rounded-full border border-border"
+												onError={() =>
+													setFailedVenueLogoIds((currentState) => ({
+														...currentState,
+														[venue.id]: true,
+													}))
+												}
 											/>
+										) : (
+											<View className="h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+												<Ionicons name="business" size={22} color="#7c3aed" />
+											</View>
+										)}
+
+										<View className="flex-1">
+											<Title className="text-foreground text-lg">
+												{venue.name}
+											</Title>
+											<Text className="text-muted-foreground text-sm">
+												{venue.city} • {getVenueTypeLabel(venue.venueType)}
+											</Text>
 										</View>
+
+										<Ionicons
+											name="chevron-forward"
+											size={18}
+											color="#9ca3af"
+										/>
 									</View>
-								</TouchableOpacity>
-							);
-						})}
+								</View>
+							</TouchableOpacity>
+						))}
 					</View>
 				)}
 

@@ -4,6 +4,7 @@
 import { MUSIC_GENRES } from "@rythmons/validation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+	Calendar,
 	Camera,
 	Euro,
 	ExternalLink,
@@ -11,14 +12,17 @@ import {
 	Headphones,
 	Image as ImageIcon,
 	Loader2,
+	MapPin,
 	Mic2,
 	Music,
 	Pencil,
 	Plus,
 	Save,
+	Share2,
 	Trash2,
 	X,
 } from "lucide-react";
+import Link from "next/link";
 import { notFound, useParams, useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
@@ -53,6 +57,8 @@ interface EditFormData {
 	bannerUrl: string;
 	genreNames: string[];
 	images: string[];
+	city: string;
+	postalCode: string;
 }
 
 export default function ArtistProfilePage() {
@@ -85,6 +91,22 @@ export default function ArtistProfilePage() {
 		enabled: !!artistId,
 	});
 
+	const handleShare = useCallback(() => {
+		const url = window.location.href;
+		if (navigator.share) {
+			navigator
+				.share({
+					title: artist?.stageName || "Rythmons",
+					text: `Découvrez le profil de ${artist?.stageName || "cet artiste"} sur Rythmons !`,
+					url: url,
+				})
+				.catch(() => {});
+		} else {
+			navigator.clipboard.writeText(url);
+			toast.success("Lien copié dans le presse-papier !");
+		}
+	}, [artist]);
+
 	// Get the correct query key
 	const artistQueryOptions = trpc.artist.getById.queryOptions({ id: artistId });
 
@@ -111,6 +133,11 @@ export default function ArtistProfilePage() {
 	// Check if current user is the owner
 	const isOwner = session?.user?.id === artist?.user?.id;
 
+	const { data: myVenues } = useQuery({
+		...trpc.venue.getMyVenues.queryOptions(),
+		enabled: !!session?.user && !isOwner,
+	});
+
 	// Initialize form data when entering edit mode
 	const enterEditMode = useCallback(() => {
 		if (!artist) return;
@@ -134,6 +161,8 @@ export default function ArtistProfilePage() {
 			bannerUrl: artist.bannerUrl || "",
 			genreNames: artist.genres?.map((g) => g.name) || [],
 			images: artist.images || [],
+			city: artist.city || "",
+			postalCode: artist.postalCode || "",
 		});
 		setIsEditMode(true);
 	}, [artist]);
@@ -166,6 +195,8 @@ export default function ArtistProfilePage() {
 				bannerUrl: formData.bannerUrl || null,
 				genreNames: formData.genreNames,
 				images: formData.images,
+				city: formData.city || null,
+				postalCode: formData.postalCode || null,
 			},
 		});
 	}, [artist, formData, updateMutation]);
@@ -245,12 +276,24 @@ export default function ArtistProfilePage() {
 						bannerUrl: artist.bannerUrl || "",
 						genreNames: artist.genres?.map((g) => g.name) || [],
 						images: artist.images || [],
+						city: artist.city || "",
+						postalCode: artist.postalCode || "",
 					};
 				})();
 
 	return (
 		<div className="min-h-screen">
 			<div className="container mx-auto px-4 py-8">
+				{session?.user && (
+					<p className="mb-4">
+						<Link
+							href="/dashboard"
+							className="text-muted-foreground text-sm hover:text-foreground"
+						>
+							← Tableau de bord
+						</Link>
+					</p>
+				)}
 				{/* Edit Mode Header */}
 				{isOwner && (
 					<div className="mb-6 flex items-center justify-between rounded-xl bg-black/20 p-4">
@@ -305,10 +348,15 @@ export default function ArtistProfilePage() {
 									</Button>
 								</>
 							) : (
-								<Button onClick={enterEditMode}>
-									<Pencil className="mr-2 h-4 w-4" />
-									Modifier
-								</Button>
+								<div className="flex gap-2">
+									<Button variant="outline" size="icon" onClick={handleShare}>
+										<Share2 className="h-4 w-4" />
+									</Button>
+									<Button onClick={enterEditMode}>
+										<Pencil className="mr-2 h-4 w-4" />
+										Modifier
+									</Button>
+								</div>
 							)}
 						</div>
 					</div>
@@ -397,15 +445,65 @@ export default function ArtistProfilePage() {
 									</>
 								)}
 
+								{isEditMode ? (
+									<div className="mt-3 grid grid-cols-2 gap-2">
+										<Input
+											value={formData?.city || ""}
+											onChange={(e) => updateFormField("city", e.target.value)}
+											className="text-center text-sm"
+											placeholder="Ville"
+										/>
+										<Input
+											value={formData?.postalCode || ""}
+											onChange={(e) =>
+												updateFormField("postalCode", e.target.value)
+											}
+											className="text-center text-sm"
+											placeholder="CP"
+											maxLength={5}
+										/>
+									</div>
+								) : (
+									<p className="mt-3 flex items-center justify-center gap-1 text-sm text-white/50">
+										<MapPin className="h-3 w-3" />
+										{displayData.city || "Ville non renseignée"}
+										{displayData.postalCode
+											? ` (${displayData.postalCode})`
+											: ""}
+									</p>
+								)}
+
 								{/* Action Buttons */}
-								{!isOwner && (
-									<div className="mt-6 flex justify-center gap-3">
+								{!isOwner && session?.user && (
+									<div className="mt-6 flex flex-wrap justify-center gap-3">
+										{myVenues && myVenues.length > 0 && (
+											<Button
+												className="rounded-full bg-primary px-6 hover:bg-primary/90"
+												asChild
+											>
+												<Link
+													href={`/dashboard/bookings/propose?artistId=${artistId}`}
+												>
+													<Calendar className="mr-2 h-4 w-4" />
+													Proposer un booking
+												</Link>
+											</Button>
+										)}
 										<Button
-											className="rounded-full bg-secondary px-6 hover:bg-secondary/90"
+											variant="outline"
+											className="rounded-full px-6"
 											onClick={handleFollow}
 										>
 											<Plus className="mr-2 h-4 w-4" />
 											Suivre
+										</Button>
+										<Button
+											variant="outline"
+											size="icon"
+											className="rounded-full"
+											onClick={handleShare}
+										>
+											<Share2 className="h-4 w-4" />
 										</Button>
 									</div>
 								)}

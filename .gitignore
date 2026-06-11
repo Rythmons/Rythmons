@@ -11,3 +11,4 @@ dist
 *.tsbuildinfo
 **/*.tsbuildinfo
 .cursor/
+.tamagui/

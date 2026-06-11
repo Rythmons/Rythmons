@@ -27,6 +27,7 @@
 	},
 	"devDependencies": {
 		"@rythmons/tsconfig": "workspace:*",
-		"typescript": "^5.8.2"
+		"typescript": "^5.8.2",
+		"vitest": "^3.2.6"
 	}
 }

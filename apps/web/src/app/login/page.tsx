@@ -1,12 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
 import ForgottenPassword from "@/components/forgotten-password";
 import SignInForm from "@/components/sign-in-form";
 import SignUpForm from "@/components/sign-up-form";
 
-export default function LoginPage() {
-	const [showSignIn, setShowSignIn] = useState(true);
+function LoginContent() {
+	const searchParams = useSearchParams();
+	const signupParam = searchParams.get("signup") === "1";
+	const [showSignIn, setShowSignIn] = useState(!signupParam);
 	const [showForgottenPassword, setShowForgottenPassword] = useState(false);
 
 	return showForgottenPassword ? (
@@ -27,5 +30,24 @@ export default function LoginPage() {
 		/>
 	) : (
 		<SignUpForm onSwitchToSignIn={() => setShowSignIn(true)} />
+	);
+}
+
+export default function LoginPage() {
+	return (
+		<Suspense
+			fallback={
+				<div className="mx-auto mt-10 w-full max-w-md p-6">
+					<div className="h-9 w-48 animate-pulse rounded bg-muted" />
+					<div className="mt-6 space-y-4">
+						<div className="h-10 animate-pulse rounded-md bg-muted" />
+						<div className="h-10 animate-pulse rounded-md bg-muted" />
+						<div className="h-10 animate-pulse rounded-md bg-muted" />
+					</div>
+				</div>
+			}
+		>
+			<LoginContent />
+		</Suspense>
 	);
 }

@@ -1,10 +1,11 @@
 "use client";
 
-import { MUSIC_GENRES } from "@rythmons/validation";
+import { MUSIC_GENRES, normalizePostalCode } from "@rythmons/validation";
 import { useMutation } from "@tanstack/react-query";
 import { Building2, FileText, Image, MapPin, Music, Users } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useId, useState as useReactState } from "react";
+import { useEffect, useId, useState as useReactState } from "react";
 import { toast } from "sonner";
 import { AddressAutocomplete } from "@/components/ui/address-autocomplete";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { useFormDraft } from "@/hooks/use-form-draft";
 import { trpc } from "@/utils/trpc";
 
 const VENUE_TYPES = [
@@ -102,6 +104,16 @@ export function VenueForm({ initialData, mode, onSuccess }: VenueFormProps) {
 		Partial<Record<keyof VenueFormData, string>>
 	>({});
 
+	const DRAFT_KEY = "rythmons:web:draft:venue-create";
+	const { draft, saveDraft, clearDraft, hasDraft } =
+		useFormDraft<VenueFormData>(DRAFT_KEY, { throttleMs: 2000 });
+
+	useEffect(() => {
+		if (mode === "create") {
+			saveDraft(formData);
+		}
+	}, [mode, formData, saveDraft]);
+
 	const createMutation = useMutation(trpc.venue.create.mutationOptions());
 	const updateMutation = useMutation(trpc.venue.update.mutationOptions());
 
@@ -117,7 +129,8 @@ export function VenueForm({ initialData, mode, onSuccess }: VenueFormProps) {
 		if (!formData.city || formData.city.length < 2) {
 			newErrors.city = "La ville est requise";
 		}
-		if (!formData.postalCode || !/^\d{5}$/.test(formData.postalCode)) {
+		const normalizedPostal = normalizePostalCode(formData.postalCode ?? "");
+		if (!normalizedPostal || !/^\d{5}$/.test(normalizedPostal)) {
 			newErrors.postalCode = "Code postal invalide (5 chiffres)";
 		}
 		if (formData.photoUrl && !isValidUrl(formData.photoUrl)) {
@@ -140,6 +153,55 @@ export function VenueForm({ initialData, mode, onSuccess }: VenueFormProps) {
 		}
 	};
 
+	function validateField(
+		field: keyof VenueFormData,
+		value: VenueFormData[keyof VenueFormData],
+	): boolean {
+		let message: string | undefined;
+		switch (field) {
+			case "name":
+				message =
+					!value || (value as string).length < 2
+						? "Le nom doit contenir au moins 2 caractères"
+						: undefined;
+				break;
+			case "address":
+				message =
+					!value || (value as string).length < 5
+						? "L'adresse est requise"
+						: undefined;
+				break;
+			case "city":
+				message =
+					!value || (value as string).length < 2
+						? "La ville est requise"
+						: undefined;
+				break;
+			case "postalCode": {
+				const normalized = normalizePostalCode((value as string) ?? "");
+				message =
+					!normalized || !/^\d{5}$/.test(normalized)
+						? "Code postal invalide (5 chiffres)"
+						: undefined;
+				break;
+			}
+			case "photoUrl":
+				message =
+					value && !isValidUrl(value as string) ? "URL invalide" : undefined;
+				break;
+			case "logoUrl":
+				message =
+					value && !isValidUrl(value as string) ? "URL invalide" : undefined;
+				break;
+			default:
+				return true;
+		}
+		setErrors((prev) =>
+			message ? { ...prev, [field]: message } : { ...prev, [field]: undefined },
+		);
+		return !message;
+	}
+
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 
@@ -154,6 +216,7 @@ export function VenueForm({ initialData, mode, onSuccess }: VenueFormProps) {
 			const { selectedGenres, ...restData } = formData;
 			const submitData = {
 				...restData,
+				postalCode: normalizePostalCode(formData.postalCode ?? ""),
 				capacity: formData.capacity || null,
 				description: formData.description || null,
 				photoUrl: formData.photoUrl || null,
@@ -165,8 +228,6 @@ export function VenueForm({ initialData, mode, onSuccess }: VenueFormProps) {
 				budgetMin: formData.budgetMin,
 				budgetMax: formData.budgetMax,
 			};
-
-			console.log("Submitting Venue Data:", submitData); // DEBUG LOG
 
 			let resultVenueId: string | undefined;
 
@@ -183,6 +244,9 @@ export function VenueForm({ initialData, mode, onSuccess }: VenueFormProps) {
 				toast.success("Lieu mis à jour avec succès !");
 			}
 
+			if (mode === "create") {
+				clearDraft();
+			}
 			router.refresh();
 			onSuccess?.(resultVenueId);
 		} catch (error) {
@@ -207,6 +271,38 @@ export function VenueForm({ initialData, mode, onSuccess }: VenueFormProps) {
 
 	return (
 		<form onSubmit={handleSubmit} className="space-y-8">
+			{mode === "create" && hasDraft && draft && (
+				<div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-primary/30 bg-primary/5 p-4">
+					<p className="text-muted-foreground text-sm">
+						Un brouillon est disponible.
+					</p>
+					<div className="flex gap-2">
+						<Button
+							type="button"
+							variant="outline"
+							size="sm"
+							onClick={() => {
+								setFormData(draft);
+								clearDraft();
+								toast.success("Brouillon restauré");
+							}}
+						>
+							Restaurer
+						</Button>
+						<Button
+							type="button"
+							variant="ghost"
+							size="sm"
+							onClick={() => {
+								clearDraft();
+								toast.success("Brouillon ignoré");
+							}}
+						>
+							Ignorer
+						</Button>
+					</div>
+				</div>
+			)}
 			{/* Basic Information */}
 			<div className="space-y-6">
 				<div className="flex items-center gap-2 font-semibold text-lg">
@@ -223,6 +319,7 @@ export function VenueForm({ initialData, mode, onSuccess }: VenueFormProps) {
 							id={`${id}-name`}
 							value={formData.name}
 							onChange={(e) => updateField("name", e.target.value)}
+							onBlur={() => validateField("name", formData.name)}
 							placeholder="Ex: Le Petit Journal"
 							aria-invalid={!!errors.name}
 						/>
@@ -276,6 +373,7 @@ export function VenueForm({ initialData, mode, onSuccess }: VenueFormProps) {
 									updateField("postalCode", postalCode);
 								}
 							}}
+							onBlur={() => validateField("address", formData.address)}
 							error={errors.address}
 						/>
 					</div>
@@ -289,7 +387,9 @@ export function VenueForm({ initialData, mode, onSuccess }: VenueFormProps) {
 								id={`${id}-city`}
 								value={formData.city}
 								onChange={(e) => updateField("city", e.target.value)}
+								onBlur={() => validateField("city", formData.city)}
 								placeholder="Ex: Paris"
+								autoComplete="address-level2"
 								aria-invalid={!!errors.city}
 							/>
 							{errors.city && (
@@ -303,8 +403,26 @@ export function VenueForm({ initialData, mode, onSuccess }: VenueFormProps) {
 							</Label>
 							<Input
 								id={`${id}-postalCode`}
+								type="text"
+								inputMode="numeric"
+								autoComplete="postal-code"
 								value={formData.postalCode}
-								onChange={(e) => updateField("postalCode", e.target.value)}
+								onChange={(e) => {
+									const raw = e.target.value.replace(/\D/g, "").slice(0, 5);
+									updateField("postalCode", raw);
+								}}
+								onBlur={() => {
+									const normalized = normalizePostalCode(
+										formData.postalCode ?? "",
+									);
+									if (normalized !== formData.postalCode) {
+										updateField("postalCode", normalized);
+									}
+									validateField(
+										"postalCode",
+										normalized || formData.postalCode,
+									);
+								}}
 								placeholder="Ex: 75001"
 								maxLength={5}
 								aria-invalid={!!errors.postalCode}
@@ -340,15 +458,13 @@ export function VenueForm({ initialData, mode, onSuccess }: VenueFormProps) {
 					</Label>
 					<Input
 						id={`${id}-capacity`}
-						type="number"
-						min={0}
+						type="text"
+						inputMode="numeric"
 						value={formData.capacity ?? ""}
-						onChange={(e) =>
-							updateField(
-								"capacity",
-								e.target.value ? Number.parseInt(e.target.value, 10) : null,
-							)
-						}
+						onChange={(e) => {
+							const v = e.target.value.replace(/\D/g, "");
+							updateField("capacity", v ? Number.parseInt(v, 10) : null);
+						}}
 						placeholder="Ex: 200"
 					/>
 					<p className="text-muted-foreground text-sm">
@@ -477,17 +593,14 @@ export function VenueForm({ initialData, mode, onSuccess }: VenueFormProps) {
 								<Label htmlFor={`${id}-budgetMin`}>Budget min (€)</Label>
 								<Input
 									id={`${id}-budgetMin`}
-									type="number"
+									type="text"
+									inputMode="numeric"
 									min={0}
 									value={formData.budgetMin ?? ""}
-									onChange={(e) =>
-										updateField(
-											"budgetMin",
-											e.target.value
-												? Number.parseInt(e.target.value, 10)
-												: null,
-										)
-									}
+									onChange={(e) => {
+										const v = e.target.value.replace(/\D/g, "");
+										updateField("budgetMin", v ? Number.parseInt(v, 10) : null);
+									}}
 									placeholder="Ex: 50"
 								/>
 							</div>
@@ -495,17 +608,14 @@ export function VenueForm({ initialData, mode, onSuccess }: VenueFormProps) {
 								<Label htmlFor={`${id}-budgetMax`}>Budget max (€)</Label>
 								<Input
 									id={`${id}-budgetMax`}
-									type="number"
+									type="text"
+									inputMode="numeric"
 									min={0}
 									value={formData.budgetMax ?? ""}
-									onChange={(e) =>
-										updateField(
-											"budgetMax",
-											e.target.value
-												? Number.parseInt(e.target.value, 10)
-												: null,
-										)
-									}
+									onChange={(e) => {
+										const v = e.target.value.replace(/\D/g, "");
+										updateField("budgetMax", v ? Number.parseInt(v, 10) : null);
+									}}
 									placeholder="Ex: 500"
 								/>
 							</div>
@@ -593,13 +703,8 @@ export function VenueForm({ initialData, mode, onSuccess }: VenueFormProps) {
 							? "Créer mon lieu"
 							: "Enregistrer les modifications"}
 				</Button>
-				<Button
-					type="button"
-					variant="outline"
-					onClick={() => router.back()}
-					disabled={isLoading}
-				>
-					Annuler
+				<Button variant="outline" disabled={isLoading} asChild>
+					<Link href="/dashboard">Annuler</Link>
 				</Button>
 			</div>
 		</form>

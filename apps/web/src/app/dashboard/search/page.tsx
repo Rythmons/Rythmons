@@ -4,6 +4,8 @@ import { getServerSession } from "@/lib/auth-server";
 import { VenueSearch } from "./venue-search";
 
 async function canAccessVenueSearch(userId: string, role?: string | null) {
+	// If the user has no role yet, keep the search accessible (onboarding happens in UI).
+	if (!role) return true;
 	if (role === "ARTIST" || role === "BOTH") {
 		return true;
 	}
@@ -18,6 +20,8 @@ async function canAccessVenueSearch(userId: string, role?: string | null) {
 }
 
 async function canAccessArtistSearch(userId: string, role?: string | null) {
+	// If the user has no role yet, keep the search accessible (onboarding happens in UI).
+	if (!role) return true;
 	if (role === "ORGANIZER" || role === "BOTH") {
 		return true;
 	}
@@ -44,7 +48,9 @@ export default async function VenueSearchPage() {
 	]);
 
 	if (!canSearchVenues && !canSearchArtists) {
-		redirect("/dashboard");
+		// Don't hard-block the feature: show the search page and let the UI explain
+		// what the user needs to do (create a profile / set a role) to use it.
+		return <VenueSearch canSearchVenues={false} canSearchArtists={false} />;
 	}
 
 	return (

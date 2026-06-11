@@ -3,7 +3,7 @@ import { type NextRequest, NextResponse } from "next/server";
 
 const allowedOrigins = parseCorsOrigins(process.env.CORS_ORIGIN || "");
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
 	const response = NextResponse.next();
 	const requestOrigin = request.headers.get("origin");
 
