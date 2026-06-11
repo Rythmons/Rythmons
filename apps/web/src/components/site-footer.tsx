@@ -1,7 +1,11 @@
+"use client";
+
 import type { Route } from "next";
 import Link from "next/link";
+import { authClient } from "@/lib/auth-client";
 
 export function SiteFooter() {
+	const { data: session } = authClient.useSession();
 	const year = new Date().getFullYear();
 
 	return (
@@ -26,12 +30,14 @@ export function SiteFooter() {
 					>
 						CGU
 					</Link>
-					<Link
-						href={"/login" as Route}
-						className="transition-colors hover:text-[color:var(--brand-primary)]"
-					>
-						Connexion
-					</Link>
+					{!session?.user ? (
+						<Link
+							href={"/login" as Route}
+							className="transition-colors hover:text-[color:var(--brand-primary)]"
+						>
+							Connexion
+						</Link>
+					) : null}
 				</nav>
 			</div>
 		</footer>
