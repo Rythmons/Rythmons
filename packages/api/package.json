@@ -10,8 +10,10 @@
 	},
 	"scripts": {
 		"build": "tsc --build",
-		"check-types": "tsc --noEmit",
-		"test": "vitest run"
+		"test": "vitest",
+		"test:ui": "vitest --ui",
+		"test:run": "vitest run",
+		"coverage": "vitest run --coverage"
 	},
 	"dependencies": {
 		"@rythmons/auth": "workspace:*",
