@@ -1,7 +1,7 @@
 {
 	"$schema": "https://biomejs.dev/schemas/2.4.4/schema.json",
 	"vcs": {
-		"enabled": false,
+		"enabled": true,
 		"clientKind": "git",
 		"useIgnoreFile": true
 	},
@@ -20,6 +20,8 @@
 			"!**/.nuxt",
 			"!bts.jsonc",
 			"!**/.expo",
+			"!!**/.tamagui",
+			"!!**/android/build",
 			"!**/.wrangler",
 			"!**/.alchemy",
 			"!**/.svelte-kit",

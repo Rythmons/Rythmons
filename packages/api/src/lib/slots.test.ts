@@ -1,17 +1,19 @@
-import { describe, expect, it, vi } from "vitest";
+import type { AvailabilitySlot, Prisma } from "@rythmons/db";
+import { describe, expect, it, type Mock, vi } from "vitest";
 import { carveRangeFromSlots } from "./slots";
 
-type SlotInput = {
-	id: string;
-	ownerType: "ARTIST" | "VENUE";
-	ownerId: string;
-	startDate: Date;
-	endDate: Date;
-	type: "UNAVAILABLE" | "OPEN" | "BOOKED";
-	bookingId: string | null;
+type SlotWriter = Pick<Prisma.TransactionClient, "availabilitySlot">;
+
+type MockTx = {
+	availabilitySlot: {
+		deleteMany: Mock;
+		createMany: Mock;
+	};
 };
 
-function slot(partial: Partial<SlotInput> & { id: string }): SlotInput {
+function slot(
+	partial: Partial<AvailabilitySlot> & Pick<AvailabilitySlot, "id">,
+): AvailabilitySlot {
 	return {
 		ownerType: "VENUE",
 		ownerId: "venue-1",
@@ -19,11 +21,13 @@ function slot(partial: Partial<SlotInput> & { id: string }): SlotInput {
 		endDate: new Date("2026-07-31T23:59:59.999Z"),
 		type: "OPEN",
 		bookingId: null,
+		createdAt: new Date("2026-07-01T00:00:00.000Z"),
+		updatedAt: new Date("2026-07-01T00:00:00.000Z"),
 		...partial,
 	};
 }
 
-function makeTx() {
+function makeTx(): MockTx {
 	return {
 		availabilitySlot: {
 			deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
@@ -32,14 +36,17 @@ function makeTx() {
 	};
 }
 
+function asSlotWriter(tx: MockTx): SlotWriter {
+	return tx as unknown as SlotWriter;
+}
+
 const DAY_START = new Date("2026-07-10T00:00:00.000Z");
 const DAY_END = new Date("2026-07-10T23:59:59.999Z");
 
 describe("carveRangeFromSlots", () => {
 	it("ne fait rien sans créneau chevauchant", async () => {
 		const tx = makeTx();
-		// biome-ignore lint/suspicious/noExplicitAny: faux client Prisma de test
-		await carveRangeFromSlots(tx as any, [], DAY_START, DAY_END);
+		await carveRangeFromSlots(asSlotWriter(tx), [], DAY_START, DAY_END);
 		expect(tx.availabilitySlot.deleteMany).not.toHaveBeenCalled();
 		expect(tx.availabilitySlot.createMany).not.toHaveBeenCalled();
 	});
@@ -47,10 +54,9 @@ describe("carveRangeFromSlots", () => {
 	it("découpe un créneau multi-jours en deux restes autour du jour retiré", async () => {
 		const tx = makeTx();
 		const monthSlot = slot({ id: "s1" });
-		// biome-ignore lint/suspicious/noExplicitAny: faux client Prisma de test
 		await carveRangeFromSlots(
-			tx as any,
-			[monthSlot as any],
+			asSlotWriter(tx),
+			[monthSlot],
 			DAY_START,
 			DAY_END,
 		);
@@ -75,8 +81,7 @@ describe("carveRangeFromSlots", () => {
 	it("supprime sans reste un créneau couvrant exactement la plage", async () => {
 		const tx = makeTx();
 		const daySlot = slot({ id: "s2", startDate: DAY_START, endDate: DAY_END });
-		// biome-ignore lint/suspicious/noExplicitAny: faux client Prisma de test
-		await carveRangeFromSlots(tx as any, [daySlot as any], DAY_START, DAY_END);
+		await carveRangeFromSlots(asSlotWriter(tx), [daySlot], DAY_START, DAY_END);
 
 		expect(tx.availabilitySlot.deleteMany).toHaveBeenCalled();
 		expect(tx.availabilitySlot.createMany).not.toHaveBeenCalled();
@@ -89,8 +94,7 @@ describe("carveRangeFromSlots", () => {
 			startDate: new Date("2026-07-08T00:00:00.000Z"),
 			endDate: DAY_END,
 		});
-		// biome-ignore lint/suspicious/noExplicitAny: faux client Prisma de test
-		await carveRangeFromSlots(tx as any, [head as any], DAY_START, DAY_END);
+		await carveRangeFromSlots(asSlotWriter(tx), [head], DAY_START, DAY_END);
 
 		const created = tx.availabilitySlot.createMany.mock.calls.at(0)?.[0].data;
 		expect(created).toHaveLength(1);

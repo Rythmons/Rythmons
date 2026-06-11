@@ -12,6 +12,7 @@
 		"dev": "turbo dev",
 		"build": "turbo build",
 		"check-types": "turbo check-types",
+		"test": "turbo test",
 		"dev:native": "turbo -F native dev",
 		"dev:web": "turbo -F web dev",
 		"db:local:up": "docker compose up -d postgres",
