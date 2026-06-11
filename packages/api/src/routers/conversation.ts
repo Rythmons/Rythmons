@@ -6,6 +6,10 @@ import { protectedProcedure, router } from "../trpc";
  * Helper: récupérer toutes les entités du user
  */
 async function getUserEntities(ctx: Context) {
+	if (!ctx.session || !ctx.session.user) {
+		throw new Error("Unauthorized");
+	}
+
 	const user = await ctx.db.user.findUnique({
 		where: { id: ctx.session.user.id },
 		select: {
@@ -42,7 +46,7 @@ async function getUserEntities(ctx: Context) {
 async function getEntityName(
 	ctx: Context,
 	entityId: string,
-	entityType: string,
+	entityType: "ARTIST" | "VENUE" | "MEDIA",
 ) {
 	if (entityType === "ARTIST") {
 		const artist = await ctx.db.artist.findUnique({
@@ -70,7 +74,8 @@ async function getEntityName(
 
 interface Participant {
 	entityId: string;
-	entityType: string;
+	entityType: "ARTIST" | "VENUE" | "MEDIA";
+	lastReadAt?: Date | null;
 }
 
 interface ConversationWithParticipants {
@@ -82,6 +87,17 @@ function isParticipant(
 	myEntities: Participant[],
 ) {
 	return conversation.participants.some((p: Participant) =>
+		myEntities.some(
+			(me) => me.entityId === p.entityId && me.entityType === p.entityType,
+		),
+	);
+}
+
+function getCurrentParticipant(
+	conversation: ConversationWithParticipants,
+	myEntities: Participant[],
+) {
+	return conversation.participants.find((p: Participant) =>
 		myEntities.some(
 			(me) => me.entityId === p.entityId && me.entityType === p.entityType,
 		),
@@ -124,7 +140,7 @@ export const conversationRouter = router({
 			},
 		});
 
-		// Enrichir les conversations avec les noms des participants
+		// Enrichir les conversations avec les noms des participants et les messages non lus
 		const enrichedConversations = await Promise.all(
 			conversations.map(async (conv) => {
 				const enrichedParticipants = await Promise.all(
@@ -133,9 +149,27 @@ export const conversationRouter = router({
 						name: await getEntityName(ctx, p.entityId, p.entityType),
 					})),
 				);
+
+				const currentParticipant = getCurrentParticipant(conv, entities);
+				const unreadCount = currentParticipant
+					? await ctx.db.message.count({
+							where: {
+								conversationId: conv.id,
+								NOT: {
+									senderId: currentParticipant.entityId,
+									senderType: currentParticipant.entityType,
+								},
+								...(currentParticipant.lastReadAt
+									? { createdAt: { gt: currentParticipant.lastReadAt } }
+									: {}),
+							},
+						})
+					: 0;
+
 				return {
 					...conv,
 					participants: enrichedParticipants,
+					unreadCount,
 				};
 			}),
 		);
@@ -264,6 +298,49 @@ export const conversationRouter = router({
 					createdAt: "asc",
 				},
 			});
+		}),
+
+	/**
+	 * POST /api/conversations/mark-as-read
+	 */
+	markAsRead: protectedProcedure
+		.input(
+			z.object({
+				conversationId: z.string(),
+				entityId: z.string(),
+				entityType: z.enum(["ARTIST", "VENUE", "MEDIA"]),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const entities = await getUserEntities(ctx);
+
+			const isValidSender = entities.some(
+				(e) =>
+					e.entityId === input.entityId && e.entityType === input.entityType,
+			);
+
+			if (!isValidSender) {
+				throw new Error("Unauthorized");
+			}
+
+			const participant = await ctx.db.conversationParticipant.findFirst({
+				where: {
+					conversationId: input.conversationId,
+					entityId: input.entityId,
+					entityType: input.entityType,
+				},
+			});
+
+			if (!participant) {
+				throw new Error("Unauthorized");
+			}
+
+			await ctx.db.conversationParticipant.updateMany({
+				where: { id: participant.id },
+				data: { lastReadAt: new Date() },
+			});
+
+			return { success: true };
 		}),
 
 	/**

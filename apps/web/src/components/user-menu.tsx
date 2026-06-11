@@ -11,6 +11,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -60,6 +61,21 @@ export default function UserMenu() {
 	const canSearchArtists = hasOrganizerRole || venueItems.length > 0;
 	const canUseSearch = canSearchVenues || canSearchArtists;
 
+	// Fetch conversations to display unread notifications and badge
+	const { data: conversations = [] } = useQuery({
+		...trpc.conversation.getAll.queryOptions(),
+		enabled: !!session?.user,
+		refetchInterval: 5000,
+	});
+
+	const unreadConversations = (conversations as any[]).filter(
+		(c) => (c.unreadCount ?? 0) > 0,
+	);
+	const totalUnread = unreadConversations.reduce(
+		(sum, c) => sum + (c.unreadCount ?? 0),
+		0,
+	);
+
 	if (isPending) {
 		return <Skeleton className="h-10 w-24" />;
 	}
@@ -101,9 +117,39 @@ export default function UserMenu() {
 							<span className="font-semibold">{session.user.name}</span>
 						</div>
 					</div>
+					{/* Red dot indicator for unread messages */}
+					{totalUnread > 0 ? (
+						<span className="pointer-events-none absolute top-1 right-2 h-2 w-2 rounded-full bg-red-600" />
+					) : null}
 				</Button>
 			</DropdownMenuTrigger>
 			<DropdownMenuContent className="w-64 bg-black p-0 text-white" align="end">
+				{/* Unread notifications list */}
+				{unreadConversations.length > 0 ? (
+					<div className="flex flex-col">
+						{(unreadConversations as any[]).slice(0, 5).map((conv) => (
+							<DropdownMenuItem
+								key={conv.id}
+								className="flex cursor-pointer items-center gap-2 p-3 text-white hover:bg-white/5"
+								onClick={() => {
+									router.push(`/messages?conversationId=${conv.id}`);
+								}}
+							>
+								<MessageCircle className="h-4 w-4" />
+								<div className="flex-1 text-left">
+									<div className="truncate font-semibold text-sm">
+										{(conv.participants || []).find((p: any) => p.name)?.name ||
+											"Nouvel message"}
+									</div>
+									<div className="text-xs opacity-80">
+										{conv.unreadCount} non lu{conv.unreadCount > 1 ? "s" : ""}
+									</div>
+								</div>
+							</DropdownMenuItem>
+						))}
+						<DropdownMenuSeparator className="bg-white/10" />
+					</div>
+				) : null}
 				{/* PROFILES LIST */}
 				<div className="flex flex-col">
 					{/* Artists */}
@@ -192,7 +238,15 @@ export default function UserMenu() {
 					}}
 				>
 					<MessageCircle className="h-4 w-4" />
-					<span>Mes messages</span>
+					<span className="flex-1">Mes messages</span>
+					{totalUnread > 0 ? (
+						<Badge
+							className="ml-2"
+							aria-label={`${totalUnread} messages non lus`}
+						>
+							{totalUnread}
+						</Badge>
+					) : null}
 				</DropdownMenuItem>
 
 				<DropdownMenuItem

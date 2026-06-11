@@ -3,7 +3,9 @@
 import type { EntityType } from "@rythmons/db";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
+// badge import removed
 import { EntitySelector } from "@/components/entity-selector";
 import { trpc } from "@/utils/trpc";
 
@@ -35,6 +37,8 @@ export default function MessagesPage() {
 	// Récupérer toutes les conversations
 	const { data: conversations = [] } = useQuery({
 		...trpc.conversation.getAll.queryOptions(),
+		enabled: !!selectedSenderId && !!selectedSenderType,
+		refetchInterval: 5000,
 	});
 
 	const selectedEntity = myEntities.find(
@@ -45,48 +49,154 @@ export default function MessagesPage() {
 	type Participant = {
 		entityId: string;
 		entityType: string;
+		name?: string;
 	};
-
-	const entityConversations = selectedEntity
-		? conversations.filter((conv) =>
-				conv.participants.some(
-					(p: Participant) =>
-						p.entityId === selectedSenderId &&
-						p.entityType === selectedSenderType,
-				),
-			)
-		: [];
 
 	type Conversation = {
 		id: string;
 		participants: Participant[];
+		unreadCount?: number;
 	};
+
+	const entityConversations = useMemo(
+		() =>
+			selectedEntity
+				? conversations.filter((conv) =>
+						conv.participants.some(
+							(p: Participant) =>
+								p.entityId === selectedSenderId &&
+								p.entityType === selectedSenderType,
+						),
+					)
+				: [],
+		[selectedSenderId, selectedSenderType, conversations, selectedEntity],
+	);
 
 	// Obtenir le nom de l'entité opposée dans une conversation
-	const getOtherEntityName = (conv: Conversation) => {
-		if (selectedSenderId && selectedSenderType) {
-			const otherParticipant = conv.participants.find(
-				(p: Participant) =>
-					p.entityId !== selectedSenderId ||
-					p.entityType !== selectedSenderType,
-			);
-			return otherParticipant?.name || "Inconnue";
-		}
+	const getOtherEntityName = useCallback(
+		(conv: Conversation) => {
+			if (selectedSenderId && selectedSenderType) {
+				const otherParticipant = conv.participants.find(
+					(p: Participant) =>
+						p.entityId !== selectedSenderId ||
+						p.entityType !== selectedSenderType,
+				);
+				return otherParticipant?.name || "Inconnue";
+			}
 
-		return conv.participants?.[0]?.name || "Inconnue";
-	};
+			return conv.participants?.[0]?.name || "Inconnue";
+		},
+		[selectedSenderId, selectedSenderType],
+	);
 
-	const currentConversation = entityConversations.find(
-		(conv) => conv.id === conversationId,
+	const currentConversation = useMemo(
+		() => entityConversations.find((conv) => conv.id === conversationId),
+		[entityConversations, conversationId],
 	);
 
 	const currentConversationTitle = currentConversation
 		? getOtherEntityName(currentConversation)
 		: "Conversation";
 
-	// Ouvrir automatiquement la dernière conversation de l'entité sélectionnée si aucune n'est sélectionnée
+	const _totalUnreadCount = useMemo(
+		() =>
+			entityConversations.reduce(
+				(sum, conv) => sum + (conv.unreadCount ?? 0),
+				0,
+			),
+		[entityConversations],
+	);
+
+	const markAsReadMutation = useMutation({
+		...trpc.conversation.markAsRead.mutationOptions(),
+		onSuccess: () => {
+			queryClient.invalidateQueries({
+				queryKey: trpc.conversation.getAll.queryOptions().queryKey,
+			});
+		},
+	});
+
+	const lastReadConversationRef = useRef<string | null>(null);
+
+	useEffect(() => {
+		if (
+			!conversationId ||
+			!selectedSenderId ||
+			!selectedSenderType ||
+			!currentConversation ||
+			(currentConversation.unreadCount ?? 0) === 0 ||
+			lastReadConversationRef.current === conversationId
+		) {
+			return;
+		}
+
+		markAsReadMutation.mutate({
+			conversationId,
+			entityId: selectedSenderId,
+			entityType: selectedSenderType,
+		});
+		lastReadConversationRef.current = conversationId;
+	}, [
+		conversationId,
+		selectedSenderId,
+		selectedSenderType,
+		currentConversation,
+		markAsReadMutation,
+	]);
+
+	const unreadNotificationsRef = useRef<Record<string, number>>({});
+	const isInitialNotificationsLoad = useRef(true);
+
+	useEffect(() => {
+		unreadNotificationsRef.current = {};
+		isInitialNotificationsLoad.current = true;
+	}, [selectedSenderId, selectedSenderType]);
+
 	useEffect(() => {
 		if (!selectedSenderId || !selectedSenderType) {
+			return;
+		}
+
+		if (isInitialNotificationsLoad.current) {
+			entityConversations.forEach((conv) => {
+				unreadNotificationsRef.current[conv.id] = conv.unreadCount ?? 0;
+			});
+			isInitialNotificationsLoad.current = false;
+			return;
+		}
+
+		entityConversations.forEach((conv) => {
+			const previousCount = unreadNotificationsRef.current[conv.id] ?? 0;
+			const currentCount = conv.unreadCount ?? 0;
+			if (currentCount > previousCount) {
+				const delta = currentCount - previousCount;
+				const otherName = getOtherEntityName(conv);
+				// Clickable toast that opens the corresponding conversation
+				toast.custom((t) => (
+					<button
+						type="button"
+						onClick={() => {
+							router.push(`/messages?conversationId=${conv.id}`);
+							toast.dismiss(t);
+						}}
+						className="cursor-pointer"
+					>
+						{`Nouveau message${delta > 1 ? "s" : ""} de ${otherName}`}
+					</button>
+				));
+			}
+			unreadNotificationsRef.current[conv.id] = currentCount;
+		});
+	}, [
+		entityConversations,
+		selectedSenderId,
+		selectedSenderType,
+		getOtherEntityName,
+		router.push,
+	]);
+
+	useEffect(() => {
+		if (!selectedSenderId || !selectedSenderType || !selectedEntity) {
 			return;
 		}
 
@@ -106,17 +216,24 @@ export default function MessagesPage() {
 	}, [
 		selectedSenderId,
 		selectedSenderType,
+		selectedEntity,
 		conversationId,
 		entityConversations,
 		router,
 	]);
 
 	// Récupérer les messages de la conversation actuelle
-	const { data: messages = [] } = useQuery({
+	type MessageItem = {
+		id: string;
+		content: string;
+		createdAt: string | Date;
+		senderId: string;
+	};
+	const { data: messages = [] as MessageItem[] } = useQuery({
 		...trpc.conversation.getMessages.queryOptions({
 			conversationId: conversationId || "",
 		}),
-		enabled: !!conversationId,
+		enabled: !!conversationId && !!selectedSenderId && !!selectedSenderType,
 		refetchInterval: 2000, // Rafraîchir toutes les 2 secondes
 	});
 
@@ -127,12 +244,12 @@ export default function MessagesPage() {
 			setMessageContent("");
 			// Invalider les queries pour rafraîchir
 			queryClient.invalidateQueries({
-				queryKey: trpc.conversation.getMessages.getQueryKey({
+				queryKey: trpc.conversation.getMessages.queryOptions({
 					conversationId: conversationId || "",
-				}),
+				}).queryKey,
 			});
 			queryClient.invalidateQueries({
-				queryKey: trpc.conversation.getAll.getQueryKey(),
+				queryKey: trpc.conversation.getAll.queryOptions().queryKey,
 			});
 		},
 	});

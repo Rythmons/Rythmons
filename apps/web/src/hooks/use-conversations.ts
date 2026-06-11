@@ -42,12 +42,12 @@ export function useConversations(
 		...trpc.conversation.sendMessage.mutationOptions(),
 		onSuccess: (_data, variables) => {
 			queryClient.invalidateQueries({
-				queryKey: trpc.conversation.getMessages.getQueryKey({
+				queryKey: trpc.conversation.getMessages.queryOptions({
 					conversationId: variables.conversationId,
-				}),
+				}).queryKey,
 			});
 			queryClient.invalidateQueries({
-				queryKey: trpc.conversation.getAll.getQueryKey(),
+				queryKey: trpc.conversation.getAll.queryOptions().queryKey,
 			});
 		},
 	});

@@ -166,6 +166,7 @@ model ConversationParticipant {
   conversationId String
   entityId       String
   entityType     EntityType
+  lastReadAt     DateTime?
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
   @@unique([conversationId, entityId, entityType])
