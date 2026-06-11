@@ -9,7 +9,11 @@
 		"./client": "./src/client.ts"
 	},
 	"scripts": {
-		"build": "tsc --build"
+		"build": "tsc --build",
+		"test": "vitest",
+		"test:ui": "vitest --ui",
+		"test:run": "vitest run",
+		"coverage": "vitest run --coverage"
 	},
 	"dependencies": {
 		"@rythmons/auth": "workspace:*",
