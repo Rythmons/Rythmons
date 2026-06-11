@@ -273,6 +273,11 @@ export const bookingRouter = router({
 
 			const { startOfDay, endOfDay } = getBookingDayRange(booking.proposedDate);
 			const dayLockKey = startOfDay.toISOString().slice(0, 10);
+			// Si le propriétaire du lieu a initié la proposition, la date est
+			// implicitement ouverte : l'artiste qui accepte ne peut pas gérer le
+			// calendrier du lieu, on ne lui impose donc pas un créneau OPEN.
+			const requiresVenueOpenSlot =
+				booking.createdByUserId !== booking.venue.ownerId;
 
 			await ctx.db.$transaction(async (tx) => {
 				await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`booking:artist:${booking.artistId}:${dayLockKey}`}))`;
@@ -320,7 +325,7 @@ export const bookingRouter = router({
 					});
 				}
 
-				if (!venueOpenSlot) {
+				if (requiresVenueOpenSlot && !venueOpenSlot) {
 					throw new TRPCError({
 						code: "CONFLICT",
 						message:

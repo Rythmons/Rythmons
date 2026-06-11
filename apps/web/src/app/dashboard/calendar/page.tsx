@@ -197,6 +197,25 @@ function CalendarPageContent() {
 		}
 	}, [ownerType, ownerId, myVenues, setOwnerId]);
 
+	// Bascule automatique vers le type de profil réellement détenu (le
+	// sélecteur n'est affiché que si l'utilisateur possède les deux types).
+	useEffect(() => {
+		if (!myArtists || !myVenues) return;
+		if (
+			ownerType === "ARTIST" &&
+			myArtists.length === 0 &&
+			myVenues.length > 0
+		) {
+			setCalendarState((s) => ({ ...s, ownerType: "VENUE", ownerId: "" }));
+		} else if (
+			ownerType === "VENUE" &&
+			myVenues.length === 0 &&
+			myArtists.length > 0
+		) {
+			setCalendarState((s) => ({ ...s, ownerType: "ARTIST", ownerId: "" }));
+		}
+	}, [ownerType, myArtists, myVenues]);
+
 	useEffect(() => {
 		if (typeof window === "undefined") return;
 		try {
