@@ -1,9 +1,17 @@
 import { randomBytes, scryptSync } from "node:crypto";
 
 import { fakerFR as faker } from "@faker-js/faker";
+import { neonConfig } from "@neondatabase/serverless";
+import { PrismaNeon } from "@prisma/adapter-neon";
 import { PrismaClient } from "@prisma/client";
+import ws from "ws";
 
-const prisma = new PrismaClient();
+neonConfig.webSocketConstructor = ws;
+
+const adapter = new PrismaNeon({
+	connectionString: process.env.DATABASE_URL,
+});
+const prisma = new PrismaClient({ adapter });
 
 const DEMO_PASSWORD = "Rythmons123!";
 const GENERATED_NAMESPACE = "seed-generated";
