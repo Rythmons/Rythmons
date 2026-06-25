@@ -1,26 +1,10 @@
 "use client";
 
+import maplibregl from "maplibre-gl";
+import "maplibre-gl/dist/maplibre-gl.css";
 import { useEffect, useState } from "react";
-import { MapContainer, Marker, Popup, TileLayer } from "react-leaflet";
-import "leaflet/dist/leaflet.css";
-import L from "leaflet";
-
-// Fix leaflet default icon issue
-const iconUrl = "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png";
-const iconRetinaUrl =
-	"https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png";
-const shadowUrl =
-	"https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png";
-
-const customIcon = L.icon({
-	iconUrl,
-	iconRetinaUrl,
-	shadowUrl,
-	iconSize: [25, 41],
-	iconAnchor: [12, 41],
-	popupAnchor: [1, -34],
-	shadowSize: [41, 41],
-});
+import MapGL, { Marker, Popup } from "react-map-gl/maplibre";
+import { MAP_MARKER_STYLE, MAP_STYLE } from "@/lib/map-style";
 
 interface VenueMapProps {
 	address: string;
@@ -29,8 +13,11 @@ interface VenueMapProps {
 }
 
 export default function VenueMap({ address, city, name }: VenueMapProps) {
-	const [coords, setCoords] = useState<[number, number] | null>(null);
+	const [coords, setCoords] = useState<{ lat: number; lon: number } | null>(
+		null,
+	);
 	const [error, setError] = useState(false);
+	const [showPopup, setShowPopup] = useState(false);
 
 	useEffect(() => {
 		if (!address || !city) return;
@@ -43,7 +30,7 @@ export default function VenueMap({ address, city, name }: VenueMapProps) {
 			.then((data) => {
 				if (data.features && data.features.length > 0) {
 					const [lon, lat] = data.features[0].geometry.coordinates;
-					setCoords([lat, lon]);
+					setCoords({ lat, lon });
 				} else {
 					setError(true);
 				}
@@ -73,25 +60,50 @@ export default function VenueMap({ address, city, name }: VenueMapProps) {
 	}
 
 	return (
-		<MapContainer
-			center={coords}
-			zoom={13}
-			style={{ height: "100%", width: "100%", borderRadius: "0.5rem" }}
-			zoomControl={false}
+		<MapGL
+			initialViewState={{
+				longitude: coords.lon,
+				latitude: coords.lat,
+				zoom: 13,
+			}}
+			mapStyle={MAP_STYLE}
+			mapLib={maplibregl}
+			style={{ width: "100%", height: "100%", borderRadius: "0.5rem" }}
+			attributionControl={false}
 		>
-			<TileLayer
-				url={`https://tile.jawg.io/jawg-streets/{z}/{x}/{y}{r}.png?access-token=${process.env.NEXT_PUBLIC_JAWG_ACCESS_TOKEN ?? ""}`}
-				attribution='&copy; <a href="https://jawg.io">Jawg Maps</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-			/>
-			<Marker position={coords} icon={customIcon}>
-				<Popup>
-					<div className="text-center">
+			<Marker
+				longitude={coords.lon}
+				latitude={coords.lat}
+				anchor="center"
+				onClick={() => setShowPopup(true)}
+			>
+				<div
+					style={{
+						width: MAP_MARKER_STYLE.size,
+						height: MAP_MARKER_STYLE.size,
+						borderRadius: "50%",
+						background: MAP_MARKER_STYLE.background,
+						border: MAP_MARKER_STYLE.border,
+						cursor: "pointer",
+					}}
+				/>
+			</Marker>
+			{showPopup ? (
+				<Popup
+					longitude={coords.lon}
+					latitude={coords.lat}
+					anchor="bottom"
+					onClose={() => setShowPopup(false)}
+					closeButton
+					offset={12}
+				>
+					<div className="text-center text-sm">
 						<strong className="mb-1 block">{name}</strong>
 						<span className="block text-xs">{address}</span>
 						<span className="block text-xs">{city}</span>
 					</div>
 				</Popup>
-			</Marker>
-		</MapContainer>
+			) : null}
+		</MapGL>
 	);
 }

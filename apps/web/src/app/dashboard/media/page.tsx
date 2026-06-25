@@ -36,8 +36,7 @@ function MediaPageContent() {
 							Projets médias (bientôt)
 						</h1>
 						<p className="text-lg text-muted-foreground">
-							Cette section fait partie d&apos;Epic 4 et n&apos;est pas encore
-							disponible.
+							Cette section n&apos;est pas encore disponible.
 						</p>
 					</div>
 				</div>
@@ -47,7 +46,7 @@ function MediaPageContent() {
 				<p className="text-muted-foreground">
 					{editId
 						? "L’édition média n’est pas encore disponible."
-						: "La création de médias / radios sera disponible dans Epic 4."}
+						: "La création de médias / radios sera disponible bientôt."}
 				</p>
 				<div className="mt-6 flex flex-wrap gap-3">
 					<Button onClick={() => router.push("/dashboard")}>

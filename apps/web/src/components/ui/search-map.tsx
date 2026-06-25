@@ -10,10 +10,7 @@ import MapGL, {
 	Popup,
 	Source,
 } from "react-map-gl/maplibre";
-
-// CartoDB Dark Matter — No token required for development
-const MAP_STYLE =
-	"https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json";
+import { MAP_STYLE } from "@/lib/map-style";
 
 type VenueMarker = {
 	id: string;

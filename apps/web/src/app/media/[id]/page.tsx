@@ -20,8 +20,7 @@ export default function MediaProfilePage() {
 								Profils médias (bientôt)
 							</h1>
 							<p className="text-lg text-muted-foreground">
-								Les profils médias font partie d&apos;Epic 4 et ne sont pas
-								encore disponibles.
+								Les profils médias ne sont pas encore disponibles.
 							</p>
 						</div>
 					</div>

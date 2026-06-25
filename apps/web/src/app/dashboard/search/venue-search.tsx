@@ -13,6 +13,7 @@ import {
 	Map as MapIcon,
 	MapPin,
 	Mic2,
+	SlidersHorizontal,
 	UserRound,
 	X,
 } from "lucide-react";
@@ -132,10 +133,12 @@ export function VenueSearch({
 		appliedLatRaw != null ? Number.parseFloat(appliedLatRaw) : Number.NaN;
 	const appliedLng =
 		appliedLngRaw != null ? Number.parseFloat(appliedLngRaw) : Number.NaN;
-	const appliedUserCoords =
-		Number.isFinite(appliedLat) && Number.isFinite(appliedLng)
-			? { lat: appliedLat, lng: appliedLng }
-			: null;
+	const appliedUserCoords = useMemo(() => {
+		if (Number.isFinite(appliedLat) && Number.isFinite(appliedLng)) {
+			return { lat: appliedLat, lng: appliedLng };
+		}
+		return null;
+	}, [appliedLat, appliedLng]);
 
 	// Draft state for the filter panel, initialized from applied URL state on mount
 	const [city, setCity] = useState(appliedCity);
@@ -193,7 +196,8 @@ export function VenueSearch({
 		appliedFeeMax,
 		appliedAvailabilityDate,
 		appliedRadiusKm,
-		appliedUserCoords,
+		appliedLat,
+		appliedLng,
 	]);
 	const currentPage =
 		Number.isFinite(requestedPage) && requestedPage > 0 ? requestedPage : 1;
@@ -355,6 +359,12 @@ export function VenueSearch({
 	function closeFilters() {
 		updateRouteSearchParams((params) => {
 			params.delete("filters");
+		});
+	}
+
+	function openFilters() {
+		updateRouteSearchParams((params) => {
+			params.set("filters", "1");
 		});
 	}
 
@@ -538,18 +548,20 @@ export function VenueSearch({
 		});
 	}
 
-	const hasAdvancedFilters =
-		city.trim().length > 0 ||
-		postalCode.trim().length > 0 ||
-		radiusKm !== "none" ||
-		useMyLocation ||
-		availabilityDate.trim().length > 0 ||
-		selectedGenres.length > 0 ||
+	const hasAppliedAdvancedFilters =
+		appliedCity.trim().length > 0 ||
+		appliedPostalCode.trim().length > 0 ||
+		appliedRadiusKm !== "none" ||
+		appliedUserCoords != null ||
+		appliedAvailabilityDate.trim().length > 0 ||
+		(appliedGenresRaw
+			? appliedGenresRaw.split(",").filter(Boolean).length > 0
+			: false) ||
 		(activeTab === "venues"
-			? selectedVenueType !== "all" ||
-				budgetMin.trim().length > 0 ||
-				budgetMax.trim().length > 0
-			: feeMin.trim().length > 0 || feeMax.trim().length > 0);
+			? appliedVenueType !== "all" ||
+				appliedBudgetMin.trim().length > 0 ||
+				appliedBudgetMax.trim().length > 0
+			: appliedFeeMin.trim().length > 0 || appliedFeeMax.trim().length > 0);
 
 	const appliedFilterChips = [
 		...(normalizedQuery ? [`Recherche: ${normalizedQuery}`] : []),
@@ -598,8 +610,22 @@ export function VenueSearch({
 					← Retour au tableau de bord
 				</Link>
 			</p>
-			<div className="mb-4">
-				<NavbarSearch className="mx-0 max-w-none flex-none sm:mx-0" />
+			<div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+				<NavbarSearch className="mx-0 min-w-0 max-w-none flex-1 sm:mx-0" />
+				<Button
+					type="button"
+					variant={hasAppliedAdvancedFilters ? "default" : "outline"}
+					className="shrink-0"
+					onClick={openFilters}
+				>
+					<SlidersHorizontal className="h-4 w-4" />
+					Filtres
+					{hasAppliedAdvancedFilters ? (
+						<span className="ml-1 rounded-full bg-background/20 px-1.5 py-0.5 text-xs">
+							{appliedFilterChips.length}
+						</span>
+					) : null}
+				</Button>
 			</div>
 			<div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
 				<div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center">
@@ -624,7 +650,7 @@ export function VenueSearch({
 								</Button>
 							</>
 						) : null}
-						{hasAdvancedFilters || appliedFilterChips.length > 0 ? (
+						{hasAppliedAdvancedFilters || appliedFilterChips.length > 0 ? (
 							<Button
 								type="button"
 								size="sm"

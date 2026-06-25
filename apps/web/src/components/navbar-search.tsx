@@ -14,7 +14,7 @@ type NavbarSearchProps = {
 };
 
 /**
- * Barre de recherche globale (Epic 3) : envoie vers `/dashboard/search?q=…`
+ * Barre de recherche globale : envoie vers `/dashboard/search?q=…`
  * et reste synchronisée avec l’URL sur cette page.
  */
 export function NavbarSearch({
