@@ -58,7 +58,7 @@ export function MediaForm({ initialData, mode, onSuccess }: MediaFormProps) {
 						disabled
 					/>
 					<p className="text-muted-foreground text-sm">
-						Cette fonctionnalité arrive avec Epic 4.
+						Cette fonctionnalité arrive bientôt.
 					</p>
 				</div>
 			</div>

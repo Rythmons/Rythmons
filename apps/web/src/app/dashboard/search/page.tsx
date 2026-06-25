@@ -1,7 +1,20 @@
 import { db } from "@rythmons/db";
+import { Loader2 } from "lucide-react";
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
 import { getServerSession } from "@/lib/auth-server";
 import { VenueSearch } from "./venue-search";
+
+function VenueSearchFallback() {
+	return (
+		<div className="container mx-auto max-w-6xl px-4 py-5">
+			<div className="flex min-h-[240px] items-center justify-center text-muted-foreground">
+				<Loader2 className="h-5 w-5 animate-spin" />
+				<span className="ml-2 text-sm">Chargement de la recherche...</span>
+			</div>
+		</div>
+	);
+}
 
 async function canAccessVenueSearch(userId: string, role?: string | null) {
 	// If the user has no role yet, keep the search accessible (onboarding happens in UI).
@@ -50,13 +63,19 @@ export default async function VenueSearchPage() {
 	if (!canSearchVenues && !canSearchArtists) {
 		// Don't hard-block the feature: show the search page and let the UI explain
 		// what the user needs to do (create a profile / set a role) to use it.
-		return <VenueSearch canSearchVenues={false} canSearchArtists={false} />;
+		return (
+			<Suspense fallback={<VenueSearchFallback />}>
+				<VenueSearch canSearchVenues={false} canSearchArtists={false} />
+			</Suspense>
+		);
 	}
 
 	return (
-		<VenueSearch
-			canSearchVenues={canSearchVenues}
-			canSearchArtists={canSearchArtists}
-		/>
+		<Suspense fallback={<VenueSearchFallback />}>
+			<VenueSearch
+				canSearchVenues={canSearchVenues}
+				canSearchArtists={canSearchArtists}
+			/>
+		</Suspense>
 	);
 }

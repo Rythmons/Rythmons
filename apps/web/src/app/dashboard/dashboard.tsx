@@ -539,15 +539,6 @@ export default function Dashboard({ session }: { session: Session }) {
 									</p>
 								</div>
 							</div>
-							<Button
-								asChild
-								variant="outline"
-								className="border-white/20 text-white hover:bg-white/10"
-							>
-								<Link href="/dashboard/artist">
-									<Plus className="mr-2 h-4 w-4" /> Ajouter un profil artiste
-								</Link>
-							</Button>
 						</div>
 						{artists && artists.length > 0 ? (
 							<div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
